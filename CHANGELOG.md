@@ -1,3 +1,17 @@
+## 3.0.0-alpha.25 (2024-11-10)
+
+### 🩹 Fixes
+
+- **bridge:** enable flex wrapping for filter chips in BridgeDetails ([#95](https://github.com/t0bst4r/home-assistant-matter-hub/pull/95))
+- **climate:** map all neccessary properties from climate to thermostat ([72ab81e](https://github.com/t0bst4r/home-assistant-matter-hub/commit/72ab81e))
+- **light:** only round min and max values properly ([50394f6](https://github.com/t0bst4r/home-assistant-matter-hub/commit/50394f6))
+- **sensor:** fix temperature conversion ([59c17d8](https://github.com/t0bst4r/home-assistant-matter-hub/commit/59c17d8))
+
+### ❤️  Thank You
+
+- Jeroen Hof @Metal-Eagle
+- t0bst4r @t0bst4r
+
 ## 3.0.0-alpha.24 (2024-11-09)
 
 ### 🚀 Features
