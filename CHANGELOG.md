@@ -1,3 +1,13 @@
+## 3.0.0-alpha.26 (2024-11-10)
+
+### 🩹 Fixes
+
+- **climate:** use entity state value as fallback for all status reports ([20483e8](https://github.com/t0bst4r/home-assistant-matter-hub/commit/20483e8))
+
+### ❤️  Thank You
+
+- t0bst4r @t0bst4r
+
 ## 3.0.0-alpha.25 (2024-11-10)
 
 ### 🩹 Fixes
