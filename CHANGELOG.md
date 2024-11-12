@@ -1,3 +1,13 @@
+## 3.0.0-alpha.28 (2024-11-12)
+
+### 🩹 Fixes
+
+- another try to properly react to state events ([04ba690](https://github.com/t0bst4r/home-assistant-matter-hub/commit/04ba690))
+
+### ❤️  Thank You
+
+- t0bst4r @t0bst4r
+
 ## 3.0.0-alpha.27 (2024-11-12)
 
 ### 🚀 Features
