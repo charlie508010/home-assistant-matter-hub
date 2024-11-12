@@ -1,3 +1,19 @@
+## 3.0.0-alpha.27 (2024-11-12)
+
+### 🚀 Features
+
+- **basicInformation:** add change detection and reachable check to all devices ([d48c9b6](https://github.com/t0bst4r/home-assistant-matter-hub/commit/d48c9b6))
+- **cli:** added a config-option to provide a configuration file instead of CLI arguments ([b5325d6](https://github.com/t0bst4r/home-assistant-matter-hub/commit/b5325d6))
+
+### 🩹 Fixes
+
+- **basicInformation:** reduce the hash for long names to 4 chars ([1212ad3](https://github.com/t0bst4r/home-assistant-matter-hub/commit/1212ad3))
+- **basicInformation:** use the entity_id as name, if name is missing ([d4baf5c](https://github.com/t0bst4r/home-assistant-matter-hub/commit/d4baf5c))
+
+### ❤️  Thank You
+
+- t0bst4r @t0bst4r
+
 ## 3.0.0-alpha.26 (2024-11-10)
 
 ### 🩹 Fixes
