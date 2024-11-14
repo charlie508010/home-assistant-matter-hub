@@ -1,3 +1,14 @@
+## 3.0.0-alpha.31 (2024-11-14)
+
+### 🩹 Fixes
+
+- disable matter environment parsing ([effe5a4](https://github.com/t0bst4r/home-assistant-matter-hub/commit/effe5a4))
+- **light:** default hue and saturation to 0 when not available ([306bf5a](https://github.com/t0bst4r/home-assistant-matter-hub/commit/306bf5a))
+
+### ❤️  Thank You
+
+- t0bst4r @t0bst4r
+
 ## 3.0.0-alpha.30 (2024-11-14)
 
 ### 🩹 Fixes
