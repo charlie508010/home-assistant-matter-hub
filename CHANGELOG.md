@@ -1,3 +1,13 @@
+## 3.0.0-alpha.30 (2024-11-14)
+
+### 🩹 Fixes
+
+- minor patch in state management ([cb7607e](https://github.com/t0bst4r/home-assistant-matter-hub/commit/cb7607e))
+
+### ❤️  Thank You
+
+- t0bst4r @t0bst4r
+
 ## 3.0.0-alpha.29 (2024-11-14)
 
 ### 🩹 Fixes
