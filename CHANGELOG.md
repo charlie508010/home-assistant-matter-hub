@@ -1,3 +1,13 @@
+## 3.0.0-alpha.29 (2024-11-14)
+
+### 🩹 Fixes
+
+- refactor all clusters to use reactTo and pessimistic state changes ([cd00915](https://github.com/t0bst4r/home-assistant-matter-hub/commit/cd00915))
+
+### ❤️  Thank You
+
+- t0bst4r @t0bst4r
+
 ## 3.0.0-alpha.28 (2024-11-12)
 
 ### 🩹 Fixes
