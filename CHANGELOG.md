@@ -1,3 +1,13 @@
+## 3.0.0-alpha.32 (2024-11-15)
+
+### 🩹 Fixes
+
+- **lights:** remove old and wrong properties from lights ([0c02a6c](https://github.com/t0bst4r/home-assistant-matter-hub/commit/0c02a6c))
+
+### ❤️  Thank You
+
+- t0bst4r @t0bst4r
+
 ## 3.0.0-alpha.31 (2024-11-14)
 
 ### 🩹 Fixes
