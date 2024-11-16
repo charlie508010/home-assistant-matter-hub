@@ -1,3 +1,19 @@
+## 3.0.0-alpha.34 (2024-11-16)
+
+### 🚀 Features
+
+- **humidifer:** add support for humidifiers mapped to PlugInUnits ([dd7fe69](https://github.com/t0bst4r/home-assistant-matter-hub/commit/dd7fe69))
+- **media_player:** add support for media_players as OnOffPluginUnits ([59f081c](https://github.com/t0bst4r/home-assistant-matter-hub/commit/59f081c))
+
+### 🩹 Fixes
+
+- **ci:** automatic releases for the addon repository including changelog ([4559883](https://github.com/t0bst4r/home-assistant-matter-hub/commit/4559883))
+- **cover:** allow covers to be not position aware ([7af0298](https://github.com/t0bst4r/home-assistant-matter-hub/commit/7af0298))
+
+### ❤️  Thank You
+
+- t0bst4r @t0bst4r
+
 ## 3.0.0-alpha.33 (2024-11-16)
 
 ### 🩹 Fixes
