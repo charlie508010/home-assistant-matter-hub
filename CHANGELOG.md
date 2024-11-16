@@ -1,3 +1,15 @@
+## 3.0.0-alpha.33 (2024-11-16)
+
+### 🩹 Fixes
+
+- **climate:** remove optional temperature cluster ([#147](https://github.com/t0bst4r/home-assistant-matter-hub/pull/147))
+- **cover:** do not use configStatus to control lift directions ([de7aae8](https://github.com/t0bst4r/home-assistant-matter-hub/commit/de7aae8))
+
+### ❤️  Thank You
+
+- Guillaume S @KipK
+- t0bst4r @t0bst4r
+
 ## 3.0.0-alpha.32 (2024-11-15)
 
 ### 🩹 Fixes
