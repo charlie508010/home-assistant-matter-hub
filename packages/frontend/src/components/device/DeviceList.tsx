@@ -1,6 +1,5 @@
 import { DeviceData } from "@home-assistant-matter-hub/common";
 import {
-  Chip,
   List,
   ListItem,
   Stack,
@@ -19,11 +18,9 @@ import Typography from "@mui/material/Typography";
 
 export interface DeviceListProps {
   readonly devices: DeviceData[];
-  readonly timer?: number;
-  readonly onRefresh?: () => void;
 }
 
-export const DeviceList = ({ devices, timer, onRefresh }: DeviceListProps) => {
+export const DeviceList = ({ devices }: DeviceListProps) => {
   const sortedDevices = useMemo(
     () => [...devices].sort((a, b) => a.entityId.localeCompare(b.entityId)),
     [devices],
@@ -36,14 +33,7 @@ export const DeviceList = ({ devices, timer, onRefresh }: DeviceListProps) => {
             <TableCell size="small">Entity ID</TableCell>
             <TableCell>Name</TableCell>
             <TableCell>Endpoint</TableCell>
-            <TableCell>
-              <Box display="flex" justifyContent="space-between">
-                <div>State</div>
-                {timer != null && (
-                  <Chip onClick={onRefresh} label={(timer / 1000).toFixed(1)} />
-                )}
-              </Box>
-            </TableCell>
+            <TableCell>State</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
