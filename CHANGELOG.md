@@ -1,3 +1,13 @@
+## 3.0.0-alpha.36 (2024-11-16)
+
+### 🩹 Fixes
+
+- **binary_sensor:** made config of boolean state cluster optional ([0710d89](https://github.com/t0bst4r/home-assistant-matter-hub/commit/0710d89))
+
+### ❤️  Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.35 (2024-11-16)
 
 ### 🚀 Features
