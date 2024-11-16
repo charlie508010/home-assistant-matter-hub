@@ -1,3 +1,18 @@
+## 3.0.0-alpha.35 (2024-11-16)
+
+### 🚀 Features
+
+- **binary_sensor:** add support for water leak detector ([2f8707a](https://github.com/t0bst4r/home-assistant-matter-hub/commit/2f8707a))
+
+### 🩹 Fixes
+
+- **ci:** add repository to repository_dispatch ([28d34b0](https://github.com/t0bst4r/home-assistant-matter-hub/commit/28d34b0))
+- **cover:** remove unallowed properties from covers without positions ([241206c](https://github.com/t0bst4r/home-assistant-matter-hub/commit/241206c))
+
+### ❤️  Thank You
+
+- t0bst4r @t0bst4r
+
 ## 3.0.0-alpha.34 (2024-11-16)
 
 ### 🚀 Features
