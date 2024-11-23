@@ -1,3 +1,14 @@
+## 3.0.0-alpha.40 (2024-11-23)
+
+### 🩹 Fixes
+
+- trigger new release ([d00b83f](https://github.com/t0bst4r/home-assistant-matter-hub/commit/d00b83f))
+- revert matter.js and cleanup dependencies ([89507ce](https://github.com/t0bst4r/home-assistant-matter-hub/commit/89507ce))
+
+### ❤️  Thank You
+
+- t0bst4r @t0bst4r
+
 ## 3.0.0-alpha.39 (2024-11-23)
 
 ### 🩹 Fixes
