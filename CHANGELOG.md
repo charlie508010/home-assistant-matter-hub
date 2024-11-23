@@ -1,3 +1,13 @@
+## 3.0.0-alpha.39 (2024-11-23)
+
+### 🩹 Fixes
+
+- revert matter.js to 0.11.5-alpha.0-20241121-c31bc6998 ([a52a66e](https://github.com/t0bst4r/home-assistant-matter-hub/commit/a52a66e))
+
+### ❤️  Thank You
+
+- t0bst4r @t0bst4r
+
 ## 3.0.0-alpha.38 (2024-11-23)
 
 ### 🩹 Fixes
