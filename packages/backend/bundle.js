@@ -38,5 +38,6 @@ async function buildBackend() {
     "bootstrap.mts",
   );
   fs.writeFileSync(path.resolve(dist, "bootstrap.js"), bootstrapFile);
-  process.stdout.write("Done\n");
+  const stat = fs.statSync(path.resolve(dist, "cli.js"));
+  process.stdout.write(`Done (${stat.size / 1024} KB)\n`);
 }
