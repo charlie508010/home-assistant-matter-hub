@@ -1,3 +1,16 @@
+## 3.0.0-alpha.38 (2024-11-23)
+
+### 🩹 Fixes
+
+- only hash labels larger than max length ([3e71fb3](https://github.com/t0bst4r/home-assistant-matter-hub/commit/3e71fb3))
+- change fallthrough matcher after migrating to express@5 ([620eddd](https://github.com/t0bst4r/home-assistant-matter-hub/commit/620eddd))
+- **cover:** remove absolute position and add operational status ([5e37273](https://github.com/t0bst4r/home-assistant-matter-hub/commit/5e37273))
+
+### ❤️  Thank You
+
+- Avi Miller @Djelibeybi
+- t0bst4r @t0bst4r
+
 ## 3.0.0-alpha.37 (2024-11-22)
 
 ### 🚀 Features
