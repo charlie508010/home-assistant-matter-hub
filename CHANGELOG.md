@@ -1,3 +1,20 @@
+## 3.0.0-alpha.41 (2024-11-27)
+
+### 🚀 Features
+
+- add a customized app logo ([#202](https://github.com/t0bst4r/home-assistant-matter-hub/pull/202))
+- **frontend:** add app logo to header ([f9d8021](https://github.com/t0bst4r/home-assistant-matter-hub/commit/f9d8021))
+
+### 🩹 Fixes
+
+- add more details when home assistant connection fails ([963d3b2](https://github.com/t0bst4r/home-assistant-matter-hub/commit/963d3b2))
+- **frontend:** add margin to the commissioning qr-code ([#198](https://github.com/t0bst4r/home-assistant-matter-hub/pull/198))
+
+### ❤️ Thank You
+
+- adrisg
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.40 (2024-11-23)
 
 ### 🩹 Fixes
