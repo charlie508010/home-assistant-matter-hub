@@ -6,6 +6,7 @@ import {
 import type { HassServiceTarget } from "home-assistant-js-websocket/dist/types.js";
 import { AsyncObservable } from "../../utils/async-observable.js";
 import { HomeAssistantActions } from "../../home-assistant/home-assistant-actions.js";
+import AsyncLock from "async-lock";
 
 export class HomeAssistantEntityBehavior extends Behavior {
   static override readonly id = ClusterId.homeAssistantEntity;
@@ -31,13 +32,17 @@ export class HomeAssistantEntityBehavior extends Behavior {
     target: HassServiceTarget,
     returnResponse?: boolean,
   ): Promise<T> {
+    const lock = this.env.get(AsyncLock);
     const actions = this.env.get(HomeAssistantActions);
-    return actions.callAction(domain, action, data, target, returnResponse);
+    return lock.acquire<T>(this.state.lockKey, async () => {
+      return actions.callAction(domain, action, data, target, returnResponse);
+    });
   }
 }
 
 export namespace HomeAssistantEntityBehavior {
   export class State {
+    lockKey!: string;
     entity!: HomeAssistantEntityInformation;
   }
 
