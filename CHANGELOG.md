@@ -1,3 +1,13 @@
+## 3.0.0-alpha.43 (2024-11-28)
+
+### 🩹 Fixes
+
+- **scene:** default to off state to be able to turn it on ([1af9513](https://github.com/t0bst4r/home-assistant-matter-hub/commit/1af9513))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.42 (2024-11-28)
 
 ### 🚀 Features
