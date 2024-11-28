@@ -1,3 +1,22 @@
+## 3.0.0-alpha.42 (2024-11-28)
+
+### 🚀 Features
+
+- **frontend:** New form-based bridge configuration ([#197](https://github.com/t0bst4r/home-assistant-matter-hub/pull/197))
+- **media_player:** expose media_player as speaker device if feature flag is activated ([#156](https://github.com/t0bst4r/home-assistant-matter-hub/pull/156))
+
+### 🩹 Fixes
+
+- prevent race conditions when home assistant responds faster than matter ([#211](https://github.com/t0bst4r/home-assistant-matter-hub/pull/211))
+- **frontend:** add copy-to-clipboard action to cluster states ([f79ef69](https://github.com/t0bst4r/home-assistant-matter-hub/commit/f79ef69))
+
+### ❤️ Thank You
+
+- adrisg
+- Kenny Levinsen @kennylevinsen
+- Maxime Flamant @maximeflamant
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.41 (2024-11-27)
 
 ### 🚀 Features
