@@ -1,3 +1,20 @@
+## 3.0.0-alpha.44 (2024-11-29)
+
+### 🚀 Features
+
+- add base url and proxy detection ([bbce762](https://github.com/t0bst4r/home-assistant-matter-hub/commit/bbce762))
+- **cli:** allow explicit whitelisting of ip addresses for http ([dee117e](https://github.com/t0bst4r/home-assistant-matter-hub/commit/dee117e))
+
+### 🩹 Fixes
+
+- prevent edge cases where storage gets deleted ([3bdc6ee](https://github.com/t0bst4r/home-assistant-matter-hub/commit/3bdc6ee))
+- built clean update mechanism to prevent devices to get re-created ([26dc0be](https://github.com/t0bst4r/home-assistant-matter-hub/commit/26dc0be))
+- **frontend:** add base to index.html ([75137fe](https://github.com/t0bst4r/home-assistant-matter-hub/commit/75137fe))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.43 (2024-11-28)
 
 ### 🩹 Fixes
