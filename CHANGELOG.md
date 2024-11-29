@@ -1,3 +1,13 @@
+## 3.0.0-alpha.45 (2024-11-29)
+
+### 🩹 Fixes
+
+- **frontend:** adjust base url to prevent broken urls ([370d25b](https://github.com/t0bst4r/home-assistant-matter-hub/commit/370d25b))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.44 (2024-11-29)
 
 ### 🚀 Features
