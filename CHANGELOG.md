@@ -1,3 +1,20 @@
+## 3.0.0-alpha.49 (2024-11-30)
+
+### 🚀 Features
+
+- **frontend:** replace brand icons and add samsung ([b3991e2](https://github.com/t0bst4r/home-assistant-matter-hub/commit/b3991e2))
+
+### 🩹 Fixes
+
+- **deps:** update matter.js to v0.11.8 ([8fe9509](https://github.com/t0bst4r/home-assistant-matter-hub/commit/8fe9509))
+- **frontend:** Add Amazon and Apple vendor IDs ([a244855](https://github.com/t0bst4r/home-assistant-matter-hub/commit/a244855))
+- **lights:** preserve last level control state ([6991d9b](https://github.com/t0bst4r/home-assistant-matter-hub/commit/6991d9b))
+
+### ❤️ Thank You
+
+- Kenny Levinsen @kennylevinsen
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.48 (2024-11-30)
 
 ### 🩹 Fixes
