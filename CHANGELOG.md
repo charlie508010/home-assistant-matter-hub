@@ -1,3 +1,13 @@
+## 3.0.0-alpha.46 (2024-11-30)
+
+### 🚀 Features
+
+- adjust proxy request handling and update documentation ([f6bdd20](https://github.com/t0bst4r/home-assistant-matter-hub/commit/f6bdd20))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.45 (2024-11-29)
 
 ### 🩹 Fixes
