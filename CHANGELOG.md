@@ -1,3 +1,17 @@
+## 3.0.0-alpha.47 (2024-11-30)
+
+### 🚀 Features
+
+- ⚠️  add IP whitelisting to prevent unauthorized access ([916b3ae](https://github.com/t0bst4r/home-assistant-matter-hub/commit/916b3ae))
+
+### ⚠️  Breaking Changes
+
+- The native addon (HAOS) will use Home Assistant ingress from now on. Direct access via the port will no longer be possible.
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.46 (2024-11-30)
 
 ### 🚀 Features
