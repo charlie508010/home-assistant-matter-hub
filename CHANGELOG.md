@@ -1,3 +1,18 @@
+## 3.0.0-alpha.50 (2024-12-03)
+
+### 🚀 Features
+
+- **frontend:** add details how to connect multiple fabrics ([1b717ac](https://github.com/t0bst4r/home-assistant-matter-hub/commit/1b717ac))
+
+### 🩹 Fixes
+
+- **frontend:** add explicit main page to not prevent history-back ([ed13eb8](https://github.com/t0bst4r/home-assistant-matter-hub/commit/ed13eb8))
+- **matter:** finish transaction before calling home assistant services ([f66372c](https://github.com/t0bst4r/home-assistant-matter-hub/commit/f66372c))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.49 (2024-11-30)
 
 ### 🚀 Features
