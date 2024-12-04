@@ -1,3 +1,16 @@
+## 3.0.0-alpha.51 (2024-12-04)
+
+### 🩹 Fixes
+
+- **color-control:** Propagate colorMode ([ce5ced4](https://github.com/t0bst4r/home-assistant-matter-hub/commit/ce5ced4))
+- **frontend:** Add second Samsung vendor ID ([#256](https://github.com/t0bst4r/home-assistant-matter-hub/pull/256))
+- **thermostat:** Compare setpoint with target temperature ([#254](https://github.com/t0bst4r/home-assistant-matter-hub/pull/254))
+- **thermostat:** Skip temp commands if state is unavailable ([#255](https://github.com/t0bst4r/home-assistant-matter-hub/pull/255))
+
+### ❤️ Thank You
+
+- Kenny Levinsen @kennylevinsen
+
 ## 3.0.0-alpha.50 (2024-12-03)
 
 ### 🚀 Features
