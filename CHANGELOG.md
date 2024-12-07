@@ -1,3 +1,14 @@
+## 3.0.0-alpha.52 (2024-12-07)
+
+### 🩹 Fixes
+
+- **basic-information:** add vendor id and names to all devices ([d3e4703](https://github.com/t0bst4r/home-assistant-matter-hub/commit/d3e4703))
+- **thermostat:** set thermostatRunningState more explicit ([8617c88](https://github.com/t0bst4r/home-assistant-matter-hub/commit/8617c88))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.51 (2024-12-04)
 
 ### 🩹 Fixes
