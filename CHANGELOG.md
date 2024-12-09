@@ -1,3 +1,13 @@
+## 3.0.0-alpha.53 (2024-12-09)
+
+### 🚀 Features
+
+- **fan-control:** Implement fan control cluster ([#258](https://github.com/t0bst4r/home-assistant-matter-hub/pull/258))
+
+### ❤️ Thank You
+
+- Kenny Levinsen @kennylevinsen
+
 ## 3.0.0-alpha.52 (2024-12-07)
 
 ### 🩹 Fixes
