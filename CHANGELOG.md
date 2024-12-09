@@ -1,3 +1,13 @@
+## 3.0.0-alpha.54 (2024-12-09)
+
+### 🩹 Fixes
+
+- **fan-control:** always set fan mode sequence ([57803ca](https://github.com/t0bst4r/home-assistant-matter-hub/commit/57803ca))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.53 (2024-12-09)
 
 ### 🚀 Features
