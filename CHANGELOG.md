@@ -1,3 +1,18 @@
+## 3.0.0-alpha.55 (2024-12-15)
+
+### 🩹 Fixes
+
+- add debug logging when home assistant actions fail ([d77826e](https://github.com/t0bst4r/home-assistant-matter-hub/commit/d77826e))
+- ⚠️  **thermostat:** refactor how states are synchronized ([551da69](https://github.com/t0bst4r/home-assistant-matter-hub/commit/551da69))
+
+### ⚠️  Breaking Changes
+
+- **thermostat:** Auto mode from Home Assistant is no longer supported for climates / thermostats. It just doesn't fit into the Matter specification.
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.54 (2024-12-09)
 
 ### 🩹 Fixes
