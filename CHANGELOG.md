@@ -1,3 +1,21 @@
+## 3.0.0-alpha.56 (2024-12-19)
+
+### 🚀 Features
+
+- allow include and exclude by area ([a3ef4a6](https://github.com/t0bst4r/home-assistant-matter-hub/commit/a3ef4a6))
+- **basic-information:** add serial number to devices ([7c37dc1](https://github.com/t0bst4r/home-assistant-matter-hub/commit/7c37dc1))
+- **input_button:** add support for input_button entities ([7b38ad9](https://github.com/t0bst4r/home-assistant-matter-hub/commit/7b38ad9))
+
+### 🩹 Fixes
+
+- **lights:** enable features for on/off and level control ([e89cb67](https://github.com/t0bst4r/home-assistant-matter-hub/commit/e89cb67))
+- **on-off:** allow sending on and off commands, when already on or off ([898ba0d](https://github.com/t0bst4r/home-assistant-matter-hub/commit/898ba0d))
+
+### ❤️ Thank You
+
+- Timo Christeleit
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.55 (2024-12-15)
 
 ### 🩹 Fixes
