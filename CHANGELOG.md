@@ -1,3 +1,22 @@
+## 3.0.0-alpha.57 (2024-12-20)
+
+### 🚀 Features
+
+- ⚠️  Taking a Holiday Break – See You in the New Year! ([86bea0a](https://github.com/t0bst4r/home-assistant-matter-hub/commit/86bea0a))
+
+### 🩹 Fixes
+
+- **light:** allow adjusting min and max level if value is out of bounds ([a95dbda](https://github.com/t0bst4r/home-assistant-matter-hub/commit/a95dbda))
+- **script, automation, scene:** explicit call the right commands to activate scripts, automations, and scenes ([66f41cd](https://github.com/t0bst4r/home-assistant-matter-hub/commit/66f41cd))
+
+### ⚠️  Breaking Changes
+
+- As the holiday season approaches and my main job keeps me busy, I haven’t been able to dedicate as much time to this project as I’d like. Over the holidays, I’ll be taking a well-deserved break to recharge. That said, if an opportunity arises, I’ll try to answer a few questions or review a pull request via my phone. I’m looking forward to returning refreshed and motivated in the new year. Thank you for your understanding and continued support! Happy holidays!
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.56 (2024-12-19)
 
 ### 🚀 Features
