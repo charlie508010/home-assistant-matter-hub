@@ -1,3 +1,19 @@
+## 3.0.0-alpha.58 (2024-12-28)
+
+### 🚀 Features
+
+- **cover:** allow tilt feature ([9506263](https://github.com/t0bst4r/home-assistant-matter-hub/commit/9506263))
+
+### 🩹 Fixes
+
+- automatically retry home assistant connection on startup ([47979d9](https://github.com/t0bst4r/home-assistant-matter-hub/commit/47979d9))
+- **lights:** auto adjust min and max mireds when value is out of bounds ([83a6fa0](https://github.com/t0bst4r/home-assistant-matter-hub/commit/83a6fa0))
+- **thermostat:** consider the default unit of measurements from home assistant for temperatures ([e9aeb1a](https://github.com/t0bst4r/home-assistant-matter-hub/commit/e9aeb1a))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.57 (2024-12-20)
 
 ### 🚀 Features
