@@ -12,5 +12,9 @@ export const ColorTemperatureLightType = Device.with(
   HomeAssistantEntityBehavior,
   LightOnOffServer,
   LightLevelControlServer,
-  ColorControlServer.with("ColorTemperature"),
+  ColorControlServer.with("ColorTemperature").set({
+    config: {
+      expandMinMaxTemperature: true,
+    },
+  }),
 );

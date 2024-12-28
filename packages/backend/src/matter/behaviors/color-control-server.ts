@@ -13,6 +13,10 @@ import { applyPatchState } from "../../utils/apply-patch-state.js";
 
 const FeaturedBase = Base.with("ColorTemperature", "HueSaturation");
 
+export interface ColorControlConfig {
+  expandMinMaxTemperature?: boolean;
+}
+
 export class ColorControlServerBase extends FeaturedBase {
   declare state: ColorControlServerBase.State;
 
@@ -25,8 +29,13 @@ export class ColorControlServerBase extends FeaturedBase {
 
   private update(entity: HomeAssistantEntityInformation) {
     const attributes = entity.state.attributes as LightDeviceAttributes;
-    const minKelvin = attributes.min_color_temp_kelvin ?? 1500;
-    const maxKelvin = attributes.max_color_temp_kelvin ?? 8000;
+    const currentKelvin = attributes.color_temp_kelvin;
+    let minKelvin = attributes.min_color_temp_kelvin ?? 1500;
+    let maxKelvin = attributes.max_color_temp_kelvin ?? 8000;
+    if (this.state.config?.expandMinMaxTemperature == true) {
+      minKelvin = Math.min(minKelvin, currentKelvin ?? Infinity);
+      maxKelvin = Math.max(maxKelvin, currentKelvin ?? -Infinity);
+    }
     const [hue, saturation] = this.getMatterColor(entity.state) ?? [0, 0];
     applyPatchState(this.state, {
       colorMode: this.getMatterColorMode(attributes.color_mode),
@@ -49,12 +58,10 @@ export class ColorControlServerBase extends FeaturedBase {
             ),
             startUpColorTemperatureMireds:
               ColorConverter.temperatureKelvinToMireds(
-                attributes.color_temp_kelvin ?? maxKelvin,
+                currentKelvin ?? maxKelvin,
               ),
-            colorTemperatureMireds: attributes.color_temp_kelvin
-              ? ColorConverter.temperatureKelvinToMireds(
-                  attributes.color_temp_kelvin,
-                )
+            colorTemperatureMireds: currentKelvin
+              ? ColorConverter.temperatureKelvinToMireds(currentKelvin)
               : undefined,
           }
         : {}),
@@ -153,7 +160,9 @@ export class ColorControlServerBase extends FeaturedBase {
 }
 
 export namespace ColorControlServerBase {
-  export class State extends FeaturedBase.State {}
+  export class State extends FeaturedBase.State {
+    config?: ColorControlConfig;
+  }
 }
 
 export class ColorControlServer extends ColorControlServerBase.for(
