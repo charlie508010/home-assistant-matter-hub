@@ -6,9 +6,6 @@ on:
 permissions:
   contents: read
 
-env:
-  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_PR_TOKEN }}
-
 jobs:
   main:
     runs-on: ubuntu-latest
@@ -20,6 +17,11 @@ jobs:
         with:
           node-version: 20
           cache: "npm"
+      - name: NX cache
+        uses: actions/cache@v4
+        with:
+          path: .nx
+          key: ${{ runner.os }}-nx
 
       - run: npm ci
 

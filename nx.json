@@ -39,6 +39,5 @@
     {
       "plugin": "@nx/js"
     }
-  ],
-  "nxCloudId": "6740844a1ef91af262ecd0d2"
+  ]
 }
