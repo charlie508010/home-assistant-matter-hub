@@ -1,3 +1,24 @@
+## 3.0.0-alpha.59 (2025-01-06)
+
+### 🚀 Features
+
+- add descriptions for docker-compose ([7b304fd](https://github.com/t0bst4r/home-assistant-matter-hub/commit/7b304fd))
+- allow filtering by entity_category ([fc83505](https://github.com/t0bst4r/home-assistant-matter-hub/commit/fc83505))
+- **cover:** allow covers to mimic HA behaviors ([5e2907a](https://github.com/t0bst4r/home-assistant-matter-hub/commit/5e2907a))
+- **media_player:** source selection, mute and volume fixes ([#363](https://github.com/t0bst4r/home-assistant-matter-hub/pull/363))
+
+### 🩹 Fixes
+
+- **basic-information:** use proper device information instead of mocked values ([d33c6e8](https://github.com/t0bst4r/home-assistant-matter-hub/commit/d33c6e8))
+- **colorControl:** validate min and max mireds to stay in bounds ([2e10106](https://github.com/t0bst4r/home-assistant-matter-hub/commit/2e10106))
+- **input_button:** turn the matter device 'on' for a short time ([57465a6](https://github.com/t0bst4r/home-assistant-matter-hub/commit/57465a6))
+
+### ❤️ Thank You
+
+- Kenny Levinsen @kennylevinsen
+- Ricardo Hermida Ruiz @rhruiz
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.58 (2024-12-28)
 
 ### 🚀 Features
