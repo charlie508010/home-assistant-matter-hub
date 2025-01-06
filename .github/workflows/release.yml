@@ -80,7 +80,7 @@ jobs:
 
       - name: Prettier
         if: steps.version.outputs.release-required == 'yes'
-        run: npx nx-cloud record -- npm run prettier
+        run: npm run prettier
 
       - name: Commit, tag and push
         if: steps.version.outputs.release-required == 'yes'
