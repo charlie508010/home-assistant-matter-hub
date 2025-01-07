@@ -1,3 +1,16 @@
+## 3.0.0-alpha.60 (2025-01-07)
+
+### 🩹 Fixes
+
+- **basic-information:** prevent empty values to fail initialization ([73185d5](https://github.com/t0bst4r/home-assistant-matter-hub/commit/73185d5))
+- **cover:** use compatible cover types for tilt only or both ([a28ee12](https://github.com/t0bst4r/home-assistant-matter-hub/commit/a28ee12))
+- **lights:** proper boundaries for color temperature ([784f186](https://github.com/t0bst4r/home-assistant-matter-hub/commit/784f186))
+- **media_player:** set default input when no input could be determined ([0830f18](https://github.com/t0bst4r/home-assistant-matter-hub/commit/0830f18))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.59 (2025-01-06)
 
 ### 🚀 Features
