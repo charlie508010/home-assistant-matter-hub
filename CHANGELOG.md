@@ -1,3 +1,19 @@
+## 3.0.0-alpha.61 (2025-01-08)
+
+### 🚀 Features
+
+- Use device area if available for entities that have no area directly set ([#403](https://github.com/t0bst4r/home-assistant-matter-hub/pull/403))
+
+### 🩹 Fixes
+
+- add extra logging when a device cannot be created ([fc0a2f0](https://github.com/t0bst4r/home-assistant-matter-hub/commit/fc0a2f0))
+- **basic-information:** ensure variables are actually strings ([dc5f700](https://github.com/t0bst4r/home-assistant-matter-hub/commit/dc5f700))
+
+### ❤️ Thank You
+
+- Ricardo Hermida Ruiz @rhruiz
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.60 (2025-01-07)
 
 ### 🩹 Fixes
