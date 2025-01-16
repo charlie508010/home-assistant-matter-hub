@@ -1,3 +1,18 @@
+## 3.0.0-alpha.62 (2025-01-16)
+
+### 🚀 Features
+
+- **lights:** in general support color control for all lights having hs_color ([91a269d](https://github.com/t0bst4r/home-assistant-matter-hub/commit/91a269d))
+
+### 🩹 Fixes
+
+- add further null checks to prevent bridge from failing ([b8e55c4](https://github.com/t0bst4r/home-assistant-matter-hub/commit/b8e55c4))
+- **light:** swap min and max temperature when mixed up in the entity ([bcd84cd](https://github.com/t0bst4r/home-assistant-matter-hub/commit/bcd84cd))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.61 (2025-01-08)
 
 ### 🚀 Features
