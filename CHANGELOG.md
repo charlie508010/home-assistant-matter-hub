@@ -1,3 +1,17 @@
+## 3.0.0-alpha.63 (2025-01-20)
+
+### 🩹 Fixes
+
+- **cover:** use compatible endProductType for tilt and lift ([38c9731](https://github.com/t0bst4r/home-assistant-matter-hub/commit/38c9731))
+- **lights:** apply rounding to brightness and color calculations ([f72cd9a](https://github.com/t0bst4r/home-assistant-matter-hub/commit/f72cd9a))
+- **thermostat:** Check if setting temperature range is supported ([#453](https://github.com/t0bst4r/home-assistant-matter-hub/pull/453))
+
+### ❤️ Thank You
+
+- Kenny Levinsen @kennylevinsen
+- sparkym3
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.62 (2025-01-16)
 
 ### 🚀 Features
