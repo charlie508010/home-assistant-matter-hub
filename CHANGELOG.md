@@ -1,3 +1,13 @@
+## 3.0.0-alpha.66 (2025-01-25)
+
+### 🩹 Fixes
+
+- **docs:** add base-url ([7d8e4a0](https://github.com/t0bst4r/home-assistant-matter-hub/commit/7d8e4a0))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.65 (2025-01-25)
 
 ### 🚀 Features
