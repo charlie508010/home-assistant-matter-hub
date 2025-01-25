@@ -1,3 +1,13 @@
+## 3.0.0-alpha.65 (2025-01-25)
+
+### 🚀 Features
+
+- link to new documentation ([4419a90](https://github.com/t0bst4r/home-assistant-matter-hub/commit/4419a90))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.64 (2025-01-25)
 
 ### 🚀 Features
