@@ -5,6 +5,7 @@
   "packageRules": [
     {
       "matchPackageNames": ["*"],
+      "matchUpdateTypes": ["major", "minor", "patch"],
       "groupName": "all {{manager}} dependencies"
     },
     {
