@@ -1,3 +1,25 @@
+## 3.0.0-alpha.64 (2025-01-25)
+
+### 🚀 Features
+
+- handle button entity the same way as input_button ([#480](https://github.com/t0bst4r/home-assistant-matter-hub/pull/480))
+- **frontend:** refactored menu structure ([ab40cbf](https://github.com/t0bst4r/home-assistant-matter-hub/commit/ab40cbf))
+
+### 🩹 Fixes
+
+- minor frontend fixes ([97aa72a](https://github.com/t0bst4r/home-assistant-matter-hub/commit/97aa72a))
+- ⚠️  **basic-information-server:** Use device vendor ([#472](https://github.com/t0bst4r/home-assistant-matter-hub/pull/472))
+
+### ⚠️  Breaking Changes
+
+- **basic-information-server:** It can happen, that your controller (Alexa, Google Home, etc.) doesn't match your existing devices and re-pairs all of them. In that case, you'll need to assign the devices to rooms and automations again."
+
+### ❤️ Thank You
+
+- Kenny Levinsen @kennylevinsen
+- Tobias Glatthar @t0bst4r
+- zepab
+
 ## 3.0.0-alpha.63 (2025-01-20)
 
 ### 🩹 Fixes
