@@ -1,3 +1,13 @@
+## 3.0.0-alpha.67 (2025-02-03)
+
+### 🩹 Fixes
+
+- improve logging to debug inclusion and exclusion ([f055652](https://github.com/t0bst4r/home-assistant-matter-hub/commit/f055652))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.66 (2025-01-25)
 
 ### 🩹 Fixes
