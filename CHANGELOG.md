@@ -1,3 +1,17 @@
+## 3.0.0-alpha.68 (2025-02-06)
+
+### 🐛 Fixes
+
+- bumb matter.js to 0.12.3 ([a1266d9](https://github.com/t0bst4r/home-assistant-matter-hub/commit/a1266d9))
+
+### ℹ️ Other Notes
+
+- HUGE THANKS to @Apollon77 and @kennylevinsen ([acc6549](https://github.com/t0bst4r/home-assistant-matter-hub/commit/acc6549))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.67 (2025-02-03)
 
 ### 🩹 Fixes
