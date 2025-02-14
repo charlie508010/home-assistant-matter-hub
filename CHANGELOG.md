@@ -1,3 +1,32 @@
+## 3.0.0-alpha.69 (2025-02-14)
+
+### 🚀 Features
+
+- allow specifying basic authentication ([4a40caf](https://github.com/t0bst4r/home-assistant-matter-hub/commit/4a40caf))
+- allow including hidden entities with a feature flag ([03be49d](https://github.com/t0bst4r/home-assistant-matter-hub/commit/03be49d))
+- pre-build the addon docker image to increase installation speed and reduce backup size ([179f266](https://github.com/t0bst4r/home-assistant-matter-hub/commit/179f266))
+- **light:** add support for RGBW and RGBWW lights ([e66a180](https://github.com/t0bst4r/home-assistant-matter-hub/commit/e66a180))
+
+### 🐛 Fixes
+
+- properly trap process signals and shutdown the application ([69c1175](https://github.com/t0bst4r/home-assistant-matter-hub/commit/69c1175))
+- **input_button:** use correct action to trigger the button ([936ac64](https://github.com/t0bst4r/home-assistant-matter-hub/commit/936ac64))
+- **storage:** use multi-file storage to prevent broken storage files due to race conditions ([98179e6](https://github.com/t0bst4r/home-assistant-matter-hub/commit/98179e6))
+- **switch:** show switches as 'off' if they are unavailable ([5b799fb](https://github.com/t0bst4r/home-assistant-matter-hub/commit/5b799fb))
+- **thermostat:** add additional logging when unit of measurement changes ([90b625b](https://github.com/t0bst4r/home-assistant-matter-hub/commit/90b625b))
+
+### 📚 Documentation Changes
+
+- explain why auto mode is not supported for climates ([dc40845](https://github.com/t0bst4r/home-assistant-matter-hub/commit/dc40845))
+
+### 🚧 Chores
+
+- upgrade all npm dependencies ([6d8cb7e](https://github.com/t0bst4r/home-assistant-matter-hub/commit/6d8cb7e))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.68 (2025-02-06)
 
 ### 🐛 Fixes
