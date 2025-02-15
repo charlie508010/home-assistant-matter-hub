@@ -1,3 +1,13 @@
+## 3.0.0-alpha.70 (2025-02-15)
+
+### 🐛 Fixes
+
+- **storage:** fixed storage migration of the last release ([8ddb9b5](https://github.com/t0bst4r/home-assistant-matter-hub/commit/8ddb9b5))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.69 (2025-02-14)
 
 ### 🚀 Features
