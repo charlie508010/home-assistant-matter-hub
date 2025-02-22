@@ -1,3 +1,15 @@
+## 3.0.0-alpha.71 (2025-02-22)
+
+### 🐛 Fixes
+
+- add configuration option to set Country Code in regulatory config ([f0145ac](https://github.com/t0bst4r/home-assistant-matter-hub/commit/f0145ac))
+- **climate:** use entity state instead of hvac_mode attribute ([ff20e85](https://github.com/t0bst4r/home-assistant-matter-hub/commit/ff20e85))
+- **storage:** do not load device states from disk ([1cc51db](https://github.com/t0bst4r/home-assistant-matter-hub/commit/1cc51db))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.70 (2025-02-15)
 
 ### 🐛 Fixes
