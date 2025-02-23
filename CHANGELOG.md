@@ -1,3 +1,21 @@
+## 3.0.0-alpha.72 (2025-02-23)
+
+### 🚀 Features
+
+- **binary_sensor:** allow defaulting unknown device_classes to OnOffSensor (feature flag) ([fffef29](https://github.com/t0bst4r/home-assistant-matter-hub/commit/fffef29))
+
+### 🐛 Fixes
+
+- **docker:** ensure the app handles process signals properly ([a8dd37e](https://github.com/t0bst4r/home-assistant-matter-hub/commit/a8dd37e))
+
+### 🚧 Chores
+
+- **ci:** only deploy documentation when an actual release happens ([a948eb1](https://github.com/t0bst4r/home-assistant-matter-hub/commit/a948eb1))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.71 (2025-02-22)
 
 ### 🐛 Fixes
