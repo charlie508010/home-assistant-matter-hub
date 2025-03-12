@@ -1,3 +1,26 @@
+## 3.0.0-alpha.73 (2025-03-12)
+
+### 🐛 Fixes
+
+- properly wait for home assistant to boot before starting any bridge ([b8986cc](https://github.com/t0bst4r/home-assistant-matter-hub/commit/b8986cc))
+- **climate:** ignore unsupported covers and print a warning instead of failing ([317ef5c](https://github.com/t0bst4r/home-assistant-matter-hub/commit/317ef5c))
+- **cover:** split feature flag 'mimicHaBehavior' into two features flags for more control ([bd24afd](https://github.com/t0bst4r/home-assistant-matter-hub/commit/bd24afd))
+- **cover:** keep current position in bounds ([41f10bf](https://github.com/t0bst4r/home-assistant-matter-hub/commit/41f10bf))
+- **docker:** refactor entrypoint and cmd to allow proper shutdown ([57c01b2](https://github.com/t0bst4r/home-assistant-matter-hub/commit/57c01b2))
+
+### 📚 Documentation Changes
+
+- fix linebreaks in bridge configuration descriptions ([6cd5e1b](https://github.com/t0bst4r/home-assistant-matter-hub/commit/6cd5e1b))
+
+### 🚧 Chores
+
+- update dependencies (including matter.js) ([c30298b](https://github.com/t0bst4r/home-assistant-matter-hub/commit/c30298b))
+
+### ❤️ Thank You
+
+- Brian Choromanski
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.72 (2025-02-23)
 
 ### 🚀 Features
