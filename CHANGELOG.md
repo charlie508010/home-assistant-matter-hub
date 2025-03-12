@@ -1,3 +1,13 @@
+## 3.0.0-alpha.74 (2025-03-12)
+
+### 🐛 Fixes
+
+- **addon:** revert docker entrypoint setup for the native home assistant addon ([095bd97](https://github.com/t0bst4r/home-assistant-matter-hub/commit/095bd97))
+
+### ❤️ Thank You
+
+- Tobias Glatthar @t0bst4r
+
 ## 3.0.0-alpha.73 (2025-03-12)
 
 ### 🐛 Fixes
