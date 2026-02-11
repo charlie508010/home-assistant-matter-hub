@@ -189,46 +189,49 @@ export class BridgeEndpointManager extends Service {
 
   /**
    * Log detailed behavior error information for debugging "Behaviors have errors".
-   * Matter.js wraps individual behavior failures into a composite error.
-   * This extracts and logs the specific behavior that failed and why.
+   * Matter.js EndpointBehaviorsError extends AggregateError — the `errors` array
+   * contains individual behavior crash errors (one per failed behavior).
    */
   private logDetailedError(entityId: string, error: unknown): void {
     if (!(error instanceof Error)) return;
 
-    // Walk the cause chain
-    let current: unknown = error;
-    const causes: string[] = [];
-    while (current instanceof Error) {
-      if (current.message && current.message !== error.message) {
-        causes.push(current.message);
-      }
-      if (current.stack) {
-        // Extract behavior name from stack trace (e.g., "at OnOffServer.initialize")
-        const behaviorMatch = current.stack.match(
-          /at (\w+Server\w*|BasicInformation\w*|HomeAssistant\w*|FixedLabel\w*|IdentifyServer\w*)\.(initialize|#\w+)/,
+    // Matter.js EndpointBehaviorsError extends AggregateError
+    // The `errors` array contains the actual per-behavior errors
+    const errorsArray = (error as Error & { errors?: unknown[] }).errors;
+    if (Array.isArray(errorsArray) && errorsArray.length > 0) {
+      for (let i = 0; i < errorsArray.length; i++) {
+        const subError = errorsArray[i];
+        const subMsg =
+          subError instanceof Error ? subError.message : String(subError);
+        this.log.warn(
+          `[${entityId}] Behavior error [${i + 1}/${errorsArray.length}]: ${subMsg}`,
         );
-        if (behaviorMatch) {
-          causes.push(`in ${behaviorMatch[1]}.${behaviorMatch[2]}`);
+
+        // Walk the cause chain for each sub-error
+        let cause: unknown =
+          subError instanceof Error
+            ? (subError as Error & { cause?: unknown }).cause
+            : undefined;
+        while (cause instanceof Error) {
+          this.log.warn(`[${entityId}]   Caused by: ${cause.message}`);
+          cause = (cause as Error & { cause?: unknown }).cause;
+        }
+
+        // Log sub-error stack at debug level
+        if (subError instanceof Error && subError.stack) {
+          this.log.debug(`[${entityId}] Sub-error stack: ${subError.stack}`);
         }
       }
-      current = (current as Error & { cause?: unknown }).cause;
-    }
-
-    // Check for AggregateError-style errors array
-    const errorsArray = (error as Error & { errors?: unknown[] }).errors;
-    if (Array.isArray(errorsArray)) {
-      for (const subError of errorsArray) {
-        const msg =
-          subError instanceof Error ? subError.message : String(subError);
-        causes.push(msg);
+    } else {
+      // Fallback: walk the cause chain of the main error
+      let current: unknown = (error as Error & { cause?: unknown }).cause;
+      while (current instanceof Error) {
+        this.log.warn(`[${entityId}] Caused by: ${current.message}`);
+        current = (current as Error & { cause?: unknown }).cause;
       }
     }
 
-    if (causes.length > 0) {
-      this.log.warn(`[${entityId}] Detailed error info: ${causes.join(" → ")}`);
-    }
-
-    // Log the full stack at debug level for comprehensive debugging
+    // Always log the main error stack at debug level
     if (error.stack) {
       this.log.debug(`[${entityId}] Full stack: ${error.stack}`);
     }
