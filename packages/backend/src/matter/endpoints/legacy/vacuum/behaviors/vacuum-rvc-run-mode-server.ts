@@ -125,11 +125,12 @@ const vacuumRvcRunModeConfig = {
         const rooms = parseVacuumRooms(attributes);
 
         // Convert area IDs back to room IDs
+        // Use originalId if available (Dreame multi-floor: id is deduplicated, originalId is per-floor)
         const roomIds: (string | number)[] = [];
         for (const areaId of selectedAreas) {
           const room = rooms.find((r) => toAreaId(r.id) === areaId);
           if (room) {
-            roomIds.push(room.id);
+            roomIds.push(room.originalId ?? room.id);
           }
         }
 
@@ -215,28 +216,31 @@ const vacuumRvcRunModeConfig = {
     );
 
     if (room) {
+      // Use originalId for commands (Dreame multi-floor: id is deduplicated, originalId is per-floor)
+      const commandId = room.originalId ?? room.id;
+
       // Dreame vacuums use their own service: dreame_vacuum.vacuum_clean_segment
       if (isDreameVacuum(attributes)) {
         logger.debug(
-          `Dreame vacuum detected, using dreame_vacuum.vacuum_clean_segment for room ${room.name} (id: ${room.id})`,
+          `Dreame vacuum detected, using dreame_vacuum.vacuum_clean_segment for room ${room.name} (commandId: ${commandId}, id: ${room.id})`,
         );
         return {
           action: "dreame_vacuum.vacuum_clean_segment",
           data: {
-            segments: room.id,
+            segments: commandId,
           },
         };
       }
 
       // Roborock/Xiaomi vacuums use vacuum.send_command with app_segment_clean
       logger.debug(
-        `Using vacuum.send_command with app_segment_clean for room ${room.name} (id: ${room.id})`,
+        `Using vacuum.send_command with app_segment_clean for room ${room.name} (commandId: ${commandId}, id: ${room.id})`,
       );
       return {
         action: "vacuum.send_command",
         data: {
           command: "app_segment_clean",
-          params: [room.id],
+          params: [commandId],
         },
       };
     }

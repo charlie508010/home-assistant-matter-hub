@@ -59,6 +59,13 @@ export interface VacuumRoom {
   name: string;
   /** Optional icon for the room */
   icon?: string;
+  /**
+   * Original room ID from the vacuum integration, before any deduplication.
+   * For Dreame multi-floor vacuums, each floor reuses room IDs (1, 2, 3...),
+   * so `id` is made unique across floors while `originalId` preserves the
+   * per-floor ID needed for actual vacuum clean commands.
+   */
+  originalId?: number | string;
 }
 
 /**

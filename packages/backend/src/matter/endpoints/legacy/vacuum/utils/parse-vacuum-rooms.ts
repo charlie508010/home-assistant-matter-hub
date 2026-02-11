@@ -13,6 +13,13 @@ function formatRoomName(name: string): string {
 }
 
 /**
+ * Counter for generating unique floor-based offsets when parsing
+ * Dreame multi-floor nested room data. Each floor's rooms get offset
+ * by floorCounter * 10000 to avoid areaId collisions across floors.
+ */
+let floorCounter = 0;
+
+/**
  * Parse a single room data source into VacuumRoom array.
  * Handles multiple formats:
  * - Direct array: [{ id: 1, name: "Kitchen" }, ...]
@@ -72,6 +79,16 @@ function parseRoomData(roomsData: unknown): VacuumRoom[] {
           "id" in value[0]
         ) {
           const nestedRooms = parseRoomData(value);
+          // Make IDs unique across floors by offsetting with floor index.
+          // Each floor's room IDs restart from 1, so without offset
+          // rooms from different floors collide (e.g. areaId 1 on 3 floors).
+          const floorIndex = floorCounter++;
+          for (const room of nestedRooms) {
+            if (typeof room.id === "number") {
+              room.originalId = room.id;
+              room.id = floorIndex * 10000 + room.id;
+            }
+          }
           rooms.push(...nestedRooms);
         }
         // Ecovacs format 2: array of numeric IDs { bedroom: [1, 3], ... }
@@ -130,6 +147,9 @@ export function parseVacuumRooms(
   attributes: VacuumDeviceAttributes,
   includeUnnamedRooms = false,
 ): VacuumRoom[] {
+  // Reset floor counter for each parse call (avoids accumulating offsets across restarts/updates)
+  floorCounter = 0;
+
   // Try each attribute source in order, return first one with valid rooms
   // This ensures that if 'rooms' exists but has no valid data, we still check 'segments'
   const sources = [attributes.rooms, attributes.segments, attributes.room_list];
