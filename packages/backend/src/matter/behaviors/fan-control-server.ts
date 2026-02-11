@@ -67,6 +67,15 @@ export class FanControlServerBase extends FeaturedBase {
     }
     // Other values (percentSetting=null, percentCurrent=0) are valid per Matter spec
 
+    // rockSupport / windSupport are fixed attributes telling controllers which modes
+    // are available. Without these, controllers reject attempts to enable rocking/wind.
+    if (this.features.rocking) {
+      this.state.rockSupport = { rockUpDown: true };
+    }
+    if (this.features.wind) {
+      this.state.windSupport = { naturalWind: true, sleepWind: true };
+    }
+
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
@@ -197,9 +206,9 @@ export class FanControlServerBase extends FeaturedBase {
         ...(this.features.rocking
           ? {
               // rockUpDown maps to HA oscillating
-              rockSetting: config.isOscillating(entity.state, this.agent)
-                ? { rockUpDown: true }
-                : {},
+              rockSetting: {
+                rockUpDown: config.isOscillating(entity.state, this.agent),
+              },
             }
           : {}),
 
@@ -451,12 +460,10 @@ export class FanControlServerBase extends FeaturedBase {
     naturalWind?: boolean;
     sleepWind?: boolean;
   } {
-    if (mode === "natural") {
-      return { naturalWind: true };
-    } else if (mode === "sleep") {
-      return { sleepWind: true };
-    }
-    return {};
+    return {
+      naturalWind: mode === "natural",
+      sleepWind: mode === "sleep",
+    };
   }
 }
 
