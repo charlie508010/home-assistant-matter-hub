@@ -20,11 +20,17 @@ import { transactionIsOffline } from "../../utils/transaction-is-offline.js";
 // For dual-mode thermostats (heating + cooling), AutoMode is ENABLED so Apple Home
 // can offer Auto mode and dual setpoints. Without AutoMode, Apple Home loses Auto.
 //
-// thermostatRunningMode: Managed by Matter.js's internal reactor. It automatically
-// sets runningMode to match systemMode for Heat/Cool modes. We do NOT set it
-// manually because Apple Home interprets runningMode changes as mode switches:
-// setting runningMode=Heat while in Auto mode makes Apple Home think the device
-// switched to Heat mode, breaking Auto functionality.
+// thermostatRunningMode: Matter.js's reactor (#handleSystemModeChange) handles it
+// for Heat/Cool/Off modes by setting runningMode to match systemMode. However, the
+// reactor EXPLICITLY SKIPS Auto mode (code: `newMode !== SystemMode.Auto`).
+// This means when switching from Heat→Auto, thermostatRunningMode stays at Heat
+// (stale value), causing Apple Home to think the device is in Heat mode, not Auto.
+//
+// Fix: We set thermostatRunningMode ourselves, but ONLY for Auto mode (from
+// hvac_action). For non-Auto modes, the reactor handles it correctly.
+// Previous attempts that failed:
+//   889010b: Set for ALL modes → conflicted with reactor for non-Auto modes
+//   0678d35: Set for NO modes → stale runningMode in Auto mode
 //
 // thermostatRunningState: Set by us from hvac_action to indicate active heating/
 // cooling. This bitmap is the correct signal for "Heating to 26" vs "Heat to 26".
@@ -188,7 +194,7 @@ function thermostatPreInitialize(self: any): void {
   self.state.thermostatRunningState = runningStateAllOff;
 
   // For full HVAC devices (AutoMode enabled): ensure minSetpointDeadBand is set.
-  // thermostatRunningMode is managed by Matter.js's reactor — not set manually.
+  // thermostatRunningMode: reactor handles non-Auto; we handle Auto in update().
   if (self.features.heating && self.features.cooling) {
     self.state.minSetpointDeadBand = self.state.minSetpointDeadBand ?? 0;
   }
@@ -376,9 +382,14 @@ export class ThermostatServerBase extends FullFeaturedBase {
       ),
       thermostatRunningState: this.getRunningState(systemMode, runningMode),
       systemMode: systemMode,
-      // thermostatRunningMode is NOT set manually — Matter.js's reactor handles it.
-      // Setting it manually in Auto mode causes Apple Home to misinterpret it as
-      // a mode switch (e.g. Auto→Heat), breaking Auto functionality.
+      // thermostatRunningMode: Only set for Auto mode. Matter.js's reactor handles
+      // Heat/Cool/Off but SKIPS Auto (see #handleSystemModeChange in Matter.js).
+      // Without this, runningMode retains the stale value from the previous mode.
+      ...(this.features.heating &&
+      this.features.cooling &&
+      systemMode === Thermostat.SystemMode.Auto
+        ? { thermostatRunningMode: runningMode }
+        : {}),
       ...(this.features.heating
         ? { occupiedHeatingSetpoint: clampedHeatingSetpoint }
         : {}),
