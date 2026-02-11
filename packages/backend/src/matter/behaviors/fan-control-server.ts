@@ -24,7 +24,13 @@ const FeaturedBase = Base.with(
   "Auto",
   "Rocking",
   "Wind",
-);
+).set({
+  // rockSupport / windSupport are Fixed quality attributes — they MUST be set
+  // via .set() at behavior creation time, NOT in initialize().
+  // Without these, controllers reject attempts to enable rocking/wind.
+  rockSupport: { rockUpDown: true },
+  windSupport: { naturalWind: true, sleepWind: true },
+});
 
 export interface FanControlServerConfig {
   getPercentage: ValueGetter<number | undefined>;
@@ -66,15 +72,6 @@ export class FanControlServerBase extends FeaturedBase {
       }
     }
     // Other values (percentSetting=null, percentCurrent=0) are valid per Matter spec
-
-    // rockSupport / windSupport are fixed attributes telling controllers which modes
-    // are available. Without these, controllers reject attempts to enable rocking/wind.
-    if (this.features.rocking) {
-      this.state.rockSupport = { rockUpDown: true };
-    }
-    if (this.features.wind) {
-      this.state.windSupport = { naturalWind: true, sleepWind: true };
-    }
 
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
