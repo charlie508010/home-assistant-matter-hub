@@ -109,7 +109,11 @@ const testEntities: Record<
       ],
     }),
   ],
-  [HomeAssistantDomain.lock]: [createEntity("lock.l1", "locked")],
+  [HomeAssistantDomain.lock]: [
+    createEntity("lock.l1", "locked"),
+    // Lock with OPEN feature (unlatch/unbolt support)
+    createEntity("lock.l2", "locked", { supported_features: 1 }),
+  ],
   [HomeAssistantDomain.sensor]: [
     createEntity<SensorDeviceAttributes>("sensor.s1", "20", {
       device_class: SensorDeviceClass.temperature,

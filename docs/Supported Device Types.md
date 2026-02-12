@@ -80,18 +80,23 @@ Mapped to **DoorLock** with PIN code support where available.
 **Supported Actions:**
 - Lock (no PIN required)
 - Unlock (PIN required if configured)
+- Unlatch / Unbolt (when HA entity supports `OPEN` feature)
 
-**Supported Attributes:**
-- `is_locked` → Matter Lock State
+**Supported States:**
+- `locked` / `locking` → Matter Locked
+- `unlocked` / `unlocking` → Matter Unlocked
+- `open` / `opening` → Matter Unlatched
 
 **Feature Flags:**
 - **PIN Credentials** - Configure PIN codes via Entity Mapping UI
 - **Lock without PIN** - Locking is always allowed, only unlock requires PIN (Alpha)
+- **Unlatch (Unbolting)** - Automatically enabled when HA lock supports `OPEN` feature. Maps to `lock.open` action. Apple Home shows an "Unlatch" button.
 
 **Controller Notes:**
 - PIN code entry may not be supported by all controllers
 - Some controllers may require additional confirmation for unlock
 - Google Home has disabled voice unlock for Matter locks (Google policy)
+- Apple Home shows an "Unlatch" button when the lock supports the Unbolting feature
 
 ---
 
