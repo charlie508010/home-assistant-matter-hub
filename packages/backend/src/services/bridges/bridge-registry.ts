@@ -33,6 +33,8 @@ export class BridgeRegistry {
   private _usedBatteryEntities: Set<string> = new Set();
   // Track humidity entities that have been auto-assigned to temperature sensors
   private _usedHumidityEntities: Set<string> = new Set();
+  // Track pressure entities that have been auto-assigned to temperature sensors
+  private _usedPressureEntities: Set<string> = new Set();
 
   deviceOf(entityId: string): HomeAssistantDeviceRegistry {
     const entity = this._entities[entityId];
@@ -50,12 +52,15 @@ export class BridgeRegistry {
    * Returns the entity_id of the battery sensor, or undefined if none found.
    */
   findBatteryEntityForDevice(deviceId: string): string | undefined {
-    const entities = values(this._entities);
+    // Search the FULL HA registry, not the filtered bridge entities.
+    // The battery sensor might not match the bridge filter (e.g., vacuum
+    // server bridges only include vacuum.* entities, not sensor.*).
+    const entities = values(this.registry.entities);
     for (const entity of entities) {
       if (entity.device_id !== deviceId) continue;
       if (!entity.entity_id.startsWith("sensor.")) continue;
 
-      const state = this._states[entity.entity_id];
+      const state = this.registry.states[entity.entity_id];
       if (!state) continue;
 
       const attrs = state.attributes as SensorDeviceAttributes;
@@ -89,10 +94,15 @@ export class BridgeRegistry {
 
   /**
    * Check if auto humidity mapping is enabled for this bridge.
-   * Default: true (enabled by default)
+   * Default: false (disabled by default, user must explicitly enable).
+   * When enabled, humidity sensors on the same device as a temperature sensor
+   * are combined into a single TemperatureHumiditySensor endpoint.
+   * Note: Apple Home does not display humidity on TemperatureSensorDevice
+   * endpoints, so users on Apple Home should keep this disabled.
+   * See: https://github.com/RiDDiX/home-assistant-matter-hub/issues/133
    */
   isAutoHumidityMappingEnabled(): boolean {
-    return this.dataProvider.featureFlags?.autoHumidityMapping !== false;
+    return this.dataProvider.featureFlags?.autoHumidityMapping === true;
   }
 
   /**
@@ -100,12 +110,14 @@ export class BridgeRegistry {
    * Returns the entity_id of the humidity sensor, or undefined if none found.
    */
   findHumidityEntityForDevice(deviceId: string): string | undefined {
-    const entities = values(this._entities);
+    // Search the FULL HA registry, not the filtered bridge entities.
+    // Same reasoning as findBatteryEntityForDevice.
+    const entities = values(this.registry.entities);
     for (const entity of entities) {
       if (entity.device_id !== deviceId) continue;
       if (!entity.entity_id.startsWith("sensor.")) continue;
 
-      const state = this._states[entity.entity_id];
+      const state = this.registry.states[entity.entity_id];
       if (!state) continue;
 
       const attrs = state.attributes as SensorDeviceAttributes;
@@ -130,6 +142,54 @@ export class BridgeRegistry {
     return this._usedHumidityEntities.has(entityId);
   }
 
+  /**
+   * Check if auto pressure mapping is enabled for this bridge.
+   * Default: true (enabled by default).
+   * When enabled, pressure sensors on the same device as a temperature sensor
+   * are combined into a single endpoint with PressureMeasurement cluster.
+   */
+  isAutoPressureMappingEnabled(): boolean {
+    return this.dataProvider.featureFlags?.autoPressureMapping !== false;
+  }
+
+  /**
+   * Find a pressure sensor entity that belongs to the same HA device.
+   * Returns the entity_id of the pressure sensor, or undefined if none found.
+   */
+  findPressureEntityForDevice(deviceId: string): string | undefined {
+    const entities = values(this.registry.entities);
+    for (const entity of entities) {
+      if (entity.device_id !== deviceId) continue;
+      if (!entity.entity_id.startsWith("sensor.")) continue;
+
+      const state = this.registry.states[entity.entity_id];
+      if (!state) continue;
+
+      const attrs = state.attributes as SensorDeviceAttributes;
+      if (
+        attrs.device_class === SensorDeviceClass.pressure ||
+        attrs.device_class === SensorDeviceClass.atmospheric_pressure
+      ) {
+        return entity.entity_id;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Mark a pressure entity as used (auto-assigned to a temperature sensor).
+   */
+  markPressureEntityUsed(entityId: string): void {
+    this._usedPressureEntities.add(entityId);
+  }
+
+  /**
+   * Check if a pressure entity has been auto-assigned to a temperature sensor.
+   */
+  isPressureEntityUsed(entityId: string): boolean {
+    return this._usedPressureEntities.has(entityId);
+  }
+
   constructor(
     private readonly registry: HomeAssistantRegistry,
     private readonly dataProvider: BridgeDataProvider,
@@ -137,10 +197,37 @@ export class BridgeRegistry {
     this.refresh();
   }
 
+  /**
+   * Get the area name for an entity, resolving from HA area registry.
+   * Priority: entity area_id > device area_id > undefined
+   */
+  getAreaName(entityId: string): string | undefined {
+    const entity = this._entities[entityId];
+    if (!entity) return undefined;
+
+    // Entity-level area takes priority
+    const entityAreaId = entity.area_id;
+    if (entityAreaId) {
+      const name = this.registry.areas.get(entityAreaId);
+      if (name) return name;
+    }
+
+    // Fallback to device-level area
+    const device = this._devices[entity.device_id];
+    const deviceAreaId = device?.area_id as string | undefined;
+    if (deviceAreaId) {
+      const name = this.registry.areas.get(deviceAreaId);
+      if (name) return name;
+    }
+
+    return undefined;
+  }
+
   refresh() {
     // Clear used entities on refresh to allow re-assignment
     this._usedBatteryEntities.clear();
     this._usedHumidityEntities.clear();
+    this._usedPressureEntities.clear();
 
     this._entities = pickBy(this.registry.entities, (entity) => {
       const device = this.registry.devices[entity.device_id];
@@ -184,22 +271,30 @@ export class BridgeRegistry {
   private preCalculateAutoAssignments(): void {
     const entities = values(this._entities);
 
-    // First pass: Find all temperature sensors and mark their humidity entities
-    if (this.isAutoHumidityMappingEnabled()) {
-      for (const entity of entities) {
-        if (!entity.device_id) continue;
-        if (!entity.entity_id.startsWith("sensor.")) continue;
+    // First pass: Find all temperature sensors and mark their humidity + pressure entities
+    for (const entity of entities) {
+      if (!entity.device_id) continue;
+      if (!entity.entity_id.startsWith("sensor.")) continue;
 
-        const state = this._states[entity.entity_id];
-        if (!state) continue;
+      const state = this._states[entity.entity_id];
+      if (!state) continue;
 
-        const attrs = state.attributes as SensorDeviceAttributes;
-        if (attrs.device_class === SensorDeviceClass.temperature) {
+      const attrs = state.attributes as SensorDeviceAttributes;
+      if (attrs.device_class === SensorDeviceClass.temperature) {
+        if (this.isAutoHumidityMappingEnabled()) {
           const humidityEntityId = this.findHumidityEntityForDevice(
             entity.device_id,
           );
           if (humidityEntityId && humidityEntityId !== entity.entity_id) {
             this._usedHumidityEntities.add(humidityEntityId);
+          }
+        }
+        if (this.isAutoPressureMappingEnabled()) {
+          const pressureEntityId = this.findPressureEntityForDevice(
+            entity.device_id,
+          );
+          if (pressureEntityId && pressureEntityId !== entity.entity_id) {
+            this._usedPressureEntities.add(pressureEntityId);
           }
         }
       }

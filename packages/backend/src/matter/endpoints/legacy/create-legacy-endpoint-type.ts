@@ -5,6 +5,7 @@ import type {
   MatterDeviceType,
 } from "@home-assistant-matter-hub/common";
 import type { EndpointType } from "@matter/main";
+import { FixedLabelServer } from "@matter/main/behaviors";
 import type { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-entity-behavior.js";
 import { AirPurifierEndpoint } from "./air-purifier/index.js";
 import { AlarmControlPanelDevice } from "./alarm-control-panel/index.js";
@@ -35,6 +36,7 @@ import { HumiditySensorType } from "./sensor/devices/humidity-sensor.js";
 import { IlluminanceSensorType } from "./sensor/devices/illuminance-sensor.js";
 import { PressureSensorType } from "./sensor/devices/pressure-sensor.js";
 import { TemperatureSensorType } from "./sensor/devices/temperature-sensor.js";
+import { TvocSensorType } from "./sensor/devices/tvoc-sensor.js";
 import { SensorDevice } from "./sensor/index.js";
 import { SwitchDevice } from "./switch/index.js";
 import { VacuumDevice } from "./vacuum/index.js";
@@ -47,22 +49,67 @@ import { WaterHeaterDevice } from "./water-heater/index.js";
 export function createLegacyEndpointType(
   entity: HomeAssistantEntityInformation,
   mapping?: EntityMappingConfig,
+  areaName?: string,
 ): EndpointType | undefined {
   const domain = entity.entity_id.split(".")[0] as HomeAssistantDomain;
   const customName = mapping?.customName;
 
+  let type: EndpointType | undefined;
+
   if (mapping?.matterDeviceType) {
     const overrideFactory = matterDeviceTypeFactories[mapping.matterDeviceType];
     if (overrideFactory) {
-      return overrideFactory({ entity, customName, mapping });
+      type = overrideFactory({ entity, customName, mapping });
     }
   }
 
-  const factory = deviceCtrs[domain];
-  if (!factory) {
+  if (!type) {
+    const factory = deviceCtrs[domain];
+    if (!factory) {
+      return undefined;
+    }
+    type = factory({ entity, customName, mapping });
+  }
+
+  if (!type) {
     return undefined;
   }
-  return factory({ entity, customName, mapping });
+
+  if (areaName) {
+    type = addFixedLabel(type, areaName);
+  }
+
+  return type;
+}
+
+/**
+ * Add FixedLabel cluster with room name to an endpoint type.
+ * Google Home uses { label: "room", value: "<name>" } for automatic room assignment.
+ *
+ * Uses MutableEndpoint.with() to properly extend behaviors instead of manual
+ * object spreading, which can lose MutableEndpoint metadata and cause
+ * "Behaviors have errors" during endpoint initialization.
+ */
+function addFixedLabel(type: EndpointType, areaName: string): EndpointType {
+  // Matter spec: LabelStruct label and value fields are max 16 bytes each.
+  // Truncate area name to prevent validation failures.
+  const truncatedName =
+    areaName.length > 16 ? areaName.substring(0, 16) : areaName;
+  const fixedLabel = FixedLabelServer.set({
+    labelList: [{ label: "room", value: truncatedName }],
+  });
+  // All factory functions return MutableEndpoint which has .with()
+  const mutable = type as EndpointType & {
+    with(...behaviors: unknown[]): EndpointType;
+  };
+  if (typeof mutable.with === "function") {
+    return mutable.with(fixedLabel);
+  }
+  // Fallback for non-mutable types (shouldn't happen in practice)
+  return {
+    ...type,
+    behaviors: { ...type.behaviors, fixedLabel },
+  } as EndpointType;
 }
 
 const deviceCtrs: Partial<
@@ -157,6 +204,10 @@ const matterDeviceTypeFactories: Partial<
     }),
   battery_storage: (ha) =>
     BatterySensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  tvoc_sensor: (ha) =>
+    TvocSensorType.set({
       homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
     }),
   water_valve: ValveDevice,

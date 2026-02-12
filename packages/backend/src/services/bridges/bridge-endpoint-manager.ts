@@ -107,7 +107,11 @@ export class BridgeEndpointManager extends Service {
     const existingEndpoints: EntityEndpoint[] = [];
     for (const endpoint of endpoints) {
       if (!this.entityIds.includes(endpoint.entityId)) {
-        await endpoint.delete();
+        try {
+          await endpoint.delete();
+        } catch (e) {
+          this.log.warn(`Failed to delete endpoint ${endpoint.entityId}:`, e);
+        }
       } else {
         existingEndpoints.push(endpoint);
       }
@@ -153,6 +157,8 @@ export class BridgeEndpointManager extends Service {
             this.log.warn(
               `Failed to add endpoint for ${entityId}: ${errorMessage}`,
             );
+            // Extract detailed behavior error info for debugging
+            this.logDetailedError(entityId, e);
             this._failedEntities.push({
               entityId,
               reason: this.extractErrorReason(e),
@@ -170,10 +176,65 @@ export class BridgeEndpointManager extends Service {
   async updateStates(states: HomeAssistantStates) {
     const endpoints = this.root.parts.map((p) => p as EntityEndpoint);
     // Process state updates in parallel for faster response times
-    // This significantly reduces latency for Alexa/Google Home
-    await Promise.all(
+    // Use allSettled so one failing endpoint doesn't block all others
+    const results = await Promise.allSettled(
       endpoints.map((endpoint) => endpoint.updateStates(states)),
     );
+    for (const result of results) {
+      if (result.status === "rejected") {
+        this.log.warn("State update failed for endpoint:", result.reason);
+      }
+    }
+  }
+
+  /**
+   * Log detailed behavior error information for debugging "Behaviors have errors".
+   * Matter.js EndpointBehaviorsError extends AggregateError — the `errors` array
+   * contains individual behavior crash errors (one per failed behavior).
+   */
+  private logDetailedError(entityId: string, error: unknown): void {
+    if (!(error instanceof Error)) return;
+
+    // Matter.js EndpointBehaviorsError extends AggregateError
+    // The `errors` array contains the actual per-behavior errors
+    const errorsArray = (error as Error & { errors?: unknown[] }).errors;
+    if (Array.isArray(errorsArray) && errorsArray.length > 0) {
+      for (let i = 0; i < errorsArray.length; i++) {
+        const subError = errorsArray[i];
+        const subMsg =
+          subError instanceof Error ? subError.message : String(subError);
+        this.log.warn(
+          `[${entityId}] Behavior error [${i + 1}/${errorsArray.length}]: ${subMsg}`,
+        );
+
+        // Walk the cause chain for each sub-error
+        let cause: unknown =
+          subError instanceof Error
+            ? (subError as Error & { cause?: unknown }).cause
+            : undefined;
+        while (cause instanceof Error) {
+          this.log.warn(`[${entityId}]   Caused by: ${cause.message}`);
+          cause = (cause as Error & { cause?: unknown }).cause;
+        }
+
+        // Log sub-error stack at debug level
+        if (subError instanceof Error && subError.stack) {
+          this.log.debug(`[${entityId}] Sub-error stack: ${subError.stack}`);
+        }
+      }
+    } else {
+      // Fallback: walk the cause chain of the main error
+      let current: unknown = (error as Error & { cause?: unknown }).cause;
+      while (current instanceof Error) {
+        this.log.warn(`[${entityId}] Caused by: ${current.message}`);
+        current = (current as Error & { cause?: unknown }).cause;
+      }
+    }
+
+    // Always log the main error stack at debug level
+    if (error.stack) {
+      this.log.debug(`[${entityId}] Full stack: ${error.stack}`);
+    }
   }
 
   private extractErrorReason(error: unknown): string {

@@ -12,6 +12,10 @@ import {
 import { IdentifyServer } from "../../../../behaviors/identify-server.js";
 import { PowerSourceServer } from "../../../../behaviors/power-source-server.js";
 import {
+  type PressureMeasurementConfig,
+  PressureMeasurementServer,
+} from "../../../../behaviors/pressure-measurement-server.js";
+import {
   type TemperatureMeasurementConfig,
   TemperatureMeasurementServer,
 } from "../../../../behaviors/temperature-measurement-server.js";
@@ -46,6 +50,22 @@ const humidityConfig: HumidityMeasurementConfig = {
       }
     }
     return null;
+  },
+};
+
+const pressureConfig: PressureMeasurementConfig = {
+  getValue(_entity, agent) {
+    const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+    const pressureEntity = homeAssistant.state.mapping?.pressureEntity;
+
+    if (pressureEntity) {
+      const stateProvider = agent.env.get(EntityStateProvider);
+      const pressure = stateProvider.getNumericState(pressureEntity);
+      if (pressure != null) {
+        return pressure;
+      }
+    }
+    return undefined;
   },
 };
 
@@ -88,5 +108,26 @@ export const TemperatureHumiditySensorWithBatteryType =
     HomeAssistantEntityBehavior,
     TemperatureMeasurementServer(temperatureConfig),
     HumidityMeasurementServer(humidityConfig),
+    PowerSourceServer(batteryConfig),
+  );
+
+export const TemperatureHumidityPressureSensorType =
+  TemperatureSensorDevice.with(
+    BasicInformationServer,
+    IdentifyServer,
+    HomeAssistantEntityBehavior,
+    TemperatureMeasurementServer(temperatureConfig),
+    HumidityMeasurementServer(humidityConfig),
+    PressureMeasurementServer(pressureConfig),
+  );
+
+export const TemperatureHumidityPressureSensorWithBatteryType =
+  TemperatureSensorDevice.with(
+    BasicInformationServer,
+    IdentifyServer,
+    HomeAssistantEntityBehavior,
+    TemperatureMeasurementServer(temperatureConfig),
+    HumidityMeasurementServer(humidityConfig),
+    PressureMeasurementServer(pressureConfig),
     PowerSourceServer(batteryConfig),
   );

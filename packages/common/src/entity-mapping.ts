@@ -30,6 +30,7 @@ export type MatterDeviceType =
   | "speaker"
   | "temperature_sensor"
   | "thermostat"
+  | "tvoc_sensor"
   | "water_heater"
   | "water_leak_detector"
   | "water_valve"
@@ -59,6 +60,12 @@ export interface EntityMappingConfig {
    * Example: "sensor.h_t_bad_humidity"
    */
   readonly humidityEntity?: string;
+  /**
+   * Optional: Entity ID of a pressure sensor to combine with a temperature sensor.
+   * Creates a combined Temperature+Pressure sensor in Matter instead of separate devices.
+   * Example: "sensor.h_t_bad_pressure"
+   */
+  readonly pressureEntity?: string;
   /**
    * Optional: Entity ID of a battery sensor to include with any sensor.
    * Adds PowerSource cluster to show battery level in Matter controllers.
@@ -90,6 +97,7 @@ export interface EntityMappingRequest {
   readonly filterLifeEntity?: string;
   readonly cleaningModeEntity?: string;
   readonly humidityEntity?: string;
+  readonly pressureEntity?: string;
   readonly batteryEntity?: string;
   readonly roomEntities?: string[];
   readonly disableLockPin?: boolean;
@@ -130,6 +138,7 @@ export const matterDeviceTypeLabels: Record<MatterDeviceType, string> = {
   speaker: "Speaker",
   temperature_sensor: "Temperature Sensor",
   thermostat: "Thermostat",
+  tvoc_sensor: "TVOC / VOC Index Sensor",
   water_heater: "Water Heater",
   water_leak_detector: "Water Leak Detector",
   water_valve: "Water Valve",
@@ -165,6 +174,7 @@ export const domainToDefaultMatterTypes: Partial<
     "light_sensor",
     "pressure_sensor",
     "temperature_sensor",
+    "tvoc_sensor",
   ],
   switch: ["on_off_plugin_unit", "on_off_switch", "pump", "water_valve"],
   vacuum: ["robot_vacuum_cleaner"],

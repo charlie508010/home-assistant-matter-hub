@@ -80,18 +80,23 @@ Mapped to **DoorLock** with PIN code support where available.
 **Supported Actions:**
 - Lock (no PIN required)
 - Unlock (PIN required if configured)
+- Unlatch / Unbolt (when HA entity supports `OPEN` feature)
 
-**Supported Attributes:**
-- `is_locked` → Matter Lock State
+**Supported States:**
+- `locked` / `locking` → Matter Locked
+- `unlocked` / `unlocking` → Matter Unlocked
+- `open` / `opening` → Matter Unlatched
 
 **Feature Flags:**
 - **PIN Credentials** - Configure PIN codes via Entity Mapping UI
 - **Lock without PIN** - Locking is always allowed, only unlock requires PIN (Alpha)
+- **Unlatch (Unbolting)** - Automatically enabled when HA lock supports `OPEN` feature. Maps to `lock.open` action. Apple Home shows an "Unlatch" button.
 
 **Controller Notes:**
 - PIN code entry may not be supported by all controllers
 - Some controllers may require additional confirmation for unlock
 - Google Home has disabled voice unlock for Matter locks (Google policy)
+- Apple Home shows an "Unlatch" button when the lock supports the Unbolting feature
 
 ---
 
@@ -227,15 +232,16 @@ Various sensor types mapped based on `device_class` and `unit_of_measurement`.
 
 Mapped based on `device_class` attribute.
 
-| Device Class | Matter Device Type | Controller Support |
-|--------------|-------------------|-------------------|
-| `door`, `window`, `garage_door` | ContactSensor | | All |
-| `motion`, `occupancy`, `presence` | OccupancySensor | | All |
-| `moisture`, `water` | WaterLeakDetector | | Limited |
-| `smoke` | SmokeCoAlarm (Smoke) | | Limited |
-| `carbon_monoxide` | SmokeCoAlarm (CO) | | Limited |
-| `gas` | SmokeCoAlarm (Gas) | | Limited |
-| Other | OnOffSensor | | All |
+| Device Class | Matter Device Type | Controller Display |
+|--------------|-------------------|--------------------|
+| `running`, `plug`, `power`, `battery_charging`, `light` | OnOffSensor | On/Off |
+| `door`, `window`, `garage_door`, `opening`, `lock` | ContactSensor | Open/Closed |
+| `battery`, `cold`, `heat`, `connectivity`, `problem`, `safety`, `sound`, `tamper`, `update`, `vibration` | ContactSensor | Open/Closed |
+| `motion`, `moving`, `occupancy`, `presence` | OccupancySensor | Occupied/Clear |
+| `moisture` | WaterLeakDetector | Leak/Dry |
+| `smoke` | SmokeCoAlarm (Smoke) | Alarm |
+| `carbon_monoxide`, `gas` | SmokeCoAlarm (CO) | Alarm |
+| Other / unset | OnOffSensor | On/Off |
 
 ---
 
