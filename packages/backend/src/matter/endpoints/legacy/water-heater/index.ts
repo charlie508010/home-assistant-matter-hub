@@ -4,6 +4,7 @@ import { ThermostatDevice } from "@matter/main/devices";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
+import { ThermostatUiConfigServer } from "../../../behaviors/thermostat-ui-config-server.js";
 import { WaterHeaterThermostatServer } from "./behaviors/water-heater-thermostat-server.js";
 
 const WaterHeaterDeviceType = ThermostatDevice.with(
@@ -11,6 +12,7 @@ const WaterHeaterDeviceType = ThermostatDevice.with(
   IdentifyServer,
   HomeAssistantEntityBehavior,
   WaterHeaterThermostatServer,
+  ThermostatUiConfigServer,
 );
 
 /**

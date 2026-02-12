@@ -15,6 +15,7 @@ import { BasicInformationServer } from "../../../behaviors/basic-information-ser
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
 import { PowerSourceServer } from "../../../behaviors/power-source-server.js";
+import { ThermostatUiConfigServer } from "../../../behaviors/thermostat-ui-config-server.js";
 import { ClimateFanControlServer } from "./behaviors/climate-fan-control-server.js";
 import { ClimateHumidityMeasurementServer } from "./behaviors/climate-humidity-measurement-server.js";
 import { ClimateOnOffServer } from "./behaviors/climate-on-off-server.js";
@@ -92,6 +93,7 @@ const ClimateDeviceType = (
       IdentifyServer,
       HomeAssistantEntityBehavior,
       thermostatServer,
+      ThermostatUiConfigServer,
       ClimateFanControlServer,
       ...additionalClusters,
     );
@@ -102,6 +104,7 @@ const ClimateDeviceType = (
     IdentifyServer,
     HomeAssistantEntityBehavior,
     thermostatServer,
+    ThermostatUiConfigServer,
     ...additionalClusters,
   );
 };
