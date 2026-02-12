@@ -19,6 +19,8 @@ This document provides comprehensive information about all device types supporte
 | `media_player` | Speaker | | | |
 | `valve` | Water Valve | | | |
 | `vacuum` | Robotic Vacuum | | | |
+| `water_heater` | Thermostat (Heating) | | | |
+| `humidifier` | On/Off Plug-in Unit | | | |
 
 **Legend:** | Full Support | | Partial/Limited | | Not Supported
 
@@ -147,14 +149,20 @@ Mapped to **Thermostat** with heating, cooling, and auto modes.
 > **Important:** Matter's "Auto" mode means automatic switching between heat/cool based on temperature. This matches HA's `heat_cool` mode, NOT the `auto` mode which typically means "device decides".
 
 **Supported Attributes:**
-- `current_temperature` → Local Temperature
+- `current_temperature` → Local Temperature (falls back to setpoint if unavailable)
 - `target_temp_high` / `target_temp_low` → Setpoints
-- `hvac_action` → Running State
+- `hvac_action` → Running State (active heating/cooling display)
+- `min_temp` / `max_temp` → Thermostat limits
 
-**Features by Mode:**
-- **Heating Only**: Single setpoint, heat mode only
-- **Cooling Only**: Single setpoint, cool mode only  
-- **Heat + Cool**: Dual setpoints, auto mode available
+**Feature Variants (auto-detected):**
+- **Heating Only**: Heat-only TRVs, water heaters — exposes only `Heating` feature
+- **Cooling Only**: Cool-only ACs — exposes only `Cooling` feature
+- **Full HVAC**: Dual-mode thermostats — exposes `Heating` + `Cooling` + `AutoMode`
+
+This prevents Alexa from rejecting commands on single-capability thermostats ([#136](https://github.com/RiDDiX/home-assistant-matter-hub/issues/136)).
+
+**Temperature Display Unit:**
+The `ThermostatUserInterfaceConfiguration` cluster exposes your HA temperature unit preference (°C or °F) to Matter controllers.
 
 ---
 
@@ -169,9 +177,9 @@ Mapped to **Fan** device with speed and direction control.
 | Speed percentage | FanControl SpeedPercent |
 | Preset modes | FanControl FanMode |
 | Direction | FanControl AirflowDirection |
-| Oscillation | FanControl Rocking (Alpha) |
+| Oscillation | FanControl Rocking |
 
-**Alpha Features:**
+**Wind Modes:**
 | Feature | Description |
 |---------|-------------|
 | **Oscillation** | Maps `oscillating` attribute to Matter Rocking |
@@ -225,6 +233,23 @@ Various sensor types mapped based on `device_class` and `unit_of_measurement`.
 | `pm10` | PM10 Concentration |
 | `co2` | CO2 Concentration |
 | `volatile_organic_compounds` | TVOC Concentration |
+
+#### Auto Sensor Grouping
+
+HAMH can automatically combine related sensors from the same HA device into a single Matter endpoint:
+
+| Feature Flag | Description |
+|--------------|-------------|
+| `autoBatteryMapping` | Combines battery sensor with the primary sensor (default: enabled) |
+| `autoHumidityMapping` | Combines humidity sensor with temperature sensor (default: enabled) |
+| `autoPressureMapping` | Combines pressure sensor with temperature sensor (default: enabled) |
+
+You can also manually assign sensors via **Entity Mapping**:
+- `batteryEntity` — Battery sensor entity ID
+- `humidityEntity` — Humidity sensor entity ID
+- `pressureEntity` — Pressure sensor entity ID
+
+See [Temperature & Humidity Sensor](./Devices/Temperature%20Humidity%20Sensor.md) for detailed setup instructions.
 
 ---
 
@@ -371,7 +396,7 @@ Mapped to **OnOffPlugInUnit**.
 
 ## Entity Mapping Customization
 
-In the Alpha/Testing versions, you can override the default device type mapping per entity.
+You can override the default device type mapping per entity using the Entity Mapping UI.
 
 **Available Override Types:**
 - OnOffLight

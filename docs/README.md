@@ -53,40 +53,39 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 ## What's New
 
 <details>
-<summary><strong>📦 Stable (v2.0.x) - Current</strong></summary>
+<summary><strong>📦 Stable (v2.0.17) - Current</strong></summary>
 
 | Feature | Description |
 |---------|-------------|
-| **🌬️ Fan Oscillation** | Rocking/oscillation via Matter |
-| **🌬️ Wind Modes** | Natural Wind, Sleep Wind preset modes |
-| **🔋 PowerSource** | Battery support for Climate, Fan, Temperature sensors |
-| **� Lock PIN** | PBKDF2 hashed PINs, lock without PIN, per-lock disable |
-| **🚪 Cover/Blinds** | `coverSwapOpenClose` flag for Alexa |
-| **🔋 Battery Entity** | `batteryEntity` mapping for Roomba/Deebot/Climate/Fan |
-| **🤖 Vacuum Rooms** | Ecovacs Deebot, Roborock, Dreame room support |
-| **🤖 Vacuum Cleaning Modes** | Dreame cleaning mode entity mapping |
-| **🔄 Force Sync** | Push device states to controllers, auto-sync every 5min |
-| **🔋 Auto Grouping** | Auto Battery/Humidity mapping feature flags |
-| **🌡️ Thermostat** | Heat/Cool mode fix, AutoMode support |
-| **💡 Lights** | ColorTemp + HueSat fix |
-| **🌡️ Sensors** | PM2.5/PM10/CO2/TVOC fixes |
-| **🌬️ Air Purifier** | HEPA Filter Life Monitoring |
-| **📋 Copy to Clipboard** | Copy endpoint data button in UI |
+| **�️ Automatic Room Assignment** | Entities auto-assigned to rooms in Matter controllers based on HA areas ([#77](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/77)) |
+| **�️ Thermostat Overhaul** | Feature variants (heat-only, cool-only, full HVAC), negative temp support, hvac_action-based running state, NaN guards ([#146](https://github.com/RiDDiX/home-assistant-matter-hub/issues/146)) |
+| **🔒 Lock Unlatch/Unbolt** | Apple Home Unlatch button for locks with HA OPEN support ([#153](https://github.com/RiDDiX/home-assistant-matter-hub/issues/153)) |
+| **🌡️ Auto Pressure Mapping** | Pressure sensors auto-combined with temperature sensors (e.g. Aqara WSDCGQ11LM) |
+| **� Binary Sensor Fix** | running/plug/power now map to OnOffSensor instead of ContactSensor ([#154](https://github.com/RiDDiX/home-assistant-matter-hub/issues/154)) |
+| **🤖 Vacuum Fixes** | Apple Home "Updating" fix, GoHome command, OperationCompletion event ([#103](https://github.com/RiDDiX/home-assistant-matter-hub/issues/103)) |
+| **🔌 Dead Session Recovery** | Auto force-close dead Alexa sessions ([#105](https://github.com/RiDDiX/home-assistant-matter-hub/issues/105)) |
+| **� Water Heater Limits** | Correct min/max from HA entity ([#145](https://github.com/RiDDiX/home-assistant-matter-hub/issues/145)) |
+| **� Cover Fix** | coverSwapOpenClose position display fix ([#148](https://github.com/RiDDiX/home-assistant-matter-hub/issues/148)) |
+| **�️ Fan Oscillation Fix** | Proper rockSupport/windSupport defaults |
+| **� Mobile UI** | Responsive navigation with hamburger menu ([#144](https://github.com/RiDDiX/home-assistant-matter-hub/issues/144)) |
+| **🗺️ Network Map** | React Flow visualization of bridge topology |
+| **🧠 Memory Limit** | 512MB heap limit for low-resource devices ([#141](https://github.com/RiDDiX/home-assistant-matter-hub/issues/141)) |
+| **�️ Crash Resilience** | Per-property error handling, behavior error logging |
 
 </details>
 
 <details>
 <summary><strong>🧪 Alpha (v2.1.0-alpha.x)</strong></summary>
 
-Alpha and Stable are currently synchronized. New alpha features will appear here.
+Alpha and Stable are currently in sync. No additional alpha-only features at this time.
 
 </details>
 
 <details>
 <summary><strong>📜 Previous Versions</strong></summary>
 
-### v2.0.x
-Force Sync, Lock PIN, Cover/Blinds improvements, Roborock Rooms, Auto Entity Grouping, Water Heater, Vacuum Server Mode
+### v2.0.16
+Force Sync, Lock PIN, Cover/Blinds improvements, Roborock Rooms, Auto Entity Grouping, Water Heater, Vacuum Server Mode, OOM fix
 
 ### v1.9.0
 Custom bridge icons, Basic Video Player, Alexa deduplication, Health Check API, WebSocket, Full backup/restore

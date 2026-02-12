@@ -71,12 +71,86 @@ The automatic recovery feature will restart failed bridges. If a bridge keeps fa
 ## What sensors are supported?
 
 Currently supported sensor types:
-- Temperature
+- Temperature (with auto humidity and pressure mapping)
 - Humidity
 - Pressure
 - Flow
 - Illuminance (Light)
-- Air Quality (AQI, PM2.5, PM10, CO2, VOC)
+- Air Quality (AQI, PM2.5, PM10, CO2, TVOC)
+
+See [Temperature & Humidity Sensor](./Devices/Temperature%20Humidity%20Sensor.md) for details on combining temperature, humidity, pressure, and battery into a single device.
+
+## The app keeps crashing or restarting on my HA Yellow / Raspberry Pi
+
+Low-resource devices (1–2 GB RAM) can run out of memory when running many bridges or devices. Since v2.0.17, HAMH limits the Node.js heap to 512 MB to prevent uncontrolled OOM kills. If crashes persist:
+
+1. Reduce the number of devices per bridge
+2. Split large bridges into smaller ones (e.g. per room)
+3. Consider using a device with more RAM
+
+See [#141](https://github.com/RiDDiX/home-assistant-matter-hub/issues/141) for details.
+
+## Alexa loses connection after a few hours
+
+This was caused by "dead sessions" — Alexa goes offline but the bridge keeps the old session alive, blocking new subscriptions. Since v2.0.17, the bridge detects and force-closes dead sessions automatically. If you still experience this:
+
+1. Update to the latest version
+2. Remove and re-pair the bridge in the Alexa app
+3. Check your network for multicast/mDNS issues (see [Connectivity Issues](./Guides/Connectivity%20Issues.md))
+
+See [#105](https://github.com/RiDDiX/home-assistant-matter-hub/issues/105) for details.
+
+## My cover / blinds open and close commands are inverted
+
+Matter and Home Assistant use different conventions for cover position percentages. Use the bridge feature flags to fix this:
+
+- **`coverSwapOpenClose`** — Swaps open/close commands (fixes reversed Alexa commands)
+- **`coverDoNotInvertPercentage`** — Skips percentage inversion
+- **`coverUseHomeAssistantPercentage`** — Uses HA percentages directly
+
+Configure these in your Bridge Settings → Feature Flags. See [#107](https://github.com/RiDDiX/home-assistant-matter-hub/issues/107), [#109](https://github.com/RiDDiX/home-assistant-matter-hub/issues/109).
+
+## Battery shows as a separate device instead of being part of the sensor
+
+HAMH has **Auto Battery Mapping** enabled by default. It automatically finds battery sensors on the same HA device and combines them with the primary sensor (temperature, climate, fan, vacuum). If it still shows separately:
+
+1. Check that the battery entity belongs to the same HA *device* as the primary entity
+2. Make sure `autoBatteryMapping` is enabled in your Bridge Settings → Feature Flags
+3. Alternatively, use **Entity Mapping** to manually set `batteryEntity` on the primary sensor
+
+See [#99](https://github.com/RiDDiX/home-assistant-matter-hub/issues/99).
+
+## My thermostat doesn't work correctly in auto mode
+
+Matter's "Auto" mode means the thermostat automatically switches between heating and cooling based on temperature. This maps to HA's `heat_cool` mode, *not* `auto`. Since v2.0.17:
+
+- **Heat-only** thermostats (e.g. TRVs) are exposed with only the Heating feature
+- **Cool-only** thermostats (e.g. ACs) are exposed with only the Cooling feature
+- **Full HVAC** thermostats get Heating + Cooling + Auto features
+
+This prevents Alexa from rejecting commands on single-capability thermostats. See [#143](https://github.com/RiDDiX/home-assistant-matter-hub/issues/143), [#136](https://github.com/RiDDiX/home-assistant-matter-hub/issues/136).
+
+## My water heater / kettle max temperature is capped at 50°C
+
+Previously the default Matter thermostat limits capped water heaters at 50°C. Since v2.0.17, HAMH reads the actual `min_temp` and `max_temp` from your HA entity and passes them correctly. Update to the latest version to fix this.
+
+See [#145](https://github.com/RiDDiX/home-assistant-matter-hub/issues/145), [#97](https://github.com/RiDDiX/home-assistant-matter-hub/issues/97).
+
+## Matter hub appears multiple times in Alexa / duplicate connections
+
+This can happen when a bridge is factory-reset or re-created while still paired in Alexa. To fix:
+
+1. Remove all duplicate entries from the Alexa app
+2. Factory reset the bridge in HAMH (Bridge Settings → Factory Reset)
+3. Re-pair the bridge in Alexa
+
+See [#152](https://github.com/RiDDiX/home-assistant-matter-hub/issues/152).
+
+## My binary sensor shows "Open/Closed" instead of "On/Off" (running, plug, power)
+
+Binary sensors with device_class `running`, `plug`, `power`, `battery_charging`, or `light` are now mapped to **OnOffSensor** (On/Off) instead of ContactSensor (Open/Closed). This was fixed in v2.0.17.
+
+If you're on an older version, update to get the correct mapping. See [#154](https://github.com/RiDDiX/home-assistant-matter-hub/issues/154).
 
 ## How do I control Media Player playback?
 

@@ -1,9 +1,9 @@
 # Alpha Features Guide
 
-This guide covers features available in the Alpha version (v1.10.0-alpha) of Home-Assistant-Matter-Hub.
+This guide covers features available in the Alpha version of Home-Assistant-Matter-Hub.
 
 > [!NOTE]
-> **Most Alpha features are now in Stable!** With the v1.9.0 release, features like Health API, WebSocket, Entity Mapping, Backup/Restore, and Bridge Icons are now available in the stable version.
+> **Alpha and Stable are currently in sync (v2.0.17).** All previously alpha-only features have been promoted to the stable release. New experimental features will appear here before being promoted.
 
 > [!WARNING]
 > Alpha versions are for testing only and may contain bugs. Use at your own risk!
@@ -32,27 +32,40 @@ docker run -d \
 
 ---
 
-## Features Now in Stable (v1.9.0)
+## Features Now in Stable (v2.0.17)
 
 The following features have graduated from Alpha to Stable:
 
-- **Custom Bridge Icons** - Upload PNG, JPG, GIF, WebP, SVG icons
-- **Domain-based Icons** - Automatic icon assignment by domain
-- **Health Check API** - REST endpoints for monitoring
-- **WebSocket Live Updates** - Real-time bridge status
-- **Entity Mapping** - Override Matter device types per entity
-- **Full Backup/Restore** - Complete ZIP backups
-- **Filter Preview** - Test filters before saving
-- **Dark Mode** - Theme toggle in UI
-- **Basic Video Player** - TV support for Apple Home
-- **Thermostat Improvements** - Auto-only mode, heating+cooling fixes
-- **Ingress Compatibility** - Fixed routing for HA Ingress
+- **Automatic Room Assignment** - Entities auto-assigned to rooms based on HA areas using FixedLabel cluster
+- **Device-Level Label Filter** - Label filter matches device-level labels, not just entity labels
+- **Thermostat Overhaul** - Feature variants (heat-only, cool-only, full HVAC), negative temps, hvac_action-based running state
+- **Lock Unlatch/Unbolt** - Apple Home Unlatch button for locks with HA OPEN support
+- **Auto Pressure Mapping** - Pressure sensors combined with temperature sensors automatically
+- **Binary Sensor Fix** - running/plug/power mapped to OnOffSensor instead of ContactSensor
+- **Vacuum Fixes** - Apple Home "Updating" fix, GoHome, OperationCompletion, deduplication
+- **Cover Fix** - coverSwapOpenClose position display fix
+- **Fan Oscillation Fix** - Proper rockSupport/windSupport defaults
+- **Dead Session Recovery** - Auto force-close dead Alexa sessions
+- **Water Heater Limits** - Correct min/max from HA entity
+- **Memory Limit** - 512MB heap limit for low-resource devices
+- **Crash Resilience** - Per-property error handling in applyPatchState
+- **Network Map** - React Flow visualization in frontend
+- **Mobile UI** - Responsive navigation with hamburger menu
+- **Page Size Selector** - Configurable page size on All Devices page
+- **Labels & Areas Page** - Reference page in frontend
+- **Behavior Error Logging** - Enhanced diagnostic logging for "Behaviors have errors"
+- **TVOC Sensor** - Manual entity mapping option for VOC sensors
+- **Humidity Auto-Mapping Fix** - Standalone humidity endpoints preserved
+- **Battery Search Fix** - Full HA registry search for related entities
+- **Speaker Volume Fix** - Prevent LevelControlServer from overwriting volume
+- **Alexa Brightness** - Brightness-reset workaround always active
+- **Scene/Automation Reset** - Proper onOff true→false transition
 
 ---
 
-## Current Alpha Features (v1.10.0-alpha)
+## Current Alpha Features
 
-Alpha currently contains all stable features. New experimental features will be added here before being promoted to stable.
+Alpha and Stable are currently in sync. New experimental features will be added here before being promoted to stable.
 
 ---
 
