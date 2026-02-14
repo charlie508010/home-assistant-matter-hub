@@ -12,13 +12,21 @@ import type {
 } from "./bridge-data-provider.js";
 import type { BridgeEndpointManager } from "./bridge-endpoint-manager.js";
 
-// Auto Force Sync interval in milliseconds (60 seconds)
-const AUTO_FORCE_SYNC_INTERVAL_MS = 60_000;
+// Auto Force Sync interval in milliseconds (5 minutes).
+// A longer interval reduces MRP traffic and gives controllers more time
+// to recover from brief network interruptions before a report triggers
+// an MRP retransmission failure → session loss.
+const AUTO_FORCE_SYNC_INTERVAL_MS = 300_000;
 
 // Number of consecutive force sync cycles with 0 subscriptions before
 // closing a dead session to force the controller to reconnect.
-// With 60s intervals, 3 checks = ~3 minutes grace period.
+// With 300s intervals, 3 checks = ~15 minutes grace period.
 const DEAD_SESSION_THRESHOLD = 3;
+
+// Number of consecutive checks with 0 sessions (for a commissioned bridge)
+// before clearing resumption records to force full CASE re-establishment.
+// With 300s intervals, 5 checks = ~25 minutes grace period.
+const ORPHAN_SESSION_THRESHOLD = 5;
 
 export class Bridge {
   private readonly log: Logger;
@@ -29,11 +37,29 @@ export class Bridge {
     reason: undefined,
   };
 
+  // Called whenever the bridge status changes. Set by BridgeService to
+  // broadcast updates via WebSocket so the frontend sees every transition
+  // (e.g. Stopped → Starting → Running).
+  public onStatusChange?: () => void;
+
   private autoForceSyncTimer: ReturnType<typeof setInterval> | null = null;
 
   // Tracks sessions with 0 active subscriptions across consecutive force sync cycles.
   // Key: session ID (number), Value: consecutive checks with 0 subscriptions.
   private deadSessionCounts = new Map<number, number>();
+
+  // Tracks consecutive checks where a commissioned bridge has 0 active sessions.
+  // When matter.js detects peer loss (MRP retransmission failure), it removes the
+  // session entirely — our per-session health check never sees it. This counter
+  // detects that orphaned state.
+  private noSessionCount = 0;
+
+  // Whether the bridge has ever had an active session (meaning it was paired and connected).
+  private hadActiveSession = false;
+
+  // Tracks the last synced state JSON per entity to avoid pushing unchanged states.
+  // Key: entity_id, Value: JSON.stringify of entity.state
+  private lastSyncedStates = new Map<string, string>();
 
   get id() {
     return this.dataProvider.id;
@@ -78,19 +104,27 @@ export class Bridge {
     await this.endpointManager.refreshDevices();
   }
 
+  private setStatus(status: BridgeServerStatus) {
+    this.status = status;
+    this.onStatusChange?.();
+  }
+
   async start() {
     if (this.status.code === BridgeStatus.Running) {
       return;
     }
     try {
-      this.status = {
+      this.setStatus({
         code: BridgeStatus.Starting,
         reason: "The bridge is starting... Please wait.",
-      };
+      });
       await this.refreshDevices();
       this.endpointManager.startObserving();
       await this.server.start();
-      this.status = { code: BridgeStatus.Running };
+      // Clear stale resumption records from previous runs so controllers
+      // always perform a fresh CASE handshake after a restart.
+      await this.clearResumptionRecordsOnStart();
+      this.setStatus({ code: BridgeStatus.Running });
       this.startAutoForceSyncIfEnabled();
     } catch (e) {
       const reason = "Failed to start bridge due to error:";
@@ -115,7 +149,7 @@ export class Bridge {
         this.log.warn("Error stopping bridge server:", e);
       }
     }
-    this.status = { code, reason };
+    this.setStatus({ code, reason });
   }
 
   private startAutoForceSyncIfEnabled() {
@@ -161,26 +195,21 @@ export class Bridge {
       return;
     }
     await this.server.factoryReset();
-    this.status = { code: BridgeStatus.Stopped };
+    this.setStatus({ code: BridgeStatus.Stopped });
     await this.start();
   }
 
   /**
    * Force sync all device states to connected controllers.
-   * This triggers a state refresh for all endpoints, pushing current values
-   * to all subscribed Matter controllers without requiring re-pairing.
-   *
-   * This works by re-emitting the current entity state, which causes all
-   * behavior servers to re-apply their state patches. Matter.js then sends
-   * subscription updates to all controllers for any changed attributes.
+   * Only pushes state for endpoints whose entity state has actually changed
+   * since the last sync. This avoids unnecessary MRP traffic that could
+   * trigger session loss during brief network interruptions.
    */
   async forceSync(): Promise<number> {
     if (this.status.code !== BridgeStatus.Running) {
       this.log.warn("Cannot force sync - bridge is not running");
       return 0;
     }
-
-    this.log.info("Force sync: Pushing all device states to controllers...");
 
     // Import dynamically to avoid circular dependencies
     const { HomeAssistantEntityBehavior } = await import(
@@ -189,46 +218,52 @@ export class Bridge {
 
     const endpoints = this.aggregator.parts;
     let syncedCount = 0;
+    let skippedCount = 0;
 
     for (const endpoint of endpoints) {
       try {
-        // Check if this endpoint has the HomeAssistantEntityBehavior
         if (!endpoint.behaviors.has(HomeAssistantEntityBehavior)) {
           continue;
         }
 
-        // Get the current entity state and re-emit it
-        // This triggers all behaviors listening to onChange to re-apply their state
         const behavior = endpoint.stateOf(HomeAssistantEntityBehavior);
         const currentEntity = behavior.entity;
 
         if (currentEntity?.state) {
-          // Re-set the state to trigger the entity$Changed event
-          // Even setting to the same value will cause behaviors to re-evaluate
-          await endpoint.setStateOf(HomeAssistantEntityBehavior, {
-            entity: {
-              ...currentEntity,
-              // Add a timestamp to force Matter.js to consider this a change
-              state: { ...currentEntity.state },
-            },
-          });
-          syncedCount++;
+          const entityId = currentEntity.entity_id;
+          const stateJson = JSON.stringify(currentEntity.state);
+          const lastJson = this.lastSyncedStates.get(entityId);
+
+          if (stateJson !== lastJson) {
+            // State has changed since last sync — push update
+            await endpoint.setStateOf(HomeAssistantEntityBehavior, {
+              entity: {
+                ...currentEntity,
+                state: { ...currentEntity.state },
+              },
+            });
+            this.lastSyncedStates.set(entityId, stateJson);
+            syncedCount++;
+          } else {
+            skippedCount++;
+          }
         }
       } catch (e) {
         this.log.debug(`Force sync: Skipped endpoint due to error:`, e);
       }
     }
 
-    this.log.info(`Force sync: Completed for ${syncedCount} devices`);
+    if (syncedCount > 0) {
+      this.log.info(
+        `Force sync: Pushed ${syncedCount} changed device(s), skipped ${skippedCount} unchanged`,
+      );
+    } else {
+      this.log.debug(
+        `Force sync: No changes detected (${skippedCount} devices unchanged)`,
+      );
+    }
 
     // Check subscription health and recover dead sessions.
-    // When a controller (e.g. Alexa) loses connectivity, Matter.js cancels the
-    // subscription after 3 consecutive timeouts. But the CASE session remains
-    // alive, so the controller can resume the session without re-subscribing.
-    // This leaves the connection in a zombie state where force sync pushes
-    // state internally but no subscription exists to deliver updates.
-    // Fix: detect sessions with 0 subscriptions and close them after a grace
-    // period, forcing the controller to re-establish CASE with new subscriptions.
     await this.checkSubscriptionHealth();
 
     return syncedCount;
@@ -237,11 +272,14 @@ export class Bridge {
   private async checkSubscriptionHealth(): Promise<void> {
     try {
       const sessionManager = this.server.env.get(SessionManager);
+      const sessions = [...sessionManager.sessions];
       const seenSessionIds = new Set<number>();
 
-      for (const session of sessionManager.sessions) {
+      let totalSubscriptions = 0;
+      for (const session of sessions) {
         const sessionId = session.id;
         seenSessionIds.add(sessionId);
+        totalSubscriptions += session.subscriptions.size;
 
         const subscriptionCount = session.subscriptions.size;
 
@@ -261,11 +299,6 @@ export class Bridge {
                 `Force-closing session to allow controller reconnection.`,
             );
             try {
-              // Use initiateForceClose instead of initiateClose.
-              // initiateClose attempts a graceful close that waits for a peer response -
-              // when the peer is unreachable (e.g. Alexa went offline), the session stays
-              // as a zombie. initiateForceClose marks the peer as lost and immediately
-              // removes the session, forcing the controller to do a full CASE re-establishment.
               await session.initiateForceClose();
             } catch (e) {
               this.log.debug(
@@ -286,6 +319,44 @@ export class Bridge {
         }
       }
 
+      // Track whether we ever had active sessions
+      if (sessions.length > 0) {
+        this.hadActiveSession = true;
+        this.noSessionCount = 0;
+      }
+
+      // Detect orphaned bridge: was previously connected but now has 0 sessions.
+      // This happens when matter.js removes the session entirely after MRP retransmission
+      // failures (peer loss). The per-session check above never sees this because the
+      // session is already gone from sessionManager.sessions.
+      if (sessions.length === 0 && this.hadActiveSession) {
+        this.noSessionCount++;
+
+        if (this.noSessionCount === 1) {
+          this.log.warn(
+            `Subscription health: Bridge has 0 active sessions but was previously connected. ` +
+              `Controller may have disconnected. Waiting for reconnection... (${this.noSessionCount}/${ORPHAN_SESSION_THRESHOLD})`,
+          );
+        }
+
+        if (this.noSessionCount >= ORPHAN_SESSION_THRESHOLD) {
+          this.log.warn(
+            `Subscription health: Bridge has been orphaned for ${this.noSessionCount} consecutive checks (~${this.noSessionCount} minutes). ` +
+              `Clearing session resumption records to force full CASE re-establishment on next controller reconnection.`,
+          );
+          await this.clearResumptionRecords(sessionManager);
+          // Reset counter but keep hadActiveSession=true so we keep monitoring
+          this.noSessionCount = 0;
+        }
+      }
+
+      // Log diagnostic summary periodically (every 5 minutes = every 5th check)
+      if (this.noSessionCount > 0 || totalSubscriptions === 0) {
+        this.log.debug(
+          `Subscription health: sessions=${sessions.length}, subscriptions=${totalSubscriptions}, orphanChecks=${this.noSessionCount}/${ORPHAN_SESSION_THRESHOLD}`,
+        );
+      }
+
       // Clean up tracking for sessions that no longer exist
       for (const sessionId of this.deadSessionCounts.keys()) {
         if (!seenSessionIds.has(sessionId)) {
@@ -294,6 +365,64 @@ export class Bridge {
       }
     } catch (e) {
       this.log.debug("Subscription health check failed:", e);
+    }
+  }
+
+  /**
+   * Clear resumption records on bridge start to ensure controllers always
+   * do a fresh CASE handshake. Stale resumption data from previous runs
+   * can prevent controllers from reconnecting properly.
+   */
+  private async clearResumptionRecordsOnStart(): Promise<void> {
+    try {
+      const sessionManager = this.server.env.get(SessionManager);
+      await this.clearResumptionRecords(sessionManager);
+    } catch (e) {
+      this.log.debug("Failed to clear resumption records on start:", e);
+    }
+  }
+
+  /**
+   * Clear all session resumption records to force controllers to do full CASE
+   * re-establishment instead of trying to resume a potentially stale session.
+   * This is called when the bridge is in an orphaned state (commissioned but
+   * no active sessions for an extended period) and on bridge start.
+   */
+  private async clearResumptionRecords(
+    sessionManager: SessionManager,
+  ): Promise<void> {
+    try {
+      // Access FabricManager through SessionManager's context
+      // biome-ignore lint/suspicious/noExplicitAny: FabricManager not exported from @matter/main/protocol
+      const fabrics = (sessionManager as any).context?.fabrics;
+      if (!fabrics) {
+        this.log.debug(
+          "Cannot clear resumption records: FabricManager not accessible",
+        );
+        return;
+      }
+
+      let cleared = 0;
+      for (const fabric of fabrics) {
+        try {
+          const deleted =
+            await sessionManager.deleteResumptionRecordsForFabric(fabric);
+          if (deleted) cleared++;
+        } catch (e) {
+          this.log.debug(
+            `Failed to clear resumption records for fabric ${fabric.fabricIndex}:`,
+            e,
+          );
+        }
+      }
+
+      if (cleared > 0) {
+        this.log.info(
+          `Cleared resumption records for ${cleared} fabric(s). Controllers will perform full CASE on next connection.`,
+        );
+      }
+    } catch (e) {
+      this.log.debug("Failed to clear resumption records:", e);
     }
   }
 

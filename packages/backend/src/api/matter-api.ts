@@ -197,6 +197,61 @@ export function matterApi(
     res.status(200).json(areas);
   });
 
+  router.get("/filter-values", async (_, res) => {
+    if (!haRegistry) {
+      res.status(503).json({ error: "Home Assistant registry not available" });
+      return;
+    }
+
+    const entities = Object.values(haRegistry.entities);
+    const devices = haRegistry.devices;
+    const states = haRegistry.states;
+
+    const domains = new Set<string>();
+    const platforms = new Set<string>();
+    const entityCategories = new Set<string>();
+    const deviceClasses = new Set<string>();
+    const deviceNames = new Set<string>();
+    const productNames = new Set<string>();
+
+    for (const entity of entities) {
+      const domain = entity.entity_id.split(".")[0];
+      if (domain) domains.add(domain);
+
+      if (entity.platform) platforms.add(entity.platform);
+      if (
+        typeof entity.entity_category === "string" &&
+        entity.entity_category
+      ) {
+        entityCategories.add(entity.entity_category);
+      }
+
+      const state = states[entity.entity_id];
+      const deviceClass = state?.attributes?.device_class;
+      if (typeof deviceClass === "string" && deviceClass) {
+        deviceClasses.add(deviceClass);
+      }
+
+      const device = entity.device_id ? devices[entity.device_id] : undefined;
+      if (device) {
+        const name = device.name_by_user || device.name;
+        if (name) deviceNames.add(name);
+        if (device.model) productNames.add(device.model);
+      }
+    }
+
+    const sort = (s: Set<string>) => [...s].sort((a, b) => a.localeCompare(b));
+
+    res.status(200).json({
+      domains: sort(domains),
+      platforms: sort(platforms),
+      entityCategories: sort(entityCategories),
+      deviceClasses: sort(deviceClasses),
+      deviceNames: sort(deviceNames),
+      productNames: sort(productNames),
+    });
+  });
+
   router.post("/filter-preview", async (req, res) => {
     if (!haRegistry) {
       res.status(503).json({ error: "Home Assistant registry not available" });
@@ -211,6 +266,7 @@ export function matterApi(
     const entities = Object.values(haRegistry.entities);
     const devices = haRegistry.devices;
     const states = haRegistry.states;
+    const labels = haRegistry.labels;
 
     const matchingEntities: Array<{
       entity_id: string;
@@ -220,16 +276,23 @@ export function matterApi(
 
     for (const entity of entities) {
       const device = entity.device_id ? devices[entity.device_id] : undefined;
+      const state = states[entity.entity_id];
 
       const included =
         filter.include.length === 0 ||
-        testMatchers(filter.include, device, entity, filter.includeMode);
+        testMatchers(
+          filter.include,
+          device,
+          entity,
+          filter.includeMode,
+          state,
+          labels,
+        );
       const excluded =
         filter.exclude.length > 0 &&
-        testMatchers(filter.exclude, device, entity);
+        testMatchers(filter.exclude, device, entity, undefined, state, labels);
 
       if (included && !excluded) {
-        const state = states[entity.entity_id];
         matchingEntities.push({
           entity_id: entity.entity_id,
           friendly_name: state?.attributes?.friendly_name as string | undefined,

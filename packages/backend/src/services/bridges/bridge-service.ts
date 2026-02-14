@@ -22,6 +22,10 @@ export class BridgeService extends Service {
   public lastRecoveryAttempt?: Date;
   public recoveryCount = 0;
 
+  // Called whenever a bridge's status changes (start, stop, update, delete, recovery).
+  // Set by the caller (e.g. start-handler) to broadcast updates via WebSocket.
+  public onBridgeChanged?: (bridgeId: string) => void;
+
   private recoveryInterval?: ReturnType<typeof setInterval>;
 
   constructor(
@@ -132,6 +136,7 @@ export class BridgeService extends Service {
     });
     await this.bridgeStorage.add(bridge.data);
     await bridge.start();
+    this.onBridgeChanged?.(bridge.id);
     return bridge;
   }
 
@@ -145,6 +150,7 @@ export class BridgeService extends Service {
     }
     await bridge.update(request);
     await this.bridgeStorage.add(bridge.data);
+    this.onBridgeChanged?.(bridge.id);
     return bridge;
   }
 
@@ -171,6 +177,7 @@ export class BridgeService extends Service {
     }
     this.bridges.splice(this.bridges.indexOf(bridge), 1);
     await this.bridgeStorage.remove(bridgeId);
+    this.onBridgeChanged?.(bridgeId);
   }
 
   async updatePriorities(
@@ -197,6 +204,9 @@ export class BridgeService extends Service {
 
   private async addBridge(bridgeData: BridgeData): Promise<Bridge> {
     const bridge = await this.bridgeFactory.create(bridgeData);
+    // Wire up status change notifications so every transition
+    // (Stopped → Starting → Running / Failed) is broadcast via WebSocket.
+    bridge.onStatusChange = () => this.onBridgeChanged?.(bridge.id);
     this.bridges.push(bridge);
     return bridge;
   }

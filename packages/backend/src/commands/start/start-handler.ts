@@ -112,12 +112,20 @@ export async function startHandler(
   const webApi$ = appEnvironment.load(WebApi);
   const registry$ = appEnvironment.load(HomeAssistantRegistry);
 
-  const initBridges = bridgeService$.then((b) => b.startAll());
-  const initApi = webApi$.then((w) => w.start());
+  // Wire up WebSocket broadcasts for bridge status changes.
+  // This ensures the frontend receives live updates as each bridge
+  // transitions through Starting → Running during startup.
+  const [bridgeService, webApi] = await Promise.all([bridgeService$, webApi$]);
+  bridgeService.onBridgeChanged = (bridgeId) => {
+    webApi.websocket.broadcastBridgeUpdate(bridgeId);
+  };
+
+  const initBridges = bridgeService.startAll();
+  const initApi = webApi.start();
 
   const enableAutoRefresh = initBridges
-    .then(() => Promise.all([registry$, bridgeService$]))
-    .then(([r, b]) => r.enableAutoRefresh(() => b.refreshAll()));
+    .then(() => registry$)
+    .then((r) => r.enableAutoRefresh(() => bridgeService.refreshAll()));
 
   await Promise.all([initBridges, initApi, enableAutoRefresh]);
 }

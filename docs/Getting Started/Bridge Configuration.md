@@ -63,10 +63,12 @@ A include- or exclude-item is an object having a `type` and a `value` property.
 | `regex` | Regular expression matching entity IDs. Full regex support. | `^light\.(kitchen\|bedroom)_.*` |
 | `domain` | Match entities by their domain (the part before the dot). | `light`, `switch`, `sensor` |
 | `platform` | Match entities by their integration/platform. | `hue`, `zwave`, `mqtt` |
-| `label` | Match entities by their label slug. | `voice_control` |
+| `label` | Match entities or devices by label. Accepts the display name (e.g. `Voice Control`) or the slug (e.g. `voice_control`). Also matches if the parent device carries the label. | `Voice Control` |
 | `area` | Match entities by their area slug. | `living_room` |
 | `entity_category` | Match entities by their category. | `config`, `diagnostic` |
 | `device_name` | Match entities by their device name (case-insensitive, supports wildcards). | `Living Room*` |
+| `product_name` | Match entities by their device model/product name (case-insensitive, supports wildcards). | `Hue Color Bulb` |
+| `device_class` | Match entities by their device class attribute (e.g. temperature, motion, door). | `temperature` |
 
 ### Pattern vs Regex
 
@@ -88,12 +90,29 @@ The `device_name` filter matches against the device's name (not the entity ID):
 - Matches against: user-defined name → device name → default name
 - Example: `*Philips*` matches all devices with "Philips" in their name
 
+### Product Name Filter
+
+The `product_name` filter matches against the device's model or product name:
+- Case-insensitive matching
+- Supports `*` wildcard for pattern matching
+- Matches against: model → default model
+- Example: `Hue*Bulb` matches all devices with a model name containing "Hue" and "Bulb"
+
+### Device Class Filter
+
+The `device_class` filter matches against the entity's `device_class` attribute:
+- Exact match (case-sensitive)
+- Common device classes: `temperature`, `humidity`, `motion`, `door`, `window`, `battery`, `power`, `energy`, `illuminance`, `pressure`
+- Example: `temperature` matches all entities with `device_class: temperature`
+
 The `value` property is a string containing the corresponding value. You can add multiple include or exclude rules which
 are then combined.
 All entities which match one of the include-rules will be included, but all entities which match one of the exclude
 rules will be excluded.
 
-Labels have to be applied at an entity level, not under device.
+Labels can be applied at the entity level or at the device level. When a label is applied to a device, all entities belonging to that device will match the label filter.
+
+You can use either the **display name** (e.g. `My Smart Lights`) or the **slug** (e.g. `my_smart_lights`) as the filter value. The display name is automatically resolved to the correct slug.
 
 > [!WARNING]
 > When performing changes on entities, like adding or removing a label, you need to refresh the matter-hub application
@@ -232,17 +251,22 @@ This configuration:
 
 ## Issues with labels
 
+> [!NOTE]
+>
+> You can use the label's **display name** (as shown in Home Assistant) directly as the filter value.
+> For example, if your label is called "My Smart Lights", you can enter `My Smart Lights` as the value — it will be resolved automatically.
+>
+> If you prefer, you can still use the **slug** (e.g. `my_smart_lights`). Slugs are always lowercase and use underscores instead of spaces.
+
 > [!WARNING]
 >
-> - Labels and areas in Home Assistant are technically represented by their "slugs".
-> - Slugs are technical identifiers used in the background.
-> - Slugs are always lowercase and only allow a-z and underscores, so everything else will be replaced with an `underscore`.
-> - Even when renaming a label or area, the slug doesn't change. Never.
+> - If you renamed a label in Home Assistant, the slug does **not** change. In that case, use the current display name or the original slug.
+> - Areas work differently — they still require the slug (e.g. `living_room`, not `Living Room`).
 >
-> You can retrieve the slug using the following templates in Home Assistant:
+> You can retrieve slugs using the following templates in Home Assistant:
 >
 > - `{{ labels() }}` - returns all labels
 > - `{{ labels("light.my_entity") }}` - returns the labels of a specific entity
 > - `{{ areas() }}` - returns all areas
 
-If you can’t get it working with your labels, you can delete your label and re-create it.
+If you can't get it working with your labels, you can delete your label and re-create it.

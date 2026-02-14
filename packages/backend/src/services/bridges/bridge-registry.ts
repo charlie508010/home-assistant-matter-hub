@@ -1,6 +1,7 @@
 import type {
   HomeAssistantDeviceRegistry,
   HomeAssistantEntityRegistry,
+  HomeAssistantEntityState,
   HomeAssistantFilter,
   SensorDeviceAttributes,
 } from "@home-assistant-matter-hub/common";
@@ -35,6 +36,10 @@ export class BridgeRegistry {
   private _usedHumidityEntities: Set<string> = new Set();
   // Track pressure entities that have been auto-assigned to temperature sensors
   private _usedPressureEntities: Set<string> = new Set();
+  // Track power entities that have been auto-assigned to switch/plug entities
+  private _usedPowerEntities: Set<string> = new Set();
+  // Track energy entities that have been auto-assigned to switch/plug entities
+  private _usedEnergyEntities: Set<string> = new Set();
 
   deviceOf(entityId: string): HomeAssistantDeviceRegistry {
     const entity = this._entities[entityId];
@@ -190,6 +195,62 @@ export class BridgeRegistry {
     return this._usedPressureEntities.has(entityId);
   }
 
+  /**
+   * Find a power sensor entity (device_class: power) on the same HA device.
+   */
+  findPowerEntityForDevice(deviceId: string): string | undefined {
+    const entities = values(this.registry.entities);
+    for (const entity of entities) {
+      if (entity.device_id !== deviceId) continue;
+      if (!entity.entity_id.startsWith("sensor.")) continue;
+
+      const state = this.registry.states[entity.entity_id];
+      if (!state) continue;
+
+      const attrs = state.attributes as SensorDeviceAttributes;
+      if (attrs.device_class === SensorDeviceClass.power) {
+        return entity.entity_id;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Find an energy sensor entity (device_class: energy) on the same HA device.
+   */
+  findEnergyEntityForDevice(deviceId: string): string | undefined {
+    const entities = values(this.registry.entities);
+    for (const entity of entities) {
+      if (entity.device_id !== deviceId) continue;
+      if (!entity.entity_id.startsWith("sensor.")) continue;
+
+      const state = this.registry.states[entity.entity_id];
+      if (!state) continue;
+
+      const attrs = state.attributes as SensorDeviceAttributes;
+      if (attrs.device_class === SensorDeviceClass.energy) {
+        return entity.entity_id;
+      }
+    }
+    return undefined;
+  }
+
+  markPowerEntityUsed(entityId: string): void {
+    this._usedPowerEntities.add(entityId);
+  }
+
+  isPowerEntityUsed(entityId: string): boolean {
+    return this._usedPowerEntities.has(entityId);
+  }
+
+  markEnergyEntityUsed(entityId: string): void {
+    this._usedEnergyEntities.add(entityId);
+  }
+
+  isEnergyEntityUsed(entityId: string): boolean {
+    return this._usedEnergyEntities.has(entityId);
+  }
+
   constructor(
     private readonly registry: HomeAssistantRegistry,
     private readonly dataProvider: BridgeDataProvider,
@@ -228,6 +289,8 @@ export class BridgeRegistry {
     this._usedBatteryEntities.clear();
     this._usedHumidityEntities.clear();
     this._usedPressureEntities.clear();
+    this._usedPowerEntities.clear();
+    this._usedEnergyEntities.clear();
 
     this._entities = pickBy(this.registry.entities, (entity) => {
       const device = this.registry.devices[entity.device_id];
@@ -246,7 +309,8 @@ export class BridgeRegistry {
       }
 
       // Check filter matching
-      return this.matchesFilter(filter, entity, device);
+      const state = this.registry.states[entity.entity_id];
+      return this.matchesFilter(filter, entity, device, state);
     });
     this._states = pickBy(
       this.registry.states,
@@ -300,7 +364,28 @@ export class BridgeRegistry {
       }
     }
 
-    // Second pass: Find all "main" entities and mark their battery entities
+    // Second pass: Find power and energy entities for switch/light entities
+    for (const entity of entities) {
+      if (!entity.device_id) continue;
+      const domain = entity.entity_id.split(".")[0];
+      if (domain !== "switch" && domain !== "light") continue;
+
+      const powerEntityId = this.findPowerEntityForDevice(entity.device_id);
+      if (powerEntityId && powerEntityId !== entity.entity_id) {
+        if (!this._usedPowerEntities.has(powerEntityId)) {
+          this._usedPowerEntities.add(powerEntityId);
+        }
+      }
+
+      const energyEntityId = this.findEnergyEntityForDevice(entity.device_id);
+      if (energyEntityId && energyEntityId !== entity.entity_id) {
+        if (!this._usedEnergyEntities.has(energyEntityId)) {
+          this._usedEnergyEntities.add(energyEntityId);
+        }
+      }
+    }
+
+    // Third pass: Find all "main" entities and mark their battery entities
     // A "main" entity is any entity that is NOT already marked as used
     if (this.isAutoBatteryMappingEnabled()) {
       for (const entity of entities) {
@@ -335,16 +420,25 @@ export class BridgeRegistry {
     filter: HomeAssistantFilter,
     entity: HomeAssistantEntityRegistry,
     device: HomeAssistantDeviceRegistry,
+    entityState?: HomeAssistantEntityState,
   ) {
+    const labels = this.registry.labels;
     if (
       filter.include.length > 0 &&
-      !testMatchers(filter.include, device, entity, filter.includeMode)
+      !testMatchers(
+        filter.include,
+        device,
+        entity,
+        filter.includeMode,
+        entityState,
+        labels,
+      )
     ) {
       return false;
     }
     if (
       filter.exclude.length > 0 &&
-      testMatchers(filter.exclude, device, entity)
+      testMatchers(filter.exclude, device, entity, "any", entityState, labels)
     ) {
       return false;
     }
