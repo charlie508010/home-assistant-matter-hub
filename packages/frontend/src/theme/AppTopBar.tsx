@@ -65,7 +65,7 @@ export const AppTopBar = () => {
       icon: <LockIcon />,
       to: navigation.lockCredentials,
     },
-    { label: "Labels & Areas", icon: <LabelIcon />, to: navigation.labels },
+    { label: "Filter Reference", icon: <LabelIcon />, to: navigation.labels },
     {
       label: mode === "dark" ? "Light Mode" : "Dark Mode",
       icon: mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />,
