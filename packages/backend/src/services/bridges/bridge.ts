@@ -20,6 +20,11 @@ const AUTO_FORCE_SYNC_INTERVAL_MS = 60_000;
 // With 60s intervals, 3 checks = ~3 minutes grace period.
 const DEAD_SESSION_THRESHOLD = 3;
 
+// Number of consecutive checks with 0 sessions (for a commissioned bridge)
+// before clearing resumption records to force full CASE re-establishment.
+// With 60s intervals, 5 checks = ~5 minutes grace period.
+const ORPHAN_SESSION_THRESHOLD = 5;
+
 export class Bridge {
   private readonly log: Logger;
   readonly server: BridgeServerNode;
@@ -34,6 +39,15 @@ export class Bridge {
   // Tracks sessions with 0 active subscriptions across consecutive force sync cycles.
   // Key: session ID (number), Value: consecutive checks with 0 subscriptions.
   private deadSessionCounts = new Map<number, number>();
+
+  // Tracks consecutive checks where a commissioned bridge has 0 active sessions.
+  // When matter.js detects peer loss (MRP retransmission failure), it removes the
+  // session entirely — our per-session health check never sees it. This counter
+  // detects that orphaned state.
+  private noSessionCount = 0;
+
+  // Whether the bridge has ever had an active session (meaning it was paired and connected).
+  private hadActiveSession = false;
 
   get id() {
     return this.dataProvider.id;
@@ -237,11 +251,14 @@ export class Bridge {
   private async checkSubscriptionHealth(): Promise<void> {
     try {
       const sessionManager = this.server.env.get(SessionManager);
+      const sessions = [...sessionManager.sessions];
       const seenSessionIds = new Set<number>();
 
-      for (const session of sessionManager.sessions) {
+      let totalSubscriptions = 0;
+      for (const session of sessions) {
         const sessionId = session.id;
         seenSessionIds.add(sessionId);
+        totalSubscriptions += session.subscriptions.size;
 
         const subscriptionCount = session.subscriptions.size;
 
@@ -261,11 +278,6 @@ export class Bridge {
                 `Force-closing session to allow controller reconnection.`,
             );
             try {
-              // Use initiateForceClose instead of initiateClose.
-              // initiateClose attempts a graceful close that waits for a peer response -
-              // when the peer is unreachable (e.g. Alexa went offline), the session stays
-              // as a zombie. initiateForceClose marks the peer as lost and immediately
-              // removes the session, forcing the controller to do a full CASE re-establishment.
               await session.initiateForceClose();
             } catch (e) {
               this.log.debug(
@@ -286,6 +298,44 @@ export class Bridge {
         }
       }
 
+      // Track whether we ever had active sessions
+      if (sessions.length > 0) {
+        this.hadActiveSession = true;
+        this.noSessionCount = 0;
+      }
+
+      // Detect orphaned bridge: was previously connected but now has 0 sessions.
+      // This happens when matter.js removes the session entirely after MRP retransmission
+      // failures (peer loss). The per-session check above never sees this because the
+      // session is already gone from sessionManager.sessions.
+      if (sessions.length === 0 && this.hadActiveSession) {
+        this.noSessionCount++;
+
+        if (this.noSessionCount === 1) {
+          this.log.warn(
+            `Subscription health: Bridge has 0 active sessions but was previously connected. ` +
+              `Controller may have disconnected. Waiting for reconnection... (${this.noSessionCount}/${ORPHAN_SESSION_THRESHOLD})`,
+          );
+        }
+
+        if (this.noSessionCount >= ORPHAN_SESSION_THRESHOLD) {
+          this.log.warn(
+            `Subscription health: Bridge has been orphaned for ${this.noSessionCount} consecutive checks (~${this.noSessionCount} minutes). ` +
+              `Clearing session resumption records to force full CASE re-establishment on next controller reconnection.`,
+          );
+          await this.clearResumptionRecords(sessionManager);
+          // Reset counter but keep hadActiveSession=true so we keep monitoring
+          this.noSessionCount = 0;
+        }
+      }
+
+      // Log diagnostic summary periodically (every 5 minutes = every 5th check)
+      if (this.noSessionCount > 0 || totalSubscriptions === 0) {
+        this.log.debug(
+          `Subscription health: sessions=${sessions.length}, subscriptions=${totalSubscriptions}, orphanChecks=${this.noSessionCount}/${ORPHAN_SESSION_THRESHOLD}`,
+        );
+      }
+
       // Clean up tracking for sessions that no longer exist
       for (const sessionId of this.deadSessionCounts.keys()) {
         if (!seenSessionIds.has(sessionId)) {
@@ -294,6 +344,50 @@ export class Bridge {
       }
     } catch (e) {
       this.log.debug("Subscription health check failed:", e);
+    }
+  }
+
+  /**
+   * Clear all session resumption records to force controllers to do full CASE
+   * re-establishment instead of trying to resume a potentially stale session.
+   * This is called when the bridge is in an orphaned state (commissioned but
+   * no active sessions for an extended period).
+   */
+  private async clearResumptionRecords(
+    sessionManager: SessionManager,
+  ): Promise<void> {
+    try {
+      // Access FabricManager through SessionManager's context
+      // biome-ignore lint/suspicious/noExplicitAny: FabricManager not exported from @matter/main/protocol
+      const fabrics = (sessionManager as any).context?.fabrics;
+      if (!fabrics) {
+        this.log.debug(
+          "Cannot clear resumption records: FabricManager not accessible",
+        );
+        return;
+      }
+
+      let cleared = 0;
+      for (const fabric of fabrics) {
+        try {
+          const deleted =
+            await sessionManager.deleteResumptionRecordsForFabric(fabric);
+          if (deleted) cleared++;
+        } catch (e) {
+          this.log.debug(
+            `Failed to clear resumption records for fabric ${fabric.fabricIndex}:`,
+            e,
+          );
+        }
+      }
+
+      if (cleared > 0) {
+        this.log.info(
+          `Cleared resumption records for ${cleared} fabric(s). Controllers will perform full CASE on next connection.`,
+        );
+      }
+    } catch (e) {
+      this.log.debug("Failed to clear resumption records:", e);
     }
   }
 
