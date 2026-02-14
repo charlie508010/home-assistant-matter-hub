@@ -22,6 +22,10 @@ export class BridgeService extends Service {
   public lastRecoveryAttempt?: Date;
   public recoveryCount = 0;
 
+  // Called whenever a bridge's status changes (start, stop, update, delete, recovery).
+  // Set by the caller (e.g. start-handler) to broadcast updates via WebSocket.
+  public onBridgeChanged?: (bridgeId: string) => void;
+
   private recoveryInterval?: ReturnType<typeof setInterval>;
 
   constructor(
@@ -60,6 +64,7 @@ export class BridgeService extends Service {
       try {
         await bridge.start();
         this.recoveryCount++;
+        this.onBridgeChanged?.(bridge.id);
       } catch {
         // Recovery attempt failed, will retry on next interval
       }
@@ -70,7 +75,9 @@ export class BridgeService extends Service {
     const bridge = this.get(bridgeId);
     if (!bridge) return false;
     await bridge.stop();
+    this.onBridgeChanged?.(bridgeId);
     await bridge.start();
+    this.onBridgeChanged?.(bridgeId);
     return true;
   }
   override async dispose(): Promise<void> {
@@ -103,6 +110,7 @@ export class BridgeService extends Service {
         // Isolate per-bridge failures so one failing bridge doesn't prevent others from starting
         console.error(`Failed to start bridge ${bridge.id}:`, e);
       }
+      this.onBridgeChanged?.(bridge.id);
     }
   }
 
@@ -132,6 +140,7 @@ export class BridgeService extends Service {
     });
     await this.bridgeStorage.add(bridge.data);
     await bridge.start();
+    this.onBridgeChanged?.(bridge.id);
     return bridge;
   }
 
@@ -145,6 +154,7 @@ export class BridgeService extends Service {
     }
     await bridge.update(request);
     await this.bridgeStorage.add(bridge.data);
+    this.onBridgeChanged?.(bridge.id);
     return bridge;
   }
 
@@ -171,6 +181,7 @@ export class BridgeService extends Service {
     }
     this.bridges.splice(this.bridges.indexOf(bridge), 1);
     await this.bridgeStorage.remove(bridgeId);
+    this.onBridgeChanged?.(bridgeId);
   }
 
   async updatePriorities(
