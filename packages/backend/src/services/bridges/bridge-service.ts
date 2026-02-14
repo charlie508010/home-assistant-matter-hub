@@ -64,7 +64,6 @@ export class BridgeService extends Service {
       try {
         await bridge.start();
         this.recoveryCount++;
-        this.onBridgeChanged?.(bridge.id);
       } catch {
         // Recovery attempt failed, will retry on next interval
       }
@@ -75,9 +74,7 @@ export class BridgeService extends Service {
     const bridge = this.get(bridgeId);
     if (!bridge) return false;
     await bridge.stop();
-    this.onBridgeChanged?.(bridgeId);
     await bridge.start();
-    this.onBridgeChanged?.(bridgeId);
     return true;
   }
   override async dispose(): Promise<void> {
@@ -110,7 +107,6 @@ export class BridgeService extends Service {
         // Isolate per-bridge failures so one failing bridge doesn't prevent others from starting
         console.error(`Failed to start bridge ${bridge.id}:`, e);
       }
-      this.onBridgeChanged?.(bridge.id);
     }
   }
 
@@ -208,6 +204,9 @@ export class BridgeService extends Service {
 
   private async addBridge(bridgeData: BridgeData): Promise<Bridge> {
     const bridge = await this.bridgeFactory.create(bridgeData);
+    // Wire up status change notifications so every transition
+    // (Stopped → Starting → Running / Failed) is broadcast via WebSocket.
+    bridge.onStatusChange = () => this.onBridgeChanged?.(bridge.id);
     this.bridges.push(bridge);
     return bridge;
   }

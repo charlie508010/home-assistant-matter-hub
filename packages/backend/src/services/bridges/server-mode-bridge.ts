@@ -41,6 +41,10 @@ export class ServerModeBridge {
     reason: undefined,
   };
 
+  // Called whenever the bridge status changes. Set by BridgeService to
+  // broadcast updates via WebSocket so the frontend sees every transition.
+  public onStatusChange?: () => void;
+
   private autoForceSyncTimer: ReturnType<typeof setInterval> | null = null;
 
   // Tracks sessions with 0 active subscriptions across consecutive force sync cycles.
@@ -91,22 +95,27 @@ export class ServerModeBridge {
     await this.endpointManager.refreshDevices();
   }
 
+  private setStatus(status: BridgeServerStatus) {
+    this.status = status;
+    this.onStatusChange?.();
+  }
+
   async start(): Promise<void> {
     if (this.status.code === BridgeStatus.Running) {
       return;
     }
     try {
-      this.status = {
+      this.setStatus({
         code: BridgeStatus.Starting,
         reason: "The server mode bridge is starting... Please wait.",
-      };
+      });
       await this.refreshDevices();
       this.endpointManager.startObserving();
       await this.server.start();
       // Clear stale resumption records from previous runs so controllers
       // always perform a fresh CASE handshake after a restart.
       await this.clearResumptionRecordsOnStart();
-      this.status = { code: BridgeStatus.Running };
+      this.setStatus({ code: BridgeStatus.Running });
       this.startAutoForceSyncIfEnabled();
       this.log.info("Server mode bridge started successfully");
     } catch (e) {
@@ -130,7 +139,7 @@ export class ServerModeBridge {
         this.log.warn("Error stopping server mode bridge:", e);
       }
     }
-    this.status = { code, reason };
+    this.setStatus({ code, reason });
   }
 
   async update(update: UpdateBridgeRequest): Promise<void> {
@@ -153,7 +162,7 @@ export class ServerModeBridge {
       return;
     }
     await this.server.factoryReset();
-    this.status = { code: BridgeStatus.Stopped };
+    this.setStatus({ code: BridgeStatus.Stopped });
     await this.start();
   }
 
