@@ -28,19 +28,19 @@ const SUBSCRIPTION_HEALTH_CHECK_INTERVAL_MS = 60_000;
 
 // Number of consecutive health checks with 0 subscriptions before
 // closing a dead session to force the controller to reconnect.
-// With 60s intervals, 2 checks = ~2 minutes grace period.
-const DEAD_SESSION_THRESHOLD = 2;
+// With 60s intervals, 3 checks = ~3 minutes grace period.
+const DEAD_SESSION_THRESHOLD = 3;
 
 // Number of consecutive health checks with 0 sessions (for a commissioned bridge)
-// before clearing resumption records to force full CASE re-establishment.
-// With 60s intervals, 3 checks = ~3 minutes grace period.
-const ORPHAN_SESSION_THRESHOLD = 3;
+// before counting as an orphan recovery cycle.
+// With 60s intervals, 5 checks = ~5 minutes grace period.
+const ORPHAN_SESSION_THRESHOLD = 5;
 
-// Number of consecutive orphan recovery cycles (clear resumption records)
-// that fail to restore connectivity before attempting a bridge restart.
-// With ORPHAN_SESSION_THRESHOLD=3 and 60s intervals, 3 cycles = ~9 minutes
+// Number of consecutive orphan recovery cycles without connectivity
+// before attempting a bridge restart.
+// With ORPHAN_SESSION_THRESHOLD=5 and 60s intervals, 2 cycles = ~10 minutes
 // of persistent orphan state before the bridge is restarted.
-const BRIDGE_RESTART_ORPHAN_CYCLES = 3;
+const BRIDGE_RESTART_ORPHAN_CYCLES = 2;
 
 // Minimum interval between automatic bridge restarts (30 minutes).
 // Prevents restart loops if the controller never reconnects.
@@ -76,7 +76,7 @@ export class ServerModeBridge {
   // Whether the bridge has ever had an active session (meaning it was paired and connected).
   private hadActiveSession = false;
 
-  // Number of times resumption records have been cleared without recovery.
+  // Number of orphan recovery cycles without connectivity.
   // Used to escalate to bridge restart after repeated failures.
   private orphanRecoveryCycles = 0;
 
@@ -130,6 +130,13 @@ export class ServerModeBridge {
     if (this.status.code === BridgeStatus.Running) {
       return;
     }
+    // Reset health check state so orphan detection does not trigger
+    // immediately after a restart (controllers need time to reconnect).
+    this.hadActiveSession = false;
+    this.noSessionCount = 0;
+    this.orphanRecoveryCycles = 0;
+    this.deadSessionCounts.clear();
+    this.lastSyncedState = undefined;
     try {
       this.setStatus({
         code: BridgeStatus.Starting,
@@ -320,7 +327,7 @@ export class ServerModeBridge {
           if (count >= DEAD_SESSION_THRESHOLD) {
             this.log.warn(
               `Subscription health: Session ${sessionId} (peer ${session.peerNodeId}) has had no subscriptions for ${count} consecutive checks. ` +
-                `Force-closing session and clearing resumption records.`,
+                `Force-closing session to allow clean reconnection.`,
             );
             try {
               await session.initiateForceClose();
@@ -330,9 +337,6 @@ export class ServerModeBridge {
                 e,
               );
             }
-            // Clear resumption records immediately so the controller does a
-            // full CASE handshake on its next connection attempt.
-            await this.clearResumptionRecords(sessionManager);
             this.deadSessionCounts.delete(sessionId);
           }
         } else {
@@ -374,9 +378,8 @@ export class ServerModeBridge {
           this.orphanRecoveryCycles++;
           this.log.warn(
             `Subscription health: Bridge has been orphaned for ${this.noSessionCount} consecutive checks (~${this.noSessionCount} minutes). ` +
-              `Clearing session resumption records (recovery cycle ${this.orphanRecoveryCycles}/${BRIDGE_RESTART_ORPHAN_CYCLES}).`,
+              `Recovery cycle ${this.orphanRecoveryCycles}/${BRIDGE_RESTART_ORPHAN_CYCLES}.`,
           );
-          await this.clearResumptionRecords(sessionManager);
           this.noSessionCount = 0;
 
           // Escalate: restart bridge after repeated failed recovery cycles.
@@ -434,49 +437,6 @@ export class ServerModeBridge {
       await this.start();
     } catch (e) {
       this.log.error("Subscription health: Bridge restart failed:", e);
-    }
-  }
-
-  /**
-   * Clear all session resumption records to force controllers to do full CASE
-   * re-establishment instead of trying to resume a potentially stale session.
-   * This is only called from orphan recovery when the bridge has been without
-   * sessions for an extended period.
-   */
-  private async clearResumptionRecords(
-    sessionManager: SessionManager,
-  ): Promise<void> {
-    try {
-      // biome-ignore lint/suspicious/noExplicitAny: FabricManager not exported from @matter/main/protocol
-      const fabrics = (sessionManager as any).context?.fabrics;
-      if (!fabrics) {
-        this.log.debug(
-          "Cannot clear resumption records: FabricManager not accessible",
-        );
-        return;
-      }
-
-      let cleared = 0;
-      for (const fabric of fabrics) {
-        try {
-          const deleted =
-            await sessionManager.deleteResumptionRecordsForFabric(fabric);
-          if (deleted) cleared++;
-        } catch (e) {
-          this.log.debug(
-            `Failed to clear resumption records for fabric ${fabric.fabricIndex}:`,
-            e,
-          );
-        }
-      }
-
-      if (cleared > 0) {
-        this.log.info(
-          `Cleared resumption records for ${cleared} fabric(s). Controllers will perform full CASE on next connection.`,
-        );
-      }
-    } catch (e) {
-      this.log.debug("Failed to clear resumption records:", e);
     }
   }
 
