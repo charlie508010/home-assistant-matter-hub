@@ -138,11 +138,11 @@ const featureFlagSchema: JSONSchema7 = {
     },
 
     autoForceSync: {
-      title: "Auto Force Sync (Google Home & Alexa workaround)",
+      title: "Auto Force Sync",
       description:
-        "Periodically push all device states to connected controllers every 60 seconds. " +
-        "This is a workaround for Google Home and Alexa which sometimes lose subscriptions and show devices as offline/unresponsive. " +
-        "Only enable this if you experience state sync issues or disconnections after a few hours.",
+        "Periodically compare and push all device states to connected controllers. " +
+        "Subscription keepalive and health checks always run automatically to prevent devices from showing as offline. " +
+        "Enable this for additional state synchronization if devices get out of sync after extended periods.",
       type: "boolean",
       default: false,
     },

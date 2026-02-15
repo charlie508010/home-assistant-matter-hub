@@ -203,22 +203,28 @@ export class ServerModeBridge {
     // Stop any existing timers first
     this.stopAutoForceSync();
 
-    if (this.dataProvider.featureFlags?.autoForceSync) {
-      this.log.info(
-        `Auto Force Sync enabled - syncing every ${AUTO_FORCE_SYNC_INTERVAL_MS / 1000}s, ` +
-          `health checks every ${SUBSCRIPTION_HEALTH_CHECK_INTERVAL_MS / 1000}s`,
-      );
-      this.autoForceSyncTimer = setInterval(() => {
-        this.forceSync().catch((e) => {
-          this.log.warn("Auto force sync failed:", e);
-        });
-      }, AUTO_FORCE_SYNC_INTERVAL_MS);
-      this.subscriptionHealthTimer = setInterval(() => {
-        this.checkSubscriptionHealth().catch((e) => {
-          this.log.debug("Subscription health check failed:", e);
-        });
-      }, SUBSCRIPTION_HEALTH_CHECK_INTERVAL_MS);
-    }
+    // Subscription keepalive and health checks ALWAYS run, regardless of
+    // the autoForceSync feature flag. These are essential to prevent ALL
+    // controllers (Apple Home, Google Home, Alexa) from showing devices
+    // as "Updating" or "Offline".
+    this.autoForceSyncTimer = setInterval(() => {
+      this.forceSync().catch((e) => {
+        this.log.warn("Auto force sync failed:", e);
+      });
+    }, AUTO_FORCE_SYNC_INTERVAL_MS);
+    this.subscriptionHealthTimer = setInterval(() => {
+      this.checkSubscriptionHealth().catch((e) => {
+        this.log.debug("Subscription health check failed:", e);
+      });
+    }, SUBSCRIPTION_HEALTH_CHECK_INTERVAL_MS);
+
+    const forceSyncEnabled =
+      this.dataProvider.featureFlags?.autoForceSync ?? false;
+    this.log.info(
+      `Subscription keepalive: every ${AUTO_FORCE_SYNC_INTERVAL_MS / 1000}s, ` +
+        `health checks: every ${SUBSCRIPTION_HEALTH_CHECK_INTERVAL_MS / 1000}s` +
+        (forceSyncEnabled ? ", force sync: enabled" : ""),
+    );
   }
 
   private stopAutoForceSync() {
@@ -243,67 +249,67 @@ export class ServerModeBridge {
    */
   async forceSync(): Promise<number> {
     if (this.status.code !== BridgeStatus.Running) {
-      this.log.warn("Cannot force sync - server mode bridge is not running");
       return 0;
     }
 
     const device = this.endpointManager.device;
     if (!device) {
-      this.log.warn("Cannot force sync - no device endpoint");
       return 0;
     }
 
-    try {
-      // Import dynamically to avoid circular dependencies
-      const { HomeAssistantEntityBehavior } = await import(
-        "../../matter/behaviors/home-assistant-entity-behavior.js"
-      );
+    let pushed = false;
 
-      if (!device.behaviors.has(HomeAssistantEntityBehavior)) {
-        this.log.warn(
-          "Force sync: Device does not have HomeAssistantEntityBehavior",
+    // Only push state changes when autoForceSync is enabled.
+    // This is the MRP-heavy part that compares entity state.
+    if (this.dataProvider.featureFlags?.autoForceSync) {
+      try {
+        // Import dynamically to avoid circular dependencies
+        const { HomeAssistantEntityBehavior } = await import(
+          "../../matter/behaviors/home-assistant-entity-behavior.js"
         );
-        return 0;
-      }
 
-      const behavior = device.stateOf(HomeAssistantEntityBehavior);
-      const currentEntity = behavior.entity;
-
-      if (currentEntity?.state) {
-        // Compare only meaningful fields — ignore volatile HA metadata
-        // (last_changed, last_updated, context) to avoid unnecessary MRP traffic.
-        const stateJson = JSON.stringify({
-          s: currentEntity.state.state,
-          a: currentEntity.state.attributes,
-        });
-        let pushed = false;
-
-        if (stateJson !== this.lastSyncedState) {
-          // State has changed since last sync — push update
-          await device.setStateOf(HomeAssistantEntityBehavior, {
-            entity: {
-              ...currentEntity,
-              state: { ...currentEntity.state },
-            },
-          });
-          this.lastSyncedState = stateJson;
-          this.log.info("Force sync: Pushed 1 changed device");
-          pushed = true;
-        } else {
-          // No state changes — send a keepalive to prevent Apple Home "Updating".
-          // matter.js sends empty keepalive reports automatically, but Apple Home
-          // may ignore them. Force-writing cluster attributes generates a real
-          // subscription report with actual data.
-          await this.sendSubscriptionKeepalive();
+        if (!device.behaviors.has(HomeAssistantEntityBehavior)) {
+          return 0;
         }
 
-        return pushed ? 1 : 0;
+        const behavior = device.stateOf(HomeAssistantEntityBehavior);
+        const currentEntity = behavior.entity;
+
+        if (currentEntity?.state) {
+          // Compare only meaningful fields — ignore volatile HA metadata
+          // (last_changed, last_updated, context) to avoid unnecessary MRP traffic.
+          const stateJson = JSON.stringify({
+            s: currentEntity.state.state,
+            a: currentEntity.state.attributes,
+          });
+
+          if (stateJson !== this.lastSyncedState) {
+            // State has changed since last sync — push update
+            await device.setStateOf(HomeAssistantEntityBehavior, {
+              entity: {
+                ...currentEntity,
+                state: { ...currentEntity.state },
+              },
+            });
+            this.lastSyncedState = stateJson;
+            this.log.info("Force sync: Pushed 1 changed device");
+            pushed = true;
+          }
+        }
+      } catch (e) {
+        this.log.debug("Force sync: Failed due to error:", e);
       }
-    } catch (e) {
-      this.log.debug("Force sync: Failed due to error:", e);
     }
 
-    return 0;
+    // Subscription keepalive ALWAYS runs (regardless of autoForceSync flag).
+    // When no state changes were pushed, force-write attributes to generate
+    // real subscription reports. This prevents Apple Home, Google Home, and
+    // Alexa from showing devices as "Updating" or "Offline".
+    if (!pushed) {
+      await this.sendSubscriptionKeepalive();
+    }
+
+    return pushed ? 1 : 0;
   }
 
   /**

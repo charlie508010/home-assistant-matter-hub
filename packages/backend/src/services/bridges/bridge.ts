@@ -189,22 +189,28 @@ export class Bridge {
     // Stop any existing timers first
     this.stopAutoForceSync();
 
-    if (this.dataProvider.featureFlags?.autoForceSync) {
-      this.log.info(
-        `Auto Force Sync enabled - syncing every ${AUTO_FORCE_SYNC_INTERVAL_MS / 1000}s, ` +
-          `health checks every ${SUBSCRIPTION_HEALTH_CHECK_INTERVAL_MS / 1000}s`,
-      );
-      this.autoForceSyncTimer = setInterval(() => {
-        this.forceSync().catch((e) => {
-          this.log.warn("Auto force sync failed:", e);
-        });
-      }, AUTO_FORCE_SYNC_INTERVAL_MS);
-      this.subscriptionHealthTimer = setInterval(() => {
-        this.checkSubscriptionHealth().catch((e) => {
-          this.log.debug("Subscription health check failed:", e);
-        });
-      }, SUBSCRIPTION_HEALTH_CHECK_INTERVAL_MS);
-    }
+    // Subscription keepalive and health checks ALWAYS run, regardless of
+    // the autoForceSync feature flag. These are essential to prevent ALL
+    // controllers (Apple Home, Google Home, Alexa) from showing devices
+    // as "Updating" or "Offline".
+    this.autoForceSyncTimer = setInterval(() => {
+      this.forceSync().catch((e) => {
+        this.log.warn("Auto force sync failed:", e);
+      });
+    }, AUTO_FORCE_SYNC_INTERVAL_MS);
+    this.subscriptionHealthTimer = setInterval(() => {
+      this.checkSubscriptionHealth().catch((e) => {
+        this.log.debug("Subscription health check failed:", e);
+      });
+    }, SUBSCRIPTION_HEALTH_CHECK_INTERVAL_MS);
+
+    const forceSyncEnabled =
+      this.dataProvider.featureFlags?.autoForceSync ?? false;
+    this.log.info(
+      `Subscription keepalive: every ${AUTO_FORCE_SYNC_INTERVAL_MS / 1000}s, ` +
+        `health checks: every ${SUBSCRIPTION_HEALTH_CHECK_INTERVAL_MS / 1000}s` +
+        (forceSyncEnabled ? ", force sync: enabled" : ""),
+    );
   }
 
   private stopAutoForceSync() {
@@ -250,66 +256,72 @@ export class Bridge {
    */
   async forceSync(): Promise<number> {
     if (this.status.code !== BridgeStatus.Running) {
-      this.log.warn("Cannot force sync - bridge is not running");
       return 0;
     }
 
-    // Import dynamically to avoid circular dependencies
-    const { HomeAssistantEntityBehavior } = await import(
-      "../../matter/behaviors/home-assistant-entity-behavior.js"
-    );
-
-    const endpoints = this.aggregator.parts;
     let syncedCount = 0;
-    let skippedCount = 0;
 
-    for (const endpoint of endpoints) {
-      try {
-        if (!endpoint.behaviors.has(HomeAssistantEntityBehavior)) {
-          continue;
-        }
+    // Only push state changes when autoForceSync is enabled.
+    // This is the MRP-heavy part that compares all entity states.
+    if (this.dataProvider.featureFlags?.autoForceSync) {
+      // Import dynamically to avoid circular dependencies
+      const { HomeAssistantEntityBehavior } = await import(
+        "../../matter/behaviors/home-assistant-entity-behavior.js"
+      );
 
-        const behavior = endpoint.stateOf(HomeAssistantEntityBehavior);
-        const currentEntity = behavior.entity;
+      const endpoints = this.aggregator.parts;
+      let skippedCount = 0;
 
-        if (currentEntity?.state) {
-          const entityId = currentEntity.entity_id;
-          // Compare only meaningful fields — ignore volatile HA metadata
-          // (last_changed, last_updated, context) to avoid unnecessary MRP traffic.
-          const stateJson = JSON.stringify({
-            s: currentEntity.state.state,
-            a: currentEntity.state.attributes,
-          });
-          const lastJson = this.lastSyncedStates.get(entityId);
-
-          if (stateJson !== lastJson) {
-            // State has changed since last sync — push update
-            await endpoint.setStateOf(HomeAssistantEntityBehavior, {
-              entity: {
-                ...currentEntity,
-                state: { ...currentEntity.state },
-              },
-            });
-            this.lastSyncedStates.set(entityId, stateJson);
-            syncedCount++;
-          } else {
-            skippedCount++;
+      for (const endpoint of endpoints) {
+        try {
+          if (!endpoint.behaviors.has(HomeAssistantEntityBehavior)) {
+            continue;
           }
+
+          const behavior = endpoint.stateOf(HomeAssistantEntityBehavior);
+          const currentEntity = behavior.entity;
+
+          if (currentEntity?.state) {
+            const entityId = currentEntity.entity_id;
+            // Compare only meaningful fields — ignore volatile HA metadata
+            // (last_changed, last_updated, context) to avoid unnecessary MRP traffic.
+            const stateJson = JSON.stringify({
+              s: currentEntity.state.state,
+              a: currentEntity.state.attributes,
+            });
+            const lastJson = this.lastSyncedStates.get(entityId);
+
+            if (stateJson !== lastJson) {
+              // State has changed since last sync — push update
+              await endpoint.setStateOf(HomeAssistantEntityBehavior, {
+                entity: {
+                  ...currentEntity,
+                  state: { ...currentEntity.state },
+                },
+              });
+              this.lastSyncedStates.set(entityId, stateJson);
+              syncedCount++;
+            } else {
+              skippedCount++;
+            }
+          }
+        } catch (e) {
+          this.log.debug(`Force sync: Skipped endpoint due to error:`, e);
         }
-      } catch (e) {
-        this.log.debug(`Force sync: Skipped endpoint due to error:`, e);
+      }
+
+      if (syncedCount > 0) {
+        this.log.info(
+          `Force sync: Pushed ${syncedCount} changed device(s), skipped ${skippedCount} unchanged`,
+        );
       }
     }
 
-    if (syncedCount > 0) {
-      this.log.info(
-        `Force sync: Pushed ${syncedCount} changed device(s), skipped ${skippedCount} unchanged`,
-      );
-    } else {
-      // No state changes — send a keepalive to prevent controllers showing
-      // "Updating" or "Offline". matter.js sends empty keepalive reports
-      // automatically, but Apple Home, Google Home, and Alexa may ignore them.
-      // Force-writing attributes generates real subscription reports.
+    // Subscription keepalive ALWAYS runs (regardless of autoForceSync flag).
+    // When no state changes were pushed, force-write attributes to generate
+    // real subscription reports. This prevents Apple Home, Google Home, and
+    // Alexa from showing devices as "Updating" or "Offline".
+    if (syncedCount === 0) {
       await this.sendSubscriptionKeepalive();
     }
 
