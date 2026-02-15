@@ -341,9 +341,15 @@ Migrating from the original `t0bst4r/home-assistant-matter-hub` is straightforwa
    # Look for folder ending with _hamh (e.g., a0c_hamh)
    
    cp -r /addon_configs/*_hamh /config/hamh-backup
+
+   # Verify if the data has been copied
+   ls  /config/hamh-backup/data/app
    ```
 
-2. **Uninstall the old add-on** (Settings → Add-ons → Uninstall)
+2. **Uninstall the old add-on** (Settings → Add-ons → Uninstall) and delete the original folder
+   ```bash
+   rm -rf /addon_configs/*_hamh
+   ```
 
 3. **Add the new repository:**
    ```
