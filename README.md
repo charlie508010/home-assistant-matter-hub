@@ -338,7 +338,7 @@ Migrating from the original `t0bst4r/home-assistant-matter-hub` is straightforwa
    ```bash
    # SSH into Home Assistant and find your add-on folder
    ls /addon_configs/
-   # Look for folder ending with _hamh (e.g., a0c_hamh) and remember its name to delete it later
+   # Look for folder ending with _hamh (e.g., a0c_hamh)
    
    cp -r /addon_configs/*_hamh /config/hamh-backup
 
