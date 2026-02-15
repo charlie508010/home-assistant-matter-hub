@@ -1,11 +1,8 @@
-import fs from "node:fs";
-import path from "node:path";
 import {
   BridgeStatus,
   type UpdateBridgeRequest,
 } from "@home-assistant-matter-hub/common";
 import type { Environment, Logger } from "@matter/general";
-import { StorageService } from "@matter/main";
 import { SessionManager } from "@matter/main/protocol";
 import type { LoggerService } from "../../core/app/logger.js";
 import { BridgeServerNode } from "../../matter/endpoints/bridge-server-node.js";
@@ -16,11 +13,9 @@ import type {
 import type { BridgeEndpointManager } from "./bridge-endpoint-manager.js";
 
 // Auto Force Sync interval in milliseconds (90 seconds).
-// Must be shorter than the subscription maxInterval (~185s) to ensure
-// subscription reports are sent before the controller times out.
-// When devices are idle, no cluster attributes change, so matter.js
-// only sends empty keepalive reports which controllers may ignore.
-// This interval triggers a forced keepalive with real attribute data.
+// When autoForceSync is enabled, this pushes changed entity states to
+// Matter controllers. matter.js handles subscription keepalive internally
+// via empty DataReports every ~sendInterval.
 const AUTO_FORCE_SYNC_INTERVAL_MS = 90_000;
 
 // Subscription health check interval in milliseconds (60 seconds).
@@ -149,9 +144,6 @@ export class Bridge {
       await this.refreshDevices();
       this.endpointManager.startObserving();
       await this.server.start();
-      // Clear stale resumption records from previous runs so controllers
-      // always perform a fresh CASE handshake after a restart.
-      await this.clearResumptionRecordsOnStart();
       this.setStatus({ code: BridgeStatus.Running });
       this.startAutoForceSyncIfEnabled();
     } catch (e) {
@@ -177,11 +169,6 @@ export class Bridge {
         this.log.warn("Error stopping bridge server:", e);
       }
     }
-    // Delete stale session/subscription persistence files after shutdown.
-    // This ensures every restart begins with a completely clean slate —
-    // controllers must perform a fresh CASE handshake and create new
-    // subscriptions instead of trying to resume stale ones.
-    this.cleanupSessionStorage();
     this.setStatus({ code, reason });
   }
 
@@ -189,10 +176,9 @@ export class Bridge {
     // Stop any existing timers first
     this.stopAutoForceSync();
 
-    // Subscription keepalive and health checks ALWAYS run, regardless of
-    // the autoForceSync feature flag. These are essential to prevent ALL
-    // controllers (Apple Home, Google Home, Alexa) from showing devices
-    // as "Updating" or "Offline".
+    // Health checks ALWAYS run to detect dead sessions and orphaned bridges.
+    // Force sync only runs when the autoForceSync feature flag is enabled.
+    // matter.js handles subscription keepalive internally via empty DataReports.
     this.autoForceSyncTimer = setInterval(() => {
       this.forceSync().catch((e) => {
         this.log.warn("Auto force sync failed:", e);
@@ -207,9 +193,10 @@ export class Bridge {
     const forceSyncEnabled =
       this.dataProvider.featureFlags?.autoForceSync ?? false;
     this.log.info(
-      `Subscription keepalive: every ${AUTO_FORCE_SYNC_INTERVAL_MS / 1000}s, ` +
-        `health checks: every ${SUBSCRIPTION_HEALTH_CHECK_INTERVAL_MS / 1000}s` +
-        (forceSyncEnabled ? ", force sync: enabled" : ""),
+      `Health checks: every ${SUBSCRIPTION_HEALTH_CHECK_INTERVAL_MS / 1000}s` +
+        (forceSyncEnabled
+          ? `, force sync: every ${AUTO_FORCE_SYNC_INTERVAL_MS / 1000}s`
+          : ""),
     );
   }
 
@@ -259,107 +246,64 @@ export class Bridge {
       return 0;
     }
 
-    let syncedCount = 0;
-
-    // Only push state changes when autoForceSync is enabled.
-    // This is the MRP-heavy part that compares all entity states.
-    if (this.dataProvider.featureFlags?.autoForceSync) {
-      // Import dynamically to avoid circular dependencies
-      const { HomeAssistantEntityBehavior } = await import(
-        "../../matter/behaviors/home-assistant-entity-behavior.js"
-      );
-
-      const endpoints = this.aggregator.parts;
-      let skippedCount = 0;
-
-      for (const endpoint of endpoints) {
-        try {
-          if (!endpoint.behaviors.has(HomeAssistantEntityBehavior)) {
-            continue;
-          }
-
-          const behavior = endpoint.stateOf(HomeAssistantEntityBehavior);
-          const currentEntity = behavior.entity;
-
-          if (currentEntity?.state) {
-            const entityId = currentEntity.entity_id;
-            // Compare only meaningful fields — ignore volatile HA metadata
-            // (last_changed, last_updated, context) to avoid unnecessary MRP traffic.
-            const stateJson = JSON.stringify({
-              s: currentEntity.state.state,
-              a: currentEntity.state.attributes,
-            });
-            const lastJson = this.lastSyncedStates.get(entityId);
-
-            if (stateJson !== lastJson) {
-              // State has changed since last sync — push update
-              await endpoint.setStateOf(HomeAssistantEntityBehavior, {
-                entity: {
-                  ...currentEntity,
-                  state: { ...currentEntity.state },
-                },
-              });
-              this.lastSyncedStates.set(entityId, stateJson);
-              syncedCount++;
-            } else {
-              skippedCount++;
-            }
-          }
-        } catch (e) {
-          this.log.debug(`Force sync: Skipped endpoint due to error:`, e);
-        }
-      }
-
-      if (syncedCount > 0) {
-        this.log.info(
-          `Force sync: Pushed ${syncedCount} changed device(s), skipped ${skippedCount} unchanged`,
-        );
-      }
+    if (!this.dataProvider.featureFlags?.autoForceSync) {
+      return 0;
     }
 
-    // Subscription keepalive ALWAYS runs (regardless of autoForceSync flag).
-    // When no state changes were pushed, force-write attributes to generate
-    // real subscription reports. This prevents Apple Home, Google Home, and
-    // Alexa from showing devices as "Updating" or "Offline".
-    if (syncedCount === 0) {
-      await this.sendSubscriptionKeepalive();
-    }
-
-    return syncedCount;
-  }
-
-  /**
-   * Send subscription keepalive by force-writing attributes on bridged endpoints.
-   * When no device states have changed, matter.js only sends empty keepalive
-   * reports which controllers may ignore. Force-writing the reachable attribute
-   * on each endpoint generates real subscription reports with actual data,
-   * preventing Apple Home, Google Home, and Alexa from showing devices as
-   * "Updating" or "Offline".
-   */
-  private async sendSubscriptionKeepalive(): Promise<void> {
-    const { EntityEndpoint } = await import(
-      "../../matter/endpoints/entity-endpoint.js"
+    // Import dynamically to avoid circular dependencies
+    const { HomeAssistantEntityBehavior } = await import(
+      "../../matter/behaviors/home-assistant-entity-behavior.js"
     );
 
     const endpoints = this.aggregator.parts;
-    let keepaliveCount = 0;
+    let syncedCount = 0;
+    let skippedCount = 0;
 
     for (const endpoint of endpoints) {
       try {
-        if (endpoint instanceof EntityEndpoint) {
-          await endpoint.forceKeepalive();
-          keepaliveCount++;
+        if (!endpoint.behaviors.has(HomeAssistantEntityBehavior)) {
+          continue;
+        }
+
+        const behavior = endpoint.stateOf(HomeAssistantEntityBehavior);
+        const currentEntity = behavior.entity;
+
+        if (currentEntity?.state) {
+          const entityId = currentEntity.entity_id;
+          // Compare only meaningful fields — ignore volatile HA metadata
+          // (last_changed, last_updated, context) to avoid unnecessary MRP traffic.
+          const stateJson = JSON.stringify({
+            s: currentEntity.state.state,
+            a: currentEntity.state.attributes,
+          });
+          const lastJson = this.lastSyncedStates.get(entityId);
+
+          if (stateJson !== lastJson) {
+            // State has changed since last sync — push update
+            await endpoint.setStateOf(HomeAssistantEntityBehavior, {
+              entity: {
+                ...currentEntity,
+                state: { ...currentEntity.state },
+              },
+            });
+            this.lastSyncedStates.set(entityId, stateJson);
+            syncedCount++;
+          } else {
+            skippedCount++;
+          }
         }
       } catch (e) {
-        this.log.debug("Subscription keepalive failed for endpoint:", e);
+        this.log.debug(`Force sync: Skipped endpoint due to error:`, e);
       }
     }
 
-    if (keepaliveCount > 0) {
-      this.log.debug(
-        `Subscription keepalive sent for ${keepaliveCount} device(s)`,
+    if (syncedCount > 0) {
+      this.log.info(
+        `Force sync: Pushed ${syncedCount} changed device(s), skipped ${skippedCount} unchanged`,
       );
     }
+
+    return syncedCount;
   }
 
   private async checkSubscriptionHealth(): Promise<void> {
@@ -513,24 +457,10 @@ export class Bridge {
   }
 
   /**
-   * Clear resumption records on bridge start to ensure controllers always
-   * do a fresh CASE handshake. Stale resumption data from previous runs
-   * can prevent controllers from reconnecting properly.
-   */
-  private async clearResumptionRecordsOnStart(): Promise<void> {
-    try {
-      const sessionManager = this.server.env.get(SessionManager);
-      await this.clearResumptionRecords(sessionManager);
-    } catch (e) {
-      this.log.debug("Failed to clear resumption records on start:", e);
-    }
-  }
-
-  /**
    * Clear all session resumption records to force controllers to do full CASE
    * re-establishment instead of trying to resume a potentially stale session.
-   * This is called when the bridge is in an orphaned state (commissioned but
-   * no active sessions for an extended period) and on bridge start.
+   * This is only called from orphan recovery when the bridge has been without
+   * sessions for an extended period.
    */
   private async clearResumptionRecords(
     sessionManager: SessionManager,
@@ -567,35 +497,6 @@ export class Bridge {
       }
     } catch (e) {
       this.log.debug("Failed to clear resumption records:", e);
-    }
-  }
-
-  /**
-   * Delete stale session and subscription persistence files from disk.
-   * This ensures controllers always perform a fresh CASE handshake and
-   * create new subscriptions after a bridge restart instead of trying
-   * to resume potentially stale sessions.
-   */
-  private cleanupSessionStorage(): void {
-    try {
-      const storageLocation =
-        this.server.env.get(StorageService).location ?? "";
-      const storageDir = path.join(storageLocation, this.server.id);
-      const filesToDelete = [
-        "sessions.resumptionRecords",
-        "root.subscriptions.subscriptions",
-      ];
-      for (const file of filesToDelete) {
-        const filePath = path.join(storageDir, file);
-        try {
-          fs.unlinkSync(filePath);
-          this.log.debug(`Cleaned up session storage: ${file}`);
-        } catch {
-          // File doesn't exist or already deleted — ignore
-        }
-      }
-    } catch (e) {
-      this.log.debug("Failed to clean up session storage:", e);
     }
   }
 

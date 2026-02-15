@@ -140,9 +140,9 @@ const featureFlagSchema: JSONSchema7 = {
     autoForceSync: {
       title: "Auto Force Sync",
       description:
-        "Periodically compare and push all device states to connected controllers. " +
-        "Subscription keepalive and health checks always run automatically to prevent devices from showing as offline. " +
-        "Enable this for additional state synchronization if devices get out of sync after extended periods.",
+        "Periodically compare and push all device states to connected controllers every 90 seconds. " +
+        "Enable this if devices get out of sync after extended periods. " +
+        "Health checks for dead sessions always run regardless of this setting.",
       type: "boolean",
       default: false,
     },
