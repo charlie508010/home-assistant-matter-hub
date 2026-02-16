@@ -46,6 +46,17 @@ interface BridgeHealthInfo {
     rootVendorId: number;
   }>;
   failedEntityCount: number;
+  connectivity?: {
+    totalSessions: number;
+    totalSubscriptions: number;
+    orphanChecks: number;
+    hadActiveSession: boolean;
+    sessions: Array<{
+      id: number;
+      peerNodeId: string;
+      subscriptionCount: number;
+    }>;
+  };
 }
 
 interface DetailedHealthStatus {
@@ -389,6 +400,23 @@ export function HealthDashboard() {
                       )}
                     </Typography>
                   </Box>
+
+                  {bridge.connectivity && bridge.status === "running" && (
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Sessions: {bridge.connectivity.totalSessions} |
+                        Subscriptions: {bridge.connectivity.totalSubscriptions}
+                        {bridge.connectivity.orphanChecks > 0 && (
+                          <Chip
+                            label={`Orphan ${bridge.connectivity.orphanChecks}`}
+                            color="warning"
+                            size="small"
+                            sx={{ ml: 1 }}
+                          />
+                        )}
+                      </Typography>
+                    </Box>
+                  )}
 
                   {bridge.fabrics.length > 0 && (
                     <Box sx={{ mt: 1 }}>

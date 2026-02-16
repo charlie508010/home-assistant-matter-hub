@@ -96,6 +96,48 @@ export class ServerModeBridge {
     );
   }
 
+  getSessionInfo(): {
+    sessions: Array<{
+      id: number;
+      peerNodeId: string;
+      subscriptionCount: number;
+    }>;
+    totalSessions: number;
+    totalSubscriptions: number;
+    orphanChecks: number;
+    hadActiveSession: boolean;
+  } {
+    try {
+      const sessionManager = this.server.env.get(SessionManager);
+      const sessions = [...sessionManager.sessions];
+      let totalSubscriptions = 0;
+      const sessionList = sessions.map((s) => {
+        const subCount = s.subscriptions.size;
+        totalSubscriptions += subCount;
+        return {
+          id: s.id,
+          peerNodeId: String(s.peerNodeId),
+          subscriptionCount: subCount,
+        };
+      });
+      return {
+        sessions: sessionList,
+        totalSessions: sessions.length,
+        totalSubscriptions,
+        orphanChecks: this.noSessionCount,
+        hadActiveSession: this.hadActiveSession,
+      };
+    } catch {
+      return {
+        sessions: [],
+        totalSessions: 0,
+        totalSubscriptions: 0,
+        orphanChecks: 0,
+        hadActiveSession: false,
+      };
+    }
+  }
+
   constructor(
     logger: LoggerService,
     private readonly dataProvider: BridgeDataProvider,
