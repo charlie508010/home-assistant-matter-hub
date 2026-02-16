@@ -1,11 +1,8 @@
-import fs from "node:fs";
-import path from "node:path";
 import {
   BridgeStatus,
   type UpdateBridgeRequest,
 } from "@home-assistant-matter-hub/common";
 import type { Logger } from "@matter/general";
-import { StorageService } from "@matter/main";
 import { SessionManager } from "@matter/main/protocol";
 import type { LoggerService } from "../../core/app/logger.js";
 import type { ServerModeServerNode } from "../../matter/endpoints/server-mode-server-node.js";
@@ -144,7 +141,6 @@ export class ServerModeBridge {
       });
       await this.refreshDevices();
       this.endpointManager.startObserving();
-      this.cleanupSubscriptionPersistence();
       await this.server.start();
       this.setStatus({ code: BridgeStatus.Running });
       this.startAutoForceSyncIfEnabled();
@@ -437,40 +433,6 @@ export class ServerModeBridge {
       await this.start();
     } catch (e) {
       this.log.error("Subscription health: Bridge restart failed:", e);
-    }
-  }
-
-  /**
-   * Delete the subscription persistence file so matter.js does not attempt
-   * to re-establish former subscriptions on startup.
-   *
-   * matter.js calls reestablishFormerSubscriptions() BEFORE enterOperationalMode().
-   * This connects to controllers, which immediately send SubscribeRequest back.
-   * But the node's protocol layer has not registered all device endpoints yet,
-   * so the wildcard subscription matches zero attributes → InvalidAction(128).
-   * Controllers may not retry after this error, leaving devices permanently
-   * "Updating" or "Offline".
-   *
-   * sessions.resumptionRecords is intentionally preserved so controllers can
-   * do fast SIGMA-Resume once the node is fully operational.
-   */
-  private cleanupSubscriptionPersistence(): void {
-    try {
-      const storageLocation =
-        this.server.env.get(StorageService).location ?? "";
-      const storageDir = path.join(storageLocation, this.server.id);
-      const filePath = path.join(
-        storageDir,
-        "root.subscriptions.subscriptions",
-      );
-      try {
-        fs.unlinkSync(filePath);
-        this.log.debug("Cleaned up subscription persistence file");
-      } catch {
-        // File doesn't exist or already deleted — ignore
-      }
-    } catch (e) {
-      this.log.debug("Failed to clean up subscription persistence:", e);
     }
   }
 }
