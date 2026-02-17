@@ -43,6 +43,11 @@ const BRIDGE_RESTART_ORPHAN_CYCLES = 2;
 // Prevents restart loops if the controller never reconnects.
 const MIN_BRIDGE_RESTART_INTERVAL_MS = 1_800_000;
 
+// Delay before restarting the bridge after stop (milliseconds).
+// Needs to be long enough for UDP sockets to fully release.
+// Some systems (especially Linux containers) need more time.
+const BRIDGE_RESTART_DELAY_MS = 5_000;
+
 export class Bridge {
   private readonly log: Logger;
   readonly server: BridgeServerNode;
@@ -508,11 +513,29 @@ export class Bridge {
         BridgeStatus.Stopped,
         "Auto-restart for session recovery",
       );
-      // Small delay to let network state settle before re-announcing
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Delay to let UDP sockets fully release before re-binding.
+      // Linux containers especially need extra time.
+      this.log.info(
+        `Subscription health: Waiting ${BRIDGE_RESTART_DELAY_MS}ms for sockets to release...`,
+      );
+      await new Promise((resolve) =>
+        setTimeout(resolve, BRIDGE_RESTART_DELAY_MS),
+      );
       await this.start();
     } catch (e) {
-      this.log.error("Subscription health: Bridge restart failed:", e);
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      // If port is in use, don't retry immediately - wait for the next
+      // scheduled restart attempt (MIN_BRIDGE_RESTART_INTERVAL_MS).
+      if (errorMessage.includes("address-in-use")) {
+        this.log.error(
+          `Subscription health: Bridge restart failed - port still in use. ` +
+            `Another process may be using this port. Will not retry for ${MIN_BRIDGE_RESTART_INTERVAL_MS / 60_000} minutes.`,
+        );
+        // lastBridgeRestartTime is already set, so the next attempt will be
+        // blocked by the MIN_BRIDGE_RESTART_INTERVAL_MS check.
+      } else {
+        this.log.error("Subscription health: Bridge restart failed:", e);
+      }
     }
   }
 
