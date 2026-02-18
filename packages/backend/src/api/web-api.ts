@@ -6,6 +6,7 @@ import nocache from "nocache";
 import type { BetterLogger, LoggerService } from "../core/app/logger.js";
 import { Service } from "../core/ioc/service.js";
 import type { BridgeService } from "../services/bridges/bridge-service.js";
+import { DiagnosticService } from "../services/diagnostics/diagnostic-service.js";
 import type { HomeAssistantClient } from "../services/home-assistant/home-assistant-client.js";
 import type { HomeAssistantRegistry } from "../services/home-assistant/home-assistant-registry.js";
 import type { BridgeStorage } from "../services/storage/bridge-storage.js";
@@ -69,6 +70,7 @@ export class WebApi extends Service {
       this.log.createChild("WebSocket"),
       bridgeService,
     );
+    this.wsApi.setDiagnosticService(new DiagnosticService(bridgeService));
   }
 
   get websocket(): WebSocketApi {

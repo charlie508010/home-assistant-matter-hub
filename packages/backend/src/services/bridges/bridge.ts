@@ -6,6 +6,7 @@ import type { Environment, Logger } from "@matter/general";
 import { SessionManager } from "@matter/main/protocol";
 import type { LoggerService } from "../../core/app/logger.js";
 import { BridgeServerNode } from "../../matter/endpoints/bridge-server-node.js";
+import { diagnosticEventBus } from "../diagnostics/diagnostic-event-bus.js";
 import type {
   BridgeDataProvider,
   BridgeServerStatus,
@@ -137,6 +138,11 @@ export class Bridge {
       await this.server.start();
       this.setStatus({ code: BridgeStatus.Running });
       this.startAutoForceSyncIfEnabled();
+      diagnosticEventBus.emit("bridge_started", `Bridge started`, {
+        bridgeId: this.id,
+        bridgeName: this.dataProvider.name,
+        details: { deviceCount: this.aggregator.parts.size },
+      });
     } catch (e) {
       const reason = "Failed to start bridge due to error:";
       this.log.error(reason, e);
@@ -161,6 +167,10 @@ export class Bridge {
       }
     }
     this.setStatus({ code, reason });
+    diagnosticEventBus.emit("bridge_stopped", `Bridge stopped: ${reason}`, {
+      bridgeId: this.id,
+      bridgeName: this.dataProvider.name,
+    });
   }
 
   private startAutoForceSyncIfEnabled() {
