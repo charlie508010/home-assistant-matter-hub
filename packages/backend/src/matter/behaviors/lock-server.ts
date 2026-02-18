@@ -101,12 +101,13 @@ class LockServerBase extends Base {
       lockType: DoorLock.LockType.DeadBolt,
       operatingMode: DoorLock.OperatingMode.Normal,
       actuatorEnabled: true,
+      // Matter DoorLock bitmap: true = mode NOT supported (inverted semantics)
       supportedOperatingModes: {
-        noRemoteLockUnlock: false,
-        normal: true,
-        passage: false,
-        privacy: false,
-        vacation: false,
+        noRemoteLockUnlock: true,
+        normal: false,
+        passage: true,
+        privacy: true,
+        vacation: true,
       },
     });
   }
@@ -200,12 +201,13 @@ class LockServerWithPinBase extends PinCredentialBase {
       lockType: DoorLock.LockType.DeadBolt,
       operatingMode: DoorLock.OperatingMode.Normal,
       actuatorEnabled: true,
+      // Matter DoorLock bitmap: true = mode NOT supported (inverted semantics)
       supportedOperatingModes: {
-        noRemoteLockUnlock: false,
-        normal: true,
-        passage: false,
-        privacy: false,
-        vacation: false,
+        noRemoteLockUnlock: true,
+        normal: false,
+        passage: true,
+        privacy: true,
+        vacation: true,
       },
       numberOfPinUsersSupported: 1,
       numberOfTotalUsersSupported: 1,
@@ -463,12 +465,13 @@ class LockServerWithPinAndUnboltBase extends PinCredentialUnboltBase {
       lockType: DoorLock.LockType.DeadBolt,
       operatingMode: DoorLock.OperatingMode.Normal,
       actuatorEnabled: true,
+      // Matter DoorLock bitmap: true = mode NOT supported (inverted semantics)
       supportedOperatingModes: {
-        noRemoteLockUnlock: false,
-        normal: true,
-        passage: false,
-        privacy: false,
-        vacation: false,
+        noRemoteLockUnlock: true,
+        normal: false,
+        passage: true,
+        privacy: true,
+        vacation: true,
       },
       numberOfPinUsersSupported: 1,
       numberOfTotalUsersSupported: 1,

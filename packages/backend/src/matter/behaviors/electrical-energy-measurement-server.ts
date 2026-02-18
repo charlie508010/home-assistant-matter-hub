@@ -44,11 +44,18 @@ class ElectricalEnergyMeasurementServerBase extends FeaturedBase {
     // Matter uses milliwatt-hours (mWh)
     const energyMwh = Math.round(energyKwh * 1_000_000);
 
+    const energyImported = { energy: energyMwh };
+
     applyPatchState(this.state, {
-      cumulativeEnergyImported: {
-        energy: energyMwh,
-      },
+      cumulativeEnergyImported: energyImported,
     });
+
+    // Matter spec requires emitting cumulativeEnergyMeasured event
+    // when cumulative energy values change (see matter.js setMeasurement)
+    this.events.cumulativeEnergyMeasured?.emit(
+      { energyImported, energyExported: undefined },
+      this.context,
+    );
   }
 }
 

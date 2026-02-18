@@ -417,13 +417,15 @@ export class ThermostatServerBase extends FullFeaturedBase {
     heat = (heat ?? cool)!;
     cool = (cool ?? heat)!;
 
+    // Matter spec: amount is in 0.1°C steps (tenths of a degree).
+    // Divide by 10 to convert to °C for the Temperature.plus() method.
     const adjustedCool =
       request.mode !== Thermostat.SetpointRaiseLowerMode.Heat
-        ? cool.plus(request.amount / 1000, "°C")
+        ? cool.plus(request.amount / 10, "°C")
         : cool;
     const adjustedHeat =
       request.mode !== Thermostat.SetpointRaiseLowerMode.Cool
-        ? heat.plus(request.amount / 1000, "°C")
+        ? heat.plus(request.amount / 10, "°C")
         : heat;
     this.setTemperature(adjustedHeat, adjustedCool, request.mode);
   }
