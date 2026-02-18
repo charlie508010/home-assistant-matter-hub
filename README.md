@@ -37,7 +37,7 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v2.0.20 | Production-ready, recommended for most users |
+| **Stable** | `main` | v2.0.21 | Production-ready, recommended for most users |
 | **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
@@ -52,7 +52,14 @@ of port forwarding etc.
 ## 🎉 What's New
 
 <details>
-<summary><strong>📦 Stable Features (v2.0.20)</strong> - Click to expand</summary>
+<summary><strong>📦 Stable Features (v2.0.21)</strong> - Click to expand</summary>
+
+**Hotfixes in v2.0.21:**
+
+| Fix | Description |
+|-----|-------------|
+| **🗺️ Network Map Vendor IDs** | Corrected vendor ID mappings — Google Home, Apple Home, and Amazon Alexa now display correctly in Network Map and Health Dashboard ([#178](https://github.com/RiDDiX/home-assistant-matter-hub/issues/178)) |
+| **🌡️ Thermostat Mode Stability** | Reverted auto-resume logic that caused mode cycling (Heat→Auto) on some AC units ([#176](https://github.com/RiDDiX/home-assistant-matter-hub/issues/176)) |
 
 **New in v2.0.20** (merged from alpha):
 
@@ -105,7 +112,7 @@ of port forwarding etc.
 <details>
 <summary><strong>🧪 Alpha Features (v2.1.0-alpha.x)</strong> - Click to expand</summary>
 
-**Alpha and Stable are currently in sync (v2.0.20).** All previously alpha-only features have been promoted to the stable release. New experimental features will appear here before being promoted.
+**Alpha and Stable are currently in sync (v2.0.21).** All previously alpha-only features have been promoted to the stable release. New experimental features will appear here before being promoted.
 
 </details>
 
