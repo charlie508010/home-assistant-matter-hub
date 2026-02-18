@@ -3,7 +3,7 @@
 This guide covers features available in the Alpha version of Home-Assistant-Matter-Hub.
 
 > [!NOTE]
-> **Alpha and Stable are currently in sync (v2.0.19).** All previously alpha-only features have been promoted to the stable release. New experimental features will appear here before being promoted.
+> **Alpha and Stable are currently in sync (v2.0.20).** All previously alpha-only features have been promoted to the stable release. New experimental features will appear here before being promoted.
 
 > [!WARNING]
 > Alpha versions are for testing only and may contain bugs. Use at your own risk!
@@ -32,23 +32,38 @@ docker run -d \
 
 ---
 
-## Features Now in Stable (v2.0.19)
+## Features Now in Stable (v2.0.20)
 
 The following features have graduated from Alpha to Stable:
 
-**New in v2.0.19:**
-- **EntityLabel & DeviceLabel Filters** - Split `label` into `entity_label` and `device_label` for precise filtering (#164)
-- **Filter Reference Page** - Comprehensive page listing all filter values with search and click-to-copy
-- **Diagnostics Dashboard** - Entity health indicators, battery levels, auto-mapping info on bridge details
-- **Power & Energy Measurement** - Switches and lights support ElectricalPowerMeasurement/ElectricalEnergyMeasurement clusters
-- **Event Domain Support** - `event.*` entities mapped to Matter GenericSwitch (doorbells, buttons)
-- **device_class Filter** - New filter type for matching by HA device_class attribute
-- **Label Display Name Resolution** - Filter values accept display names, automatically resolved to slugs
-- **Vacuum Ecovacs/Deebot Fix** - Fix send_command crash (#165)
-- **Bridge Starting Status** - WebSocket broadcast for real-time startup progress (#160)
-- **Session Recovery Improvements** - Reduced MRP traffic, orphan detection, resumption record clearing (#105)
-- **Server Mode Auto-Battery** - Auto-battery-mapping for server mode vacuum bridges (#112)
-- **Edit Filters on Bridge Details** - Quick filter editing from the bridge details page
+**New in v2.0.20:**
+- **Bridge Templates / Presets** - 10 predefined bridge templates with auto-configured filters and feature flags
+- **Enhanced Bridge Wizard** - 4-step flow: Template → Bridge Info → Entity Filter → Review & Create
+- **Live Filter Preview** - Auto-refresh on filter changes with domain hints and contextual warnings
+- **Entity Diagnostics** - Per-entity diagnostics panel showing HA state, attributes, and all mappings
+- **Multi-Bridge Bulk Operations** - Start All, Stop All, Restart All, and bridge cloning
+- **Entity Health Indicators** - Unavailable/unknown entities visually marked with filter toggle
+- **Session/Subscription Info** - Health dashboard shows connectivity details per bridge
+- **Diagnostic Export** - Export full diagnostic data as JSON for troubleshooting
+- **Thermostat AutoMode Fix** - AutoMode only for devices with `heat_cool` (dual setpoint), fixes Apple Home mode flipping
+- **Roborock Room Names** - Show friendly names instead of entity IDs (#106)
+- **Ecovacs Cleaning Modes** - Auto-detect vacuum/mop/both support (#165)
+- **Ecovacs Room Cleaning** - Native Deebot room cleaning via spot_area (#165)
+- **Cover Fix** - Restore coverSwapOpenClose force inversion (#117)
+- **Media Player TV Detection** - Auto-detect TV device_class (#162)
+- **Subscription Stability** - Prevent Offline/Updating status (#103)
+- **Orphan Detection** - Handle commissioned bridges without active sessions (#105)
+- **Pressure Unit Conversion** - Fix auto-mapped pressure entities (#166)
+- **Graceful Entity Unavailability** - Unavailable entities handled gracefully
+
+**Previously promoted in v2.0.19:**
+- EntityLabel & DeviceLabel Filters (#164)
+- Filter Reference Page
+- Power & Energy Measurement clusters
+- Event Domain Support (GenericSwitch)
+- device_class Filter
+- Session Recovery Improvements (#105)
+- Server Mode Auto-Battery (#112)
 
 **Previously promoted (v2.0.17/v2.0.18):**
 - **Automatic Room Assignment** - Entities auto-assigned to rooms based on HA areas using FixedLabel cluster
@@ -78,7 +93,7 @@ The following features have graduated from Alpha to Stable:
 
 ## Current Alpha Features
 
-Alpha and Stable are currently in sync. New experimental features will be added here before being promoted to stable.
+Alpha and Stable are currently in sync (v2.0.20). New experimental features will be added here before being promoted to stable.
 
 ---
 

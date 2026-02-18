@@ -53,7 +53,7 @@ Home Assistant lights are mapped to the appropriate Matter light type based on s
 - `color_temp` (mireds) → Matter Color Temperature (Kelvin)
 - `rgb_color` / `hs_color` / `xy_color` → Matter Hue/Saturation or XY
 
-**Power & Energy Measurement (new in v2.0.19):**
+**Power & Energy Measurement:**
 - Lights can optionally report electrical power and energy consumption via Matter clusters
 - Auto-mapped from HA power/energy sensor entities on the same device
 - Manual mapping via Entity Mapping: `powerEntity`, `energyEntity`
@@ -73,7 +73,7 @@ Mapped to **OnOffPlugInUnit** - a simple on/off controllable outlet.
 - Turn off
 - Toggle
 
-**Power & Energy Measurement (new in v2.0.19):**
+**Power & Energy Measurement:**
 - Switches can optionally report electrical power and energy consumption via Matter clusters
 - Auto-mapped from HA power/energy sensor entities on the same device
 - Manual mapping via Entity Mapping: `powerEntity`, `energyEntity`
@@ -165,10 +165,13 @@ Mapped to **Thermostat** with heating, cooling, and auto modes.
 - `hvac_action` → Running State (active heating/cooling display)
 - `min_temp` / `max_temp` → Thermostat limits
 
-**Feature Variants (auto-detected):**
+**Feature Variants (auto-detected from HA hvac_modes):**
 - **Heating Only**: Heat-only TRVs, water heaters — exposes only `Heating` feature
 - **Cooling Only**: Cool-only ACs — exposes only `Cooling` feature
-- **Full HVAC**: Dual-mode thermostats — exposes `Heating` + `Cooling` + `AutoMode`
+- **Heating + Cooling**: Devices with `heat` and `cool` but no `heat_cool` — exposes `Heating` + `Cooling` without AutoMode. Apple Home won't show Auto button, preventing mode flipping.
+- **Full HVAC (AutoMode)**: Devices with `heat_cool` in hvac_modes — exposes `Heating` + `Cooling` + `AutoMode` with dual setpoints
+
+> **New in v2.0.20:** AutoMode is now only exposed when the device supports `heat_cool` (dual setpoint) in Home Assistant. Devices with only `auto` mode (single setpoint, device decides) no longer get AutoMode, which previously caused Apple Home to send conflicting commands and mode flipping.
 
 This prevents Alexa from rejecting commands on single-capability thermostats ([#136](https://github.com/RiDDiX/home-assistant-matter-hub/issues/136)).
 
@@ -302,7 +305,7 @@ Mapped to **Speaker** device with volume and playback control.
 
 ### Events (`event`)
 
-Mapped to **GenericSwitch** device (new in v2.0.19).
+Mapped to **GenericSwitch** device.
 
 **Supported Use Cases:**
 - Doorbells
