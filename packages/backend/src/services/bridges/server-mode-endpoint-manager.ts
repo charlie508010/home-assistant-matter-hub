@@ -55,6 +55,16 @@ export class ServerModeEndpointManager extends Service {
 
   override async dispose(): Promise<void> {
     this.stopObserving();
+
+    // Delete device endpoint to free memory
+    if (this.deviceEndpoint) {
+      try {
+        await this.deviceEndpoint.delete();
+      } catch (e) {
+        this.log.warn(`Failed to delete device endpoint during dispose:`, e);
+      }
+      this.deviceEndpoint = undefined;
+    }
   }
 
   async startObserving(): Promise<void> {

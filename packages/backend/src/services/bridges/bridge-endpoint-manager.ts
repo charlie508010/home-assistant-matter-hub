@@ -76,6 +76,16 @@ export class BridgeEndpointManager extends Service {
     this.stopObserving();
     EntityIsolationService.unregisterIsolationCallback(this.bridgeId);
     EntityIsolationService.clearIsolatedEntities(this.bridgeId);
+
+    // Delete all endpoints to free memory
+    const endpoints = this.root.parts.map((p) => p as EntityEndpoint);
+    for (const endpoint of endpoints) {
+      try {
+        await endpoint.delete();
+      } catch (e) {
+        this.log.warn(`Failed to delete endpoint during dispose:`, e);
+      }
+    }
   }
 
   async startObserving() {
