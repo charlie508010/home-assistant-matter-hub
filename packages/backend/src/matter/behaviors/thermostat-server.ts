@@ -262,6 +262,13 @@ function installSetpointWriteInterceptor(
 ): void {
   const logger = Logger.get("ThermostatServer");
   const state = self.state;
+
+  // Idempotent: check if already installed
+  const markerName = `__${attributeName}InterceptorInstalled`;
+  if ((state as Record<string, unknown>)[markerName]) {
+    return;
+  }
+
   const originalDescriptor = Object.getOwnPropertyDescriptor(
     state,
     attributeName,
@@ -277,6 +284,14 @@ function installSetpointWriteInterceptor(
   if (!originalSetter) {
     return; // Read-only attribute
   }
+
+  // Mark as installed
+  Object.defineProperty(state, markerName, {
+    value: true,
+    writable: false,
+    enumerable: false,
+    configurable: false,
+  });
 
   Object.defineProperty(state, attributeName, {
     get: originalDescriptor.get,
