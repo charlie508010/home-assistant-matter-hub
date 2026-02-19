@@ -91,7 +91,7 @@ export class BridgeRegistry {
         return entity.entity_id;
       }
     }
-    log.warn(
+    log.debug(
       `findBatteryEntityForDevice: No battery sensor found for device ${deviceId}`,
     );
     return undefined;
