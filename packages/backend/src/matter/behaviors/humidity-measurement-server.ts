@@ -35,7 +35,7 @@ class HumidityMeasurementServerBase extends Base {
     );
     applyPatchState(this.state, {
       measuredValue: humidity,
-      minMeasuredValue: 0,
+      minMeasuredValue: 1, // Cannot be 0 (reserved as "null" in Matter spec)
       maxMeasuredValue: 10000,
     });
   }
