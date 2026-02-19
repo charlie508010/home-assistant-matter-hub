@@ -77,7 +77,16 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 <details>
 <summary><strong>🧪 Alpha (v2.1.0-alpha.x)</strong></summary>
 
-Alpha and Stable are currently in sync. No additional alpha-only features at this time.
+| Feature | Description |
+|---------|-------------|
+| **🏠 Dashboard** | New landing page with bridge overview, quick navigation, and Bridge Wizard access |
+| **🔍 Entity Autocomplete** | Search-as-you-type entity suggestions in Entity Mapping dialogs |
+| **⏱️ Light Transitions** | Matter transition times forwarded to HA `light.turn_on` service |
+| **🌡️ Thermostat Auto-Resume** | Auto-resume works even when setting same temperature while off (#176) |
+| **🤖 Vacuum Docked State** | Vacuums correctly show "Docked" instead of "Paused" when charging (#165) |
+| **📱 Dashboard UI** | Responsive cards, sorted bridges, icon legend, mobile-optimized |
+| **💾 Memory Fixes** | Endpoint disposal fixes to prevent OOM issues |
+| **🔋 Reduced Logging** | Battery sensor mapping no longer spams logs |
 
 </details>
 

@@ -38,7 +38,7 @@ of port forwarding etc.
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
 | **Stable** | `main` | v2.0.21 | Production-ready, recommended for most users |
-| **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
+| **Alpha** | `alpha` | v2.1.0-alpha.266 | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
 ### Which version should I use?
@@ -112,7 +112,19 @@ of port forwarding etc.
 <details>
 <summary><strong>🧪 Alpha Features (v2.1.0-alpha.x)</strong> - Click to expand</summary>
 
-**Alpha and Stable are currently in sync (v2.0.21).** All previously alpha-only features have been promoted to the stable release. New experimental features will appear here before being promoted.
+**New in Alpha:**
+
+| Feature | Description |
+|---------|-------------|
+| **🏠 Dashboard Landing Page** | New dashboard as the application's start page showing bridge count, device count, fabric connections, HA connection status, version, uptime, quick navigation, and Bridge Wizard buttons |
+| **🧙 Bridge Wizard Feature Flags** | Dedicated step for configuring Auto Compose Devices, Auto Force Sync, Invert Cover Direction, and Include Hidden Entities |
+| **🔍 Entity Autocomplete** | Search-as-you-type entity suggestions in Entity Mapping dialogs |
+| **⏱️ Light Transition Time** | Matter transition times forwarded to HA `light.turn_on` service |
+| **🌡️ Thermostat Auto-Resume** | Fixed auto-resume when setting same temperature while device is off (#176) |
+| **🤖 Vacuum Docked State** | Vacuums correctly show "Docked" instead of "Paused" when charging (#165) |
+| **🗺️ Live Diagnostics Improvements** | Bridge cards uniformly sized, self-adjusting, sorted A-Z |
+| **💾 Memory Leak Fix** | Endpoint disposal fixes to prevent OOM issues |
+| **🔋 Battery Log Spam Fix** | Reduced log noise from battery sensor auto-mapping |
 
 </details>
 
