@@ -1,14 +1,20 @@
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import AddIcon from "@mui/icons-material/Add";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DevicesIcon from "@mui/icons-material/Devices";
 import ErrorIcon from "@mui/icons-material/Error";
 import HomeIcon from "@mui/icons-material/Home";
 import HubIcon from "@mui/icons-material/Hub";
+import LabelIcon from "@mui/icons-material/Label";
 import LinkIcon from "@mui/icons-material/Link";
+import LockIcon from "@mui/icons-material/Lock";
 import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
+import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import WarningIcon from "@mui/icons-material/Warning";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardActionArea from "@mui/material/CardActionArea";
 import CardContent from "@mui/material/CardContent";
@@ -24,12 +30,15 @@ import {
   checkBridgeIconExists,
   getBridgeIconUrl,
 } from "../../api/bridge-icons.ts";
+import { BridgeWizard } from "../../components/bridge/BridgeWizard.tsx";
 import {
   getBridgeIcon,
   getBridgeIconColor,
 } from "../../components/bridge/bridgeIconUtils.ts";
 import { useBridges } from "../../hooks/data/bridges.ts";
 import { navigation } from "../../routes.tsx";
+import { loadBridges } from "../../state/bridges/bridge-actions.ts";
+import { useAppDispatch } from "../../state/hooks.ts";
 
 interface HealthSummary {
   status: "healthy" | "degraded" | "unhealthy";
@@ -205,10 +214,44 @@ function BridgeMiniCard({
   );
 }
 
+function NavCard({
+  title,
+  icon,
+  onClick,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <Card variant="outlined">
+      <CardActionArea onClick={onClick}>
+        <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <Avatar
+              sx={{
+                bgcolor: "action.selected",
+                color: "text.secondary",
+                width: 36,
+                height: 36,
+              }}
+            >
+              {icon}
+            </Avatar>
+            <Typography variant="subtitle2">{title}</Typography>
+          </Box>
+        </CardContent>
+      </CardActionArea>
+    </Card>
+  );
+}
+
 export const DashboardPage = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const [health, setHealth] = useState<HealthSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const fetchHealth = useCallback(async () => {
     try {
@@ -355,6 +398,25 @@ export const DashboardPage = () => {
         </Stack>
       </Box>
 
+      <Stack direction="row" spacing={1.5} sx={{ mb: 2 }}>
+        <Button
+          variant="contained"
+          startIcon={<AutoFixHighIcon />}
+          onClick={() => setWizardOpen(true)}
+          size="large"
+        >
+          Bridge Wizard
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<AddIcon />}
+          onClick={() => navigate(navigation.createBridge)}
+          size="large"
+        >
+          Create Bridge
+        </Button>
+      </Stack>
+
       {health?.bridgeDetails && health.bridgeDetails.length > 0 ? (
         <Grid container spacing={1.5}>
           {health.bridgeDetails.map((bridge) => (
@@ -370,11 +432,76 @@ export const DashboardPage = () => {
         <Card variant="outlined">
           <CardContent sx={{ textAlign: "center", py: 4 }}>
             <Typography color="text.secondary">
-              No bridges configured yet.
+              No bridges configured yet. Use the Bridge Wizard or create one
+              manually.
             </Typography>
           </CardContent>
         </Card>
       )}
+
+      <Divider sx={{ my: 3 }} />
+
+      {/* Quick navigation */}
+      <Typography variant="h6" sx={{ mb: 2 }}>
+        Quick Navigation
+      </Typography>
+      <Grid container spacing={1.5}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <NavCard
+            title="Bridges"
+            icon={<HubIcon sx={{ fontSize: 20 }} />}
+            onClick={() => navigate(navigation.bridges)}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <NavCard
+            title="All Devices"
+            icon={<DevicesIcon sx={{ fontSize: 20 }} />}
+            onClick={() => navigate(navigation.devices)}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <NavCard
+            title="Network Map"
+            icon={<AccountTreeIcon sx={{ fontSize: 20 }} />}
+            onClick={() => navigate(navigation.networkMap)}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <NavCard
+            title="Health Dashboard"
+            icon={<MonitorHeartIcon sx={{ fontSize: 20 }} />}
+            onClick={() => navigate(navigation.health)}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <NavCard
+            title="Startup Order"
+            icon={<RocketLaunchIcon sx={{ fontSize: 20 }} />}
+            onClick={() => navigate(navigation.startup)}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <NavCard
+            title="Lock Credentials"
+            icon={<LockIcon sx={{ fontSize: 20 }} />}
+            onClick={() => navigate(navigation.lockCredentials)}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <NavCard
+            title="Filter Reference"
+            icon={<LabelIcon sx={{ fontSize: 20 }} />}
+            onClick={() => navigate(navigation.labels)}
+          />
+        </Grid>
+      </Grid>
+
+      <BridgeWizard
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        onComplete={() => dispatch(loadBridges())}
+      />
     </Box>
   );
 };
