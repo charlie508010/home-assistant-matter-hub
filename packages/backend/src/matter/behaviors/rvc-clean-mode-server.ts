@@ -21,6 +21,13 @@ export interface RvcCleanModeServerInitialState {
 class RvcCleanModeServerBase extends Base {
   declare state: RvcCleanModeServerBase.State;
 
+  // Pending mode from a recent changeToMode command.
+  // Prevents stale HA state (from a different entity like select.xxx)
+  // from overwriting the mode before HA has confirmed the change.
+  private pendingMode?: number;
+  private pendingModeTimestamp = 0;
+  private static readonly PENDING_MODE_TIMEOUT_MS = 10000;
+
   override async initialize() {
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
@@ -32,8 +39,26 @@ class RvcCleanModeServerBase extends Base {
     if (!entity.state) {
       return;
     }
+    const reportedMode = this.state.config.getCurrentMode(
+      entity.state,
+      this.agent,
+    );
+
+    let currentMode = reportedMode;
+    if (this.pendingMode !== undefined) {
+      const elapsed = Date.now() - this.pendingModeTimestamp;
+      if (
+        reportedMode === this.pendingMode ||
+        elapsed > RvcCleanModeServerBase.PENDING_MODE_TIMEOUT_MS
+      ) {
+        this.pendingMode = undefined;
+      } else {
+        currentMode = this.pendingMode;
+      }
+    }
+
     applyPatchState(this.state, {
-      currentMode: this.state.config.getCurrentMode(entity.state, this.agent),
+      currentMode,
       supportedModes: this.state.config.getSupportedModes(
         entity.state,
         this.agent,
@@ -46,6 +71,10 @@ class RvcCleanModeServerBase extends Base {
   ): ModeBase.ChangeToModeResponse {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const { newMode } = request;
+
+    this.pendingMode = newMode;
+    this.pendingModeTimestamp = Date.now();
+    this.state.currentMode = newMode;
 
     homeAssistant.callAction(
       this.state.config.setCleanMode(newMode, this.agent),
