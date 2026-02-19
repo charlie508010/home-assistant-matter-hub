@@ -500,7 +500,10 @@ export const DashboardPage = () => {
       <BridgeWizard
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}
-        onComplete={() => dispatch(loadBridges())}
+        onComplete={() => {
+          dispatch(loadBridges());
+          fetchHealth();
+        }}
       />
     </Box>
   );
