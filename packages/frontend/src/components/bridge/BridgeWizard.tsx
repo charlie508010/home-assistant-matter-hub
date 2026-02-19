@@ -55,7 +55,46 @@ interface WizardBridge {
   };
 }
 
-const steps = ["Template", "Bridge Info", "Entity Filter", "Review & Create"];
+const steps = [
+  "Template",
+  "Bridge Info",
+  "Entity Filter",
+  "Feature Flags",
+  "Review & Create",
+];
+
+interface FlagOption {
+  key: keyof BridgeFeatureFlags;
+  label: string;
+  description: string;
+}
+
+const wizardFlags: FlagOption[] = [
+  {
+    key: "autoComposedDevices",
+    label: "Auto Compose Devices",
+    description:
+      "Combine related entities (battery, humidity, pressure, power, energy) from the same HA device into a single Matter endpoint.",
+  },
+  {
+    key: "autoForceSync",
+    label: "Auto Force Sync",
+    description:
+      "Periodically push all device states to controllers. Recommended for Google Home and Alexa to prevent devices from going offline.",
+  },
+  {
+    key: "coverSwapOpenClose",
+    label: "Invert Cover Direction",
+    description:
+      "Swap open/close direction for covers. Use this if your covers show the wrong position in Matter controllers.",
+  },
+  {
+    key: "includeHiddenEntities",
+    label: "Include Hidden Entities",
+    description:
+      "Also expose entities that are marked as hidden in Home Assistant.",
+  },
+];
 
 export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
@@ -410,6 +449,43 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
     </Box>
   );
 
+  const renderFeatureFlagsStep = () => (
+    <Box sx={{ mt: 2 }}>
+      <Typography variant="body1" gutterBottom>
+        Configure optional feature flags for this bridge.
+      </Typography>
+      {wizardFlags.map((flag) => (
+        <Box key={flag.key} sx={{ mt: 1 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={currentBridge.featureFlags?.[flag.key] === true}
+                onChange={(e) =>
+                  setCurrentBridge((prev) => ({
+                    ...prev,
+                    featureFlags: {
+                      ...prev.featureFlags,
+                      [flag.key]: e.target.checked,
+                    },
+                  }))
+                }
+              />
+            }
+            label={flag.label}
+          />
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            display="block"
+            sx={{ ml: 7, mt: -0.5 }}
+          >
+            {flag.description}
+          </Typography>
+        </Box>
+      ))}
+    </Box>
+  );
+
   const renderStep2 = () => {
     const flagEntries = Object.entries(currentBridge.featureFlags ?? {}).filter(
       ([, v]) => v === true,
@@ -514,7 +590,8 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
         {activeStep === 0 && renderTemplateStep()}
         {activeStep === 1 && renderStep0()}
         {activeStep === 2 && renderStep1()}
-        {activeStep === 3 && renderStep2()}
+        {activeStep === 3 && renderFeatureFlagsStep()}
+        {activeStep === 4 && renderStep2()}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} disabled={loading}>
