@@ -1,7 +1,8 @@
-import { Navigate, type RouteObject } from "react-router";
+import type { RouteObject } from "react-router";
 import { AppPage } from "./pages/AppPage.tsx";
 import { BridgeDetailsPage } from "./pages/bridge-details/BridgeDetailsPage.tsx";
 import { BridgesPage } from "./pages/bridges/BridgesPage.tsx";
+import { DashboardPage } from "./pages/dashboard/DashboardPage.tsx";
 import { DevicesPage } from "./pages/devices/DevicesPage.tsx";
 import { CreateBridgePage } from "./pages/edit-bridge/CreateBridgePage.tsx";
 import { EditBridgePage } from "./pages/edit-bridge/EditBridgePage.tsx";
@@ -13,6 +14,7 @@ import { StartupPage } from "./pages/startup/StartupPage.tsx";
 
 const documentationUrl = "https://riddix.github.io/home-assistant-matter-hub";
 export const navigation = {
+  dashboard: "/",
   bridges: "/bridges",
   bridge: (bridgeId: string) => `/bridges/${bridgeId}`,
   createBridge: "/bridges/create",
@@ -39,7 +41,7 @@ export const routes: RouteObject[] = [
     children: [
       {
         path: "",
-        element: <Navigate to={navigation.bridges} replace={true} />,
+        element: <DashboardPage />,
       },
       { path: navigation.bridges, element: <BridgesPage /> },
       { path: navigation.createBridge, element: <CreateBridgePage /> },

@@ -2,6 +2,7 @@ import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import DevicesIcon from "@mui/icons-material/Devices";
+import HomeIcon from "@mui/icons-material/Home";
 import HubIcon from "@mui/icons-material/Hub";
 import LabelIcon from "@mui/icons-material/Label";
 import LightModeIcon from "@mui/icons-material/LightMode";
@@ -48,6 +49,7 @@ export const AppTopBar = () => {
   };
 
   const navItems: NavItem[] = [
+    { label: "Dashboard", icon: <HomeIcon />, to: navigation.dashboard },
     { label: "Bridges", icon: <HubIcon />, to: navigation.bridges },
     { label: "All Devices", icon: <DevicesIcon />, to: navigation.devices },
     {
