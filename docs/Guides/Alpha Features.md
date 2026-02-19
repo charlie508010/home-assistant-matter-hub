@@ -99,8 +99,9 @@ The application now opens with a dashboard overview instead of the bridges list.
 
 - **Stat Cards** — Bridge count (with status breakdown), total device count (with failed count), fabric connections, and Home Assistant connection status
 - **Version & Uptime** — Current HAMH version and system uptime
+- **Create Bridge Buttons** — Prominent buttons to launch the Bridge Wizard or create a bridge manually, directly from the dashboard
 - **Bridge Mini-Cards** — Each bridge shown with its name, device count, fabric count, and status chip. Click any bridge to navigate to its detail page.
-- **Quick Navigation** — Stat cards and chips link to the relevant pages (Bridges, Devices, Network Map)
+- **Quick Navigation** — Cards linking to all application pages: Bridges, All Devices, Network Map, Health Dashboard, Startup Order, Lock Credentials, and Filter Reference
 
 The dashboard fetches data from `/api/health/detailed` and refreshes every 15 seconds.
 
