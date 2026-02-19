@@ -38,9 +38,10 @@ class ElectricalPowerMeasurementServerBase extends Base {
     const powerWatts = stateProvider.getNumericState(powerEntity);
 
     // Matter uses milliwatts (int64)
-    const activePower =
-      powerWatts != null ? Math.round(powerWatts * 1000) : null;
+    // Only update if we have a valid value - skip null to avoid validation errors
+    if (powerWatts == null) return;
 
+    const activePower = Math.round(powerWatts * 1000);
     applyPatchState(this.state, { activePower });
   }
 }
@@ -57,11 +58,11 @@ export const HaElectricalPowerMeasurementServer =
       {
         measurementType: ElectricalPowerMeasurement.MeasurementType.ActivePower,
         measured: true,
-        minMeasuredValue: 1, // Cannot be 0 (reserved as "null" in Matter spec)
+        minMeasuredValue: -1_000_000, // -1000W, allows 0 and all positive values
         maxMeasuredValue: 100_000_000, // 100kW in mW
         accuracyRanges: [
           {
-            rangeMin: 1,
+            rangeMin: -1_000_000,
             rangeMax: 100_000_000,
             fixedMax: 1000, // 1W accuracy
           },
