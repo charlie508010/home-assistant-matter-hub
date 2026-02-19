@@ -245,118 +245,110 @@ async function thermostatPostInitialize(self: any): Promise<void> {
   // Install write interceptors for auto-resume (#176).
   // The $Changing events only fire on actual value changes. When a controller
   // writes the same temperature while device is off, we still need to auto-resume.
-  // We intercept writes at the state level to handle this case.
-  installSetpointWriteInterceptor(self, "occupiedHeatingSetpoint", "heating");
-  installSetpointWriteInterceptor(self, "occupiedCoolingSetpoint", "cooling");
+  // We use a Proxy to intercept writes at the state level.
+  installStateProxy(self);
 }
 
 /**
- * Installs a write interceptor on a setpoint attribute.
+ * Installs a Proxy on the state object to intercept setpoint writes.
  * This runs on EVERY write, even if the value is unchanged, enabling auto-resume.
  */
-function installSetpointWriteInterceptor(
+function installStateProxy(
   // biome-ignore lint/suspicious/noExplicitAny: Internal helper
   self: any,
-  attributeName: string,
-  mode: "heating" | "cooling",
 ): void {
   const logger = Logger.get("ThermostatServer");
   const state = self.state;
 
-  // Idempotent: check if already installed
-  const markerName = `__${attributeName}InterceptorInstalled`;
-  if ((state as Record<string, unknown>)[markerName]) {
+  // Check if proxy already installed
+  if ((state as Record<string, unknown>).__proxyInstalled) {
     return;
   }
 
-  const originalDescriptor = Object.getOwnPropertyDescriptor(
-    state,
-    attributeName,
+  // biome-ignore lint/suspicious/noExplicitAny: Proxy target
+  const proxyHandler: ProxyHandler<Record<string, any>> = {
+    set(target, property, value) {
+      const prop = String(property);
+
+      // Intercept setpoint writes
+      if (
+        prop === "occupiedHeatingSetpoint" ||
+        prop === "occupiedCoolingSetpoint"
+      ) {
+        const mode = prop === "occupiedHeatingSetpoint" ? "heating" : "cooling";
+
+        try {
+          const currentMode = self.state.systemMode;
+          const isOff = currentMode === Thermostat.SystemMode.Off;
+
+          // Defensive check: ensure config and agent are available
+          if (self.state.config && self.agent) {
+            const haBehavior = self.agent.get(HomeAssistantEntityBehavior);
+            if (haBehavior && haBehavior.entity) {
+              const supportsRange = self.state.config.supportsTemperatureRange(
+                haBehavior.entity.state,
+                self.agent,
+              );
+
+              // Auto-resume: if device is off and single-temp mode, turn it on
+              if (isOff && !supportsRange) {
+                if (mode === "heating" && self.features.heating) {
+                  logger.info(
+                    `${prop} write while off: auto-switching to Heat mode`,
+                  );
+                  const modeAction = self.state.config.setSystemMode(
+                    Thermostat.SystemMode.Heat,
+                    self.agent,
+                  );
+                  haBehavior.callAction(modeAction);
+                } else if (
+                  mode === "cooling" &&
+                  !self.features.heating &&
+                  self.features.cooling
+                ) {
+                  // Cooling-only device
+                  logger.info(
+                    `${prop} write while off: auto-switching to Cool mode`,
+                  );
+                  const modeAction = self.state.config.setSystemMode(
+                    Thermostat.SystemMode.Cool,
+                    self.agent,
+                  );
+                  haBehavior.callAction(modeAction);
+                }
+              }
+            }
+          }
+        } catch (err) {
+          // Silently ignore errors during auto-resume to not break normal operation
+          logger.debug(
+            `${prop} auto-resume error: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      // Always set the value
+      target[prop] = value;
+      return true;
+    },
+  };
+
+  const proxiedState = new Proxy(
+    state as Record<string, unknown>,
+    proxyHandler,
   );
-  if (!originalDescriptor) {
-    logger.warn(
-      `Cannot install interceptor on ${attributeName}: no descriptor found`,
-    );
-    return;
-  }
 
-  const originalSetter = originalDescriptor.set;
-  if (!originalSetter) {
-    return; // Read-only attribute
-  }
-
-  // Mark as installed
-  Object.defineProperty(state, markerName, {
+  // Mark proxy as installed on the target (not the proxy itself to avoid recursion)
+  Object.defineProperty(state, "__proxyInstalled", {
     value: true,
     writable: false,
     enumerable: false,
     configurable: false,
   });
 
-  Object.defineProperty(state, attributeName, {
-    get: originalDescriptor.get,
-    set: (value: number) => {
-      try {
-        const currentMode = self.state.systemMode;
-        const isOff = currentMode === Thermostat.SystemMode.Off;
-
-        // Defensive check: ensure config and agent are available
-        if (!self.state.config || !self.agent) {
-          originalSetter.call(state, value);
-          return;
-        }
-
-        const haBehavior = self.agent.get(HomeAssistantEntityBehavior);
-        if (!haBehavior || !haBehavior.entity) {
-          originalSetter.call(state, value);
-          return;
-        }
-
-        const supportsRange = self.state.config.supportsTemperatureRange(
-          haBehavior.entity.state,
-          self.agent,
-        );
-
-        // Auto-resume: if device is off and single-temp mode, turn it on
-        if (isOff && !supportsRange) {
-          if (mode === "heating" && self.features.heating) {
-            logger.info(
-              `${attributeName} write while off: auto-switching to Heat mode`,
-            );
-            const modeAction = self.state.config.setSystemMode(
-              Thermostat.SystemMode.Heat,
-              self.agent,
-            );
-            haBehavior.callAction(modeAction);
-          } else if (
-            mode === "cooling" &&
-            !self.features.heating &&
-            self.features.cooling
-          ) {
-            // Cooling-only device
-            logger.info(
-              `${attributeName} write while off: auto-switching to Cool mode`,
-            );
-            const modeAction = self.state.config.setSystemMode(
-              Thermostat.SystemMode.Cool,
-              self.agent,
-            );
-            haBehavior.callAction(modeAction);
-          }
-        }
-      } catch (err) {
-        // Silently ignore errors during auto-resume to not break normal operation
-        logger.debug(
-          `${attributeName} auto-resume error: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
-
-      // Call original setter
-      originalSetter.call(state, value);
-    },
-    enumerable: originalDescriptor.enumerable,
-    configurable: originalDescriptor.configurable,
-  });
+  // Replace the state reference with the proxy
+  // biome-ignore lint/suspicious/noExplicitAny: Internal replacement
+  (self as any).state = proxiedState;
 }
 
 export class ThermostatServerBase extends FullFeaturedBase {
