@@ -22,6 +22,7 @@ import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import Grid from "@mui/material/Grid";
+import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -325,6 +326,74 @@ export const DashboardPage = () => {
         </Box>
       </Box>
 
+      {/* Navigation Guide - Icon Legend */}
+      <Paper
+        variant="outlined"
+        sx={{ mb: 3, p: 2, bgcolor: "background.default" }}
+      >
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ mb: 1, display: "block" }}
+        >
+          Navigation
+        </Typography>
+        <Grid container spacing={1}>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <HomeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+              <Typography variant="body2">Dashboard</Typography>
+            </Box>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <HubIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+              <Typography variant="body2">Bridges</Typography>
+            </Box>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <DevicesIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+              <Typography variant="body2">All Devices</Typography>
+            </Box>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <AccountTreeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+              <Typography variant="body2">Network Map</Typography>
+            </Box>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <RocketLaunchIcon
+                sx={{ fontSize: 18, color: "text.secondary" }}
+              />
+              <Typography variant="body2">Startup Order</Typography>
+            </Box>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <LockIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+              <Typography variant="body2">Lock Credentials</Typography>
+            </Box>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <LabelIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+              <Typography variant="body2">Filter Reference</Typography>
+            </Box>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <MonitorHeartIcon
+                sx={{ fontSize: 18, color: "text.secondary" }}
+              />
+              <Typography variant="body2">Health Dashboard</Typography>
+            </Box>
+          </Grid>
+        </Grid>
+      </Paper>
+
       {/* Status cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid size={{ xs: 6, sm: 3 }}>
@@ -378,29 +447,19 @@ export const DashboardPage = () => {
         alignItems="center"
         justifyContent="space-between"
         mb={2}
+        flexWrap="wrap"
+        gap={1}
       >
         <Typography variant="h6">Bridges</Typography>
-        <Stack direction="row" spacing={1}>
-          <Chip
-            icon={<AccountTreeIcon sx={{ fontSize: 16 }} />}
-            label="Network Map"
-            size="small"
-            variant="outlined"
-            clickable
-            onClick={() => navigate(navigation.networkMap)}
-          />
-          <Chip
-            icon={<MonitorHeartIcon sx={{ fontSize: 16 }} />}
-            label="Health"
-            size="small"
-            variant="outlined"
-            clickable
-            onClick={() => navigate(navigation.health)}
-          />
-        </Stack>
       </Box>
 
-      <Stack direction="row" spacing={1.5} sx={{ mb: 2 }}>
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{ mb: 2 }}
+        flexWrap="wrap"
+        useFlexGap
+      >
         <Button
           variant="contained"
           startIcon={<AutoFixHighIcon />}
@@ -421,14 +480,18 @@ export const DashboardPage = () => {
 
       {health?.bridgeDetails && health.bridgeDetails.length > 0 ? (
         <Grid container spacing={1.5}>
-          {health.bridgeDetails.map((bridge) => (
-            <Grid key={bridge.id} size={{ xs: 12, sm: 6, md: 4 }}>
-              <BridgeMiniCard
-                bridge={bridge}
-                onClick={() => navigate(navigation.bridge(bridge.id))}
-              />
-            </Grid>
-          ))}
+          {[...health.bridgeDetails]
+            .sort((a, b) =>
+              a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+            )
+            .map((bridge) => (
+              <Grid key={bridge.id} size={{ xs: 12, sm: 6, md: 4 }}>
+                <BridgeMiniCard
+                  bridge={bridge}
+                  onClick={() => navigate(navigation.bridge(bridge.id))}
+                />
+              </Grid>
+            ))}
         </Grid>
       ) : (
         <Card variant="outlined">
