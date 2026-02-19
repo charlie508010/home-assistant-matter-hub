@@ -281,39 +281,59 @@ function installSetpointWriteInterceptor(
   Object.defineProperty(state, attributeName, {
     get: originalDescriptor.get,
     set: (value: number) => {
-      const currentMode = self.state.systemMode;
-      const isOff = currentMode === Thermostat.SystemMode.Off;
-      const supportsRange = self.state.config.supportsTemperatureRange(
-        self.agent.get(HomeAssistantEntityBehavior).entity.state,
-        self.agent,
-      );
+      try {
+        const currentMode = self.state.systemMode;
+        const isOff = currentMode === Thermostat.SystemMode.Off;
 
-      // Auto-resume: if device is off and single-temp mode, turn it on
-      if (isOff && !supportsRange) {
-        if (mode === "heating" && self.features.heating) {
-          logger.info(
-            `${attributeName} write while off: auto-switching to Heat mode`,
-          );
-          const modeAction = self.state.config.setSystemMode(
-            Thermostat.SystemMode.Heat,
-            self.agent,
-          );
-          self.agent.get(HomeAssistantEntityBehavior).callAction(modeAction);
-        } else if (
-          mode === "cooling" &&
-          !self.features.heating &&
-          self.features.cooling
-        ) {
-          // Cooling-only device
-          logger.info(
-            `${attributeName} write while off: auto-switching to Cool mode`,
-          );
-          const modeAction = self.state.config.setSystemMode(
-            Thermostat.SystemMode.Cool,
-            self.agent,
-          );
-          self.agent.get(HomeAssistantEntityBehavior).callAction(modeAction);
+        // Defensive check: ensure config and agent are available
+        if (!self.state.config || !self.agent) {
+          originalSetter.call(state, value);
+          return;
         }
+
+        const haBehavior = self.agent.get(HomeAssistantEntityBehavior);
+        if (!haBehavior || !haBehavior.entity) {
+          originalSetter.call(state, value);
+          return;
+        }
+
+        const supportsRange = self.state.config.supportsTemperatureRange(
+          haBehavior.entity.state,
+          self.agent,
+        );
+
+        // Auto-resume: if device is off and single-temp mode, turn it on
+        if (isOff && !supportsRange) {
+          if (mode === "heating" && self.features.heating) {
+            logger.info(
+              `${attributeName} write while off: auto-switching to Heat mode`,
+            );
+            const modeAction = self.state.config.setSystemMode(
+              Thermostat.SystemMode.Heat,
+              self.agent,
+            );
+            haBehavior.callAction(modeAction);
+          } else if (
+            mode === "cooling" &&
+            !self.features.heating &&
+            self.features.cooling
+          ) {
+            // Cooling-only device
+            logger.info(
+              `${attributeName} write while off: auto-switching to Cool mode`,
+            );
+            const modeAction = self.state.config.setSystemMode(
+              Thermostat.SystemMode.Cool,
+              self.agent,
+            );
+            haBehavior.callAction(modeAction);
+          }
+        }
+      } catch (err) {
+        // Silently ignore errors during auto-resume to not break normal operation
+        logger.debug(
+          `${attributeName} auto-resume error: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
 
       // Call original setter
