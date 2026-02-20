@@ -43,6 +43,7 @@ export enum ClusterId {
   valveConfigurationAndControl = "valveConfigurationAndControl",
   windowCovering = "windowCovering",
   mediaInput = "mediaInput",
+  rvcCleanMode = "rvcCleanMode",
   rvcRunMode = "rvcRunMode",
   rvcOperationalState = "rvcOperationalState",
   switch = "switch",

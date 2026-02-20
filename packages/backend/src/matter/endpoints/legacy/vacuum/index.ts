@@ -14,6 +14,7 @@ import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-e
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
 import { VacuumPowerSourceServer } from "./behaviors/vacuum-power-source-server.js";
 import {
+  createDefaultRvcCleanModeServer,
   createVacuumRvcCleanModeServer,
   supportsCleaningModes,
 } from "./behaviors/vacuum-rvc-clean-mode-server.js";
@@ -91,15 +92,18 @@ export function VacuumDevice(
     logger.info(`${entityId}: No rooms found, skipping ServiceArea cluster`);
   }
 
-  // RvcCleanMode for Dreame vacuum cleaning modes (Sweeping, Mopping, etc.)
-  // Check both: isDreameVacuum OR if a cleaningModeEntity is mapped
+  // RvcCleanMode — always included.
+  // Alexa probes for cluster 0x55 during discovery and may refuse the device without it.
   const hasCleaningModeEntity =
     !!homeAssistantEntity.mapping?.cleaningModeEntity;
   if (supportsCleaningModes(attributes) || hasCleaningModeEntity) {
     logger.info(
-      `${entityId}: Adding RvcCleanMode cluster (isDreame=${supportsCleaningModes(attributes)}, mappedEntity=${hasCleaningModeEntity})`,
+      `${entityId}: Adding RvcCleanMode (multi-mode, isDreame=${supportsCleaningModes(attributes)}, mappedEntity=${hasCleaningModeEntity})`,
     );
     device = device.with(createVacuumRvcCleanModeServer(attributes));
+  } else {
+    logger.info(`${entityId}: Adding RvcCleanMode (default single-mode)`);
+    device = device.with(createDefaultRvcCleanModeServer());
   }
 
   return device;

@@ -1,4 +1,5 @@
 import type { HomeAssistantEntityInformation } from "@home-assistant-matter-hub/common";
+import type { Agent } from "@matter/main";
 import { RvcCleanModeServer as Base } from "@matter/main/behaviors";
 import { ModeBase } from "@matter/main/clusters/mode-base";
 import { RvcCleanMode } from "@matter/main/clusters/rvc-clean-mode";
@@ -9,7 +10,10 @@ import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
 export interface RvcCleanModeServerConfig {
   getCurrentMode: ValueGetter<number>;
   getSupportedModes: ValueGetter<RvcCleanMode.ModeOption[]>;
-  setCleanMode: ValueSetter<number>;
+  setCleanMode: (
+    value: number,
+    agent: Agent,
+  ) => ReturnType<ValueSetter<number>> | undefined;
 }
 
 export interface RvcCleanModeServerInitialState {
@@ -76,9 +80,10 @@ class RvcCleanModeServerBase extends Base {
     this.pendingModeTimestamp = Date.now();
     this.state.currentMode = newMode;
 
-    homeAssistant.callAction(
-      this.state.config.setCleanMode(newMode, this.agent),
-    );
+    const action = this.state.config.setCleanMode(newMode, this.agent);
+    if (action) {
+      homeAssistant.callAction(action);
+    }
 
     return {
       status: ModeBase.ModeChangeStatus.Success,

@@ -9,6 +9,7 @@ import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-e
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
 import { VacuumPowerSourceServer } from "./behaviors/vacuum-power-source-server.js";
 import {
+  createDefaultRvcCleanModeServer,
   createVacuumRvcCleanModeServer,
   supportsCleaningModes,
 } from "./behaviors/vacuum-rvc-clean-mode-server.js";
@@ -89,11 +90,14 @@ export function ServerModeVacuumDevice(
     );
   }
 
-  // RvcCleanMode for cleaning modes (Dreame, or mapped entity)
+  // RvcCleanMode — always included.
+  // Alexa probes for cluster 0x55 during discovery and may refuse the device without it.
   const hasCleaningModeEntity =
     !!homeAssistantEntity.mapping?.cleaningModeEntity;
   if (supportsCleaningModes(attributes) || hasCleaningModeEntity) {
     device = device.with(createVacuumRvcCleanModeServer(attributes));
+  } else {
+    device = device.with(createDefaultRvcCleanModeServer());
   }
 
   return device;

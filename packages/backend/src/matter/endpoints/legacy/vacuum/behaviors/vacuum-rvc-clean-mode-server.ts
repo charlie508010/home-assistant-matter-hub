@@ -295,6 +295,33 @@ export function createVacuumRvcCleanModeServer(
 }
 
 /**
+ * Create a default RvcCleanMode server with a single "Vacuum" mode.
+ * Used for vacuums that don't support multiple cleaning modes
+ * (e.g. Roborock via Xiaomi integration, iRobot Roomba, etc.).
+ *
+ * Alexa probes for RvcCleanMode (0x55) during device discovery.
+ * Without it, Alexa may fail to complete CASE session establishment
+ * and never subscribe, leaving the vacuum undiscoverable.
+ */
+export function createDefaultRvcCleanModeServer(): ReturnType<
+  typeof RvcCleanModeServer
+> {
+  const defaultConfig = {
+    getCurrentMode: () => 0,
+    getSupportedModes: (): RvcCleanMode.ModeOption[] => [
+      {
+        label: "Vacuum",
+        mode: 0,
+        modeTags: [{ value: RvcCleanMode.ModeTag.Vacuum }],
+      },
+    ],
+    setCleanMode: () => undefined,
+  };
+
+  return RvcCleanModeServer(defaultConfig);
+}
+
+/**
  * Check if vacuum supports cleaning modes.
  * Dreame and Ecovacs vacuums typically support vacuum/mop/both modes
  * via a separate select entity (e.g., select.vacuum_cleaning_mode).
