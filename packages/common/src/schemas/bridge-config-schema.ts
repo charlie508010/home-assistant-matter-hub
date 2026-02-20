@@ -36,13 +36,13 @@ const homeAssistantMatcherSchema: JSONSchema7 = {
           const: "entity_label",
           title: "entity_label",
           description:
-            "Match entities by their label (assigned directly to the entity). Use the label slug, not display name.",
+            "Matches only entities that have this label assigned directly. Other entities of the same device are NOT included.",
         },
         {
           const: "device_label",
           title: "device_label",
           description:
-            "Match entities by their parent device's label (all entities of that device will match). Use the label slug.",
+            "Matches ALL entities of a device if the device has this label. Use this to include a complete device with all its entities.",
         },
         {
           const: "area",
@@ -79,7 +79,7 @@ const homeAssistantMatcherSchema: JSONSchema7 = {
     value: {
       title: "Value",
       description:
-        "For labels, use the label_id (slug), not the display name. You can find the label_id in Home Assistant under Settings > Labels. Example: 'my_smart_lights' instead of 'My Smart Lights'.",
+        "For labels, use the display name or the label_id (slug). You can look up both on the Labels page in the sidebar.",
       type: "string",
       minLength: 1,
     },
