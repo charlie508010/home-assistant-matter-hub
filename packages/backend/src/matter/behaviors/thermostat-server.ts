@@ -242,19 +242,14 @@ async function thermostatPostInitialize(self: any): Promise<void> {
   }
   self.reactTo(homeAssistant.onChange, self.update);
 
-  // Note: Auto-resume is now handled by the occupiedHeatingSetpoint/
-  // occupiedCoolingSetpoint setters in ThermostatServerBase.
-  // The $Changing events are kept for actual temperature changes.
+  // Auto-resume (#176): when device is OFF and a controller writes a setpoint,
+  // the $Changing handler detects systemMode==Off and sends a mode change to HA.
+  // To ensure $Changing fires even for same-value writes, update() nudges the
+  // stored setpoint by 1 centidegree when off (matter.js deduplicates identical writes).
 }
 
 export class ThermostatServerBase extends FullFeaturedBase {
   declare state: ThermostatServerBase.State;
-
-  // Track last setpoint values to detect same-value writes for auto-resume (#176)
-  // biome-ignore lint/suspicious/noExplicitAny: Internal state tracking
-  private _lastHeatingSetpoint: any = undefined;
-  // biome-ignore lint/suspicious/noExplicitAny: Internal state tracking
-  private _lastCoolingSetpoint: any = undefined;
 
   // State class only declares the config property type.
   // ALL defaults are set via .set() in the ThermostatServer function below.
@@ -267,112 +262,6 @@ export class ThermostatServerBase extends FullFeaturedBase {
     thermostatPreInitialize(this);
     await super.initialize();
     await thermostatPostInitialize(this);
-    // Initialize tracking with current values
-    this._lastHeatingSetpoint = this.state.occupiedHeatingSetpoint;
-    this._lastCoolingSetpoint = this.state.occupiedCoolingSetpoint;
-  }
-
-  /**
-   * Override the occupiedHeatingSetpoint setter to intercept ALL writes.
-   * This runs even when the value hasn't changed, enabling auto-resume (#176).
-   */
-  set occupiedHeatingSetpoint(value: number) {
-    // Always set the value first
-    this.state.occupiedHeatingSetpoint = value;
-
-    // Check if this is an actual user write (not initialization)
-    if (this._lastHeatingSetpoint !== undefined && this.agent) {
-      this.handleSetpointWrite("heating", value);
-    }
-    this._lastHeatingSetpoint = value;
-  }
-
-  /**
-   * Override the occupiedCoolingSetpoint setter to intercept ALL writes.
-   * This runs even when the value hasn't changed, enabling auto-resume (#176).
-   */
-  set occupiedCoolingSetpoint(value: number) {
-    // Always set the value first
-    this.state.occupiedCoolingSetpoint = value;
-
-    // Check if this is an actual user write (not initialization)
-    if (this._lastCoolingSetpoint !== undefined && this.agent) {
-      this.handleSetpointWrite("cooling", value);
-    }
-    this._lastCoolingSetpoint = value;
-  }
-
-  // biome-ignore lint/suspicious/noExplicitAny: Getter must match setter
-  get occupiedHeatingSetpoint(): any {
-    return this.state.occupiedHeatingSetpoint;
-  }
-
-  // biome-ignore lint/suspicious/noExplicitAny: Getter must match setter
-  get occupiedCoolingSetpoint(): any {
-    return this.state.occupiedCoolingSetpoint;
-  }
-
-  /**
-   * Handle setpoint write for auto-resume functionality.
-   * Called by the overridden setters for every write, even identical values.
-   */
-  private handleSetpointWrite(
-    mode: "heating" | "cooling",
-    _value: number,
-  ): void {
-    try {
-      const currentMode = this.state.systemMode;
-      const isOff = currentMode === Thermostat.SystemMode.Off;
-
-      if (!isOff) return; // Only auto-resume when off
-
-      const config = this.state.config;
-      if (!config || !this.agent) return;
-
-      const haBehavior = this.agent.get(HomeAssistantEntityBehavior);
-      if (!haBehavior?.entity) return;
-
-      const supportsRange = config.supportsTemperatureRange(
-        haBehavior.entity.state,
-        this.agent,
-      );
-
-      // Only auto-resume for single-temp mode (not range/auto mode)
-      if (supportsRange) return;
-
-      const logger = Logger.get("ThermostatServer");
-
-      if (mode === "heating" && this.features.heating) {
-        logger.info(
-          `occupiedHeatingSetpoint write while off: auto-switching to Heat mode`,
-        );
-        const modeAction = config.setSystemMode(
-          Thermostat.SystemMode.Heat,
-          this.agent,
-        );
-        haBehavior.callAction(modeAction);
-      } else if (
-        mode === "cooling" &&
-        !this.features.heating &&
-        this.features.cooling
-      ) {
-        // Cooling-only device
-        logger.info(
-          `occupiedCoolingSetpoint write while off: auto-switching to Cool mode`,
-        );
-        const modeAction = config.setSystemMode(
-          Thermostat.SystemMode.Cool,
-          this.agent,
-        );
-        haBehavior.callAction(modeAction);
-      }
-    } catch (err) {
-      // Silently ignore errors during auto-resume
-      const logger = Logger.get("ThermostatServer");
-      logger.debug(
-        `${mode} setpoint auto-resume error: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
   }
 
   // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Called via thermostatPostInitialize + prototype copy
@@ -455,18 +344,40 @@ export class ThermostatServerBase extends FullFeaturedBase {
 
     // Clamp setpoints to be within the calculated limits to prevent Matter.js validation errors
     // This handles cases where HA reports setpoints outside the valid range
-    const clampedHeatingSetpoint = this.clampSetpoint(
+    let clampedHeatingSetpoint = this.clampSetpoint(
       targetHeatingTemperature,
       minHeatLimit,
       maxHeatLimit,
       "heat",
     );
-    const clampedCoolingSetpoint = this.clampSetpoint(
+    let clampedCoolingSetpoint = this.clampSetpoint(
       targetCoolingTemperature,
       minCoolLimit,
       maxCoolLimit,
       "cool",
     );
+
+    // When device is OFF, nudge setpoints by 1 centidegree (0.01°C) so that
+    // subsequent controller writes always differ from the stored value.
+    // matter.js deduplicates identical attribute writes at the Datasource layer —
+    // $Changing never fires for same-value writes, preventing auto-resume (#176).
+    // The nudge is below controller display resolution (typically 0.5°C steps).
+    if (systemMode === Thermostat.SystemMode.Off) {
+      if (this.features.heating) {
+        const max = maxHeatLimit ?? WIDE_MAX;
+        clampedHeatingSetpoint =
+          clampedHeatingSetpoint < max
+            ? clampedHeatingSetpoint + 1
+            : clampedHeatingSetpoint - 1;
+      }
+      if (this.features.cooling) {
+        const max = maxCoolLimit ?? WIDE_MAX;
+        clampedCoolingSetpoint =
+          clampedCoolingSetpoint < max
+            ? clampedCoolingSetpoint + 1
+            : clampedCoolingSetpoint - 1;
+      }
+    }
 
     logger.debug(
       `update: limits heat=[${minHeatLimit}, ${maxHeatLimit}], cool=[${minCoolLimit}, ${maxCoolLimit}], systemMode=${systemMode}, runningMode=${runningMode}`,
