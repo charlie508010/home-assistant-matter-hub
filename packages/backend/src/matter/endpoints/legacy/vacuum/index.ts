@@ -12,6 +12,7 @@ import { VacuumPowerSourceServer } from "./behaviors/vacuum-power-source-server.
 import {
   createDefaultRvcCleanModeServer,
   createVacuumRvcCleanModeServer,
+  hasFanSpeedSupport,
   supportsCleaningModes,
 } from "./behaviors/vacuum-rvc-clean-mode-server.js";
 import { VacuumRvcOperationalStateServer } from "./behaviors/vacuum-rvc-operational-state-server.js";
@@ -81,13 +82,15 @@ export function VacuumDevice(
   // Alexa probes for cluster 0x55 during discovery and may refuse the device without it.
   const hasCleaningModeEntity =
     !!homeAssistantEntity.mapping?.cleaningModeEntity;
-  const hasSuctionLevel = !!homeAssistantEntity.mapping?.suctionLevelEntity;
+  const hasFanSpeed =
+    !!homeAssistantEntity.mapping?.suctionLevelEntity ||
+    hasFanSpeedSupport(attributes);
   if (supportsCleaningModes(attributes) || hasCleaningModeEntity) {
     logger.info(
-      `${entityId}: Adding RvcCleanMode (multi-mode, isDreame=${supportsCleaningModes(attributes)}, mappedEntity=${hasCleaningModeEntity}, suction=${hasSuctionLevel})`,
+      `${entityId}: Adding RvcCleanMode (multi-mode, isDreame=${supportsCleaningModes(attributes)}, mappedEntity=${hasCleaningModeEntity}, fanSpeed=${hasFanSpeed})`,
     );
     device = device.with(
-      createVacuumRvcCleanModeServer(attributes, hasSuctionLevel),
+      createVacuumRvcCleanModeServer(attributes, hasFanSpeed),
     );
   } else {
     logger.info(`${entityId}: Adding RvcCleanMode (default single-mode)`);

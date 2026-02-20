@@ -17,10 +17,10 @@ The RVC Clean Mode cluster allows selecting the cleaning type. This is auto-enab
 
 | Mode | Matter Tag | Description |
 |------|-----------|-------------|
-| Sweeping | Vacuum | Dry vacuum only |
-| Mopping | Mop | Wet mop only |
-| Sweeping and mopping | DeepClean | Vacuum and mop simultaneously |
-| Mopping after sweeping | VacuumThenMop | Vacuum first, then mop |
+| Vacuum | Vacuum | Dry vacuum only |
+| Mop | Mop | Wet mop only |
+| Vacuum & Mop | Vacuum + Mop | Vacuum and mop simultaneously |
+| Vacuum Then Mop | DeepClean + Vacuum + Mop | Vacuum first, then mop |
 
 ### Auto-Detection (Dreame)
 
@@ -46,27 +46,29 @@ To find the correct select entity, look in Home Assistant for a `select.*` entit
 
 ## Suction Level (Apple Home Extra Features)
 
-For Dreame and Roborock vacuums with a separate suction level select entity, you can configure `suctionLevelEntity` to enable **Quiet/Max intensity toggles** in Apple Home's extra features panel.
+When your vacuum has fan speed options (e.g., Silent, Standard, Turbo), HAMH adds extra intensity modes that Apple Home shows in its **extra features panel**.
 
-### Setup
+### Auto-Detection
 
-1. Go to **Entity Mappings** and edit your vacuum entity
-2. Set **Suction Level Entity** to the select entity controlling suction (e.g., `select.r2_d2_suction_level`)
-3. Restart the bridge
+Fan speed support is **automatically detected** from the vacuum's `fan_speed_list` attribute. No manual configuration is needed — if your vacuum reports fan speed options, the extra features panel will be available in Apple Home.
 
 ### How it Works
 
-When configured, HAMH creates 12 cleaning modes (4 cleaning types × 3 intensities: Standard, Quiet, Max). Each mode carries Matter tags that Apple Home uses to show the extra features panel:
+When fan speed is available, HAMH exposes 7 cleaning modes (4 cleaning types + 3 intensity levels):
 
-- **Standard** — Base cleaning mode (no extra tag)
-- **Quiet** — Adds Matter tag `2` (Quiet) — lower suction for quiet operation
-- **Max** — Adds Matter tag `7` (Max) — maximum suction power
+| Mode | Matter Tags | Description |
+|------|-----------|-------------|
+| Quiet | Vacuum + Quiet | Lower suction for quiet operation |
+| Standard | Vacuum | Normal suction level |
+| Strong | Vacuum + Max | Maximum suction power |
 
-Changing the intensity in Apple Home sets **both** the cleaning mode and the suction level entity in Home Assistant.
+Apple Home groups the intensity modes as toggleable "extra features" under the Vacuum cleaning type.
 
-:::{tip}
-To find the correct suction level entity, look in Home Assistant for a `select.*` entity on your vacuum device with options like "Quiet", "Standard", "Turbo", "Max", etc.
-:::
+Changing the intensity in Apple Home calls `vacuum.set_fan_speed` in Home Assistant.
+
+### Manual Override (suctionLevelEntity)
+
+If your vacuum uses a separate `select.*` entity for suction control instead of the built-in fan speed, you can configure `suctionLevelEntity` in the Entity Mapping to override the auto-detected fan speed.
 
 ---
 
