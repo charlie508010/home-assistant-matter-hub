@@ -158,15 +158,9 @@ const FAN_NORMAL_ALIASES = [
 
 function getFanSpeedTag(name: string): number | undefined {
   const s = name.toLowerCase();
-  for (const a of FAN_QUIET_ALIASES) {
-    if (s === a || s.includes(a)) return RvcCleanMode.ModeTag.Quiet;
-  }
-  for (const a of FAN_MAX_ALIASES) {
-    if (s === a || s.includes(a)) return RvcCleanMode.ModeTag.Max;
-  }
-  for (const a of FAN_NORMAL_ALIASES) {
-    if (s === a || s.includes(a)) return RvcCleanMode.ModeTag.Auto;
-  }
+  if (FAN_QUIET_ALIASES.includes(s)) return RvcCleanMode.ModeTag.Quiet;
+  if (FAN_MAX_ALIASES.includes(s)) return RvcCleanMode.ModeTag.Max;
+  if (FAN_NORMAL_ALIASES.includes(s)) return RvcCleanMode.ModeTag.Auto;
   return undefined;
 }
 
