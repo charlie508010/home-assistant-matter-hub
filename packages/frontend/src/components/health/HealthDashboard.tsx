@@ -28,6 +28,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useState } from "react";
 import { BackupRestore } from "../backup/BackupRestore.tsx";
+import { getVendorName } from "../fabric/vendor-names.ts";
 
 type SortField = "name" | "created";
 type SortDirection = "asc" | "desc";
@@ -86,21 +87,6 @@ const formatUptime = (seconds: number): string => {
   if (days > 0) return `${days}d ${hours}h ${minutes}m`;
   if (hours > 0) return `${hours}h ${minutes}m`;
   return `${minutes}m`;
-};
-
-const getVendorName = (vendorId: number): string => {
-  const vendors: Record<number, string> = {
-    4362: "Samsung SmartThings",
-    4417: "Tuya",
-    4442: "LG ThinQ",
-    4447: "Aqara",
-    4448: "Amazon Alexa",
-    4631: "Amazon Alexa",
-    4937: "Apple Home",
-    4996: "Apple (iCloud Keychain)",
-    24582: "Google Home",
-  };
-  return vendors[vendorId] ?? `Vendor ${vendorId}`;
 };
 
 export function HealthDashboard() {
