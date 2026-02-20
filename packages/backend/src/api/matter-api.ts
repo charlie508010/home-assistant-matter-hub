@@ -170,6 +170,26 @@ export function matterApi(
     }
   });
 
+  router.post(
+    "/bridges/:bridgeId/actions/open-commissioning-window",
+    async (req, res) => {
+      const bridgeId = req.params.bridgeId;
+      const bridge = bridgeService.bridges.find((b) => b.id === bridgeId);
+      if (!bridge) {
+        res.status(404).send("Not Found");
+        return;
+      }
+      try {
+        await bridge.openCommissioningWindow();
+        res.status(200).json({ success: true, bridge: bridge.data });
+      } catch (e) {
+        res.status(400).json({
+          error: e instanceof Error ? e.message : "Unknown error",
+        });
+      }
+    },
+  );
+
   router.post("/bridges/actions/start-all", async (_, res) => {
     try {
       await bridgeService.startAll();

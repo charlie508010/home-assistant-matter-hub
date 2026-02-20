@@ -4,6 +4,7 @@ import {
 } from "@home-assistant-matter-hub/common";
 import type { Environment, Logger } from "@matter/general";
 import type { Endpoint } from "@matter/main";
+import { CommissioningServer } from "@matter/main/node";
 import { SessionManager } from "@matter/main/protocol";
 import type { LoggerService } from "../../core/app/logger.js";
 import { BridgeServerNode } from "../../matter/endpoints/bridge-server-node.js";
@@ -231,6 +232,26 @@ export class Bridge {
     await this.server.factoryReset();
     this.setStatus({ code: BridgeStatus.Stopped });
     await this.start();
+  }
+
+  /**
+   * Open a basic commissioning window so additional controllers can pair.
+   * After first commissioning the bridge stops advertising; this re-enables
+   * mDNS commissionable advertising with the original passcode/discriminator
+   * for the standard 15-minute window.
+   */
+  async openCommissioningWindow(): Promise<void> {
+    if (this.status.code !== BridgeStatus.Running) {
+      throw new Error("Bridge is not running");
+    }
+    const commissioning = this.server.state.commissioning;
+    if (!commissioning.commissioned) {
+      throw new Error("Bridge is not yet commissioned");
+    }
+    await this.server.act((agent) =>
+      agent.get(CommissioningServer).enterCommissionableMode(),
+    );
+    this.log.info("Opened basic commissioning window for multi-fabric pairing");
   }
 
   /**

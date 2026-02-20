@@ -50,6 +50,25 @@ export async function forceSyncBridge(
   }).then((res) => res.json());
 }
 
+export async function openCommissioningWindow(
+  bridgeId: string,
+): Promise<{ success: boolean; bridge: BridgeDataWithMetadata }> {
+  const res = await fetch(
+    `api/matter/bridges/${bridgeId}/actions/open-commissioning-window`,
+    { method: "POST" },
+  );
+  if (!res.ok) {
+    const err = await res
+      .json()
+      .catch(() => ({ error: "Failed to open commissioning window" }));
+    throw new Error(
+      (err as { error?: string }).error ??
+        "Failed to open commissioning window",
+    );
+  }
+  return res.json();
+}
+
 export interface BridgePriorityUpdate {
   id: string;
   priority: number;

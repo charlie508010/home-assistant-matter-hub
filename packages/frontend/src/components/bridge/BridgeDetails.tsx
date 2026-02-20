@@ -33,7 +33,7 @@ import Typography from "@mui/material/Typography";
 import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { forceSyncBridge } from "../../api/bridges.ts";
+import { forceSyncBridge, openCommissioningWindow } from "../../api/bridges.ts";
 import { navigation } from "../../routes.tsx";
 import { FabricList } from "../fabric/FabricList.tsx";
 import { useNotifications } from "../notifications/use-notifications.ts";
@@ -79,6 +79,23 @@ export const BridgeDetails = ({ bridge }: BridgeDetailsProps) => {
 
 const PairingCard = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [opening, setOpening] = useState(false);
+  const notification = useNotifications();
+
+  const handleOpenCommissioningWindow = async () => {
+    setOpening(true);
+    try {
+      await openCommissioningWindow(bridge.id);
+      setDialogOpen(true);
+    } catch (e) {
+      notification.show({
+        message: `Failed to open commissioning window: ${e instanceof Error ? e.message : String(e)}`,
+        severity: "error",
+      });
+    } finally {
+      setOpening(false);
+    }
+  };
 
   if (!bridge.commissioning) {
     return (
@@ -177,11 +194,16 @@ const PairingCard = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
               <Button
                 variant="outlined"
                 size="small"
-                startIcon={<QrCode2Icon />}
-                onClick={() => setDialogOpen(true)}
+                startIcon={
+                  opening ? <CircularProgress size={16} /> : <QrCode2Icon />
+                }
+                onClick={handleOpenCommissioningWindow}
+                disabled={opening}
                 fullWidth
               >
-                Add Another Controller
+                {opening
+                  ? "Opening Commissioning Window..."
+                  : "Add Another Controller"}
               </Button>
             )}
           </Box>

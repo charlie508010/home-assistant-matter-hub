@@ -3,6 +3,7 @@ import {
   type UpdateBridgeRequest,
 } from "@home-assistant-matter-hub/common";
 import type { Logger } from "@matter/general";
+import { CommissioningServer } from "@matter/main/node";
 import { SessionManager } from "@matter/main/protocol";
 import type { LoggerService } from "../../core/app/logger.js";
 import type { ServerModeServerNode } from "../../matter/endpoints/server-mode-server-node.js";
@@ -197,6 +198,20 @@ export class ServerModeBridge {
     await this.server.factoryReset();
     this.setStatus({ code: BridgeStatus.Stopped });
     await this.start();
+  }
+
+  async openCommissioningWindow(): Promise<void> {
+    if (this.status.code !== BridgeStatus.Running) {
+      throw new Error("Bridge is not running");
+    }
+    const commissioning = this.server.state.commissioning;
+    if (!commissioning.commissioned) {
+      throw new Error("Bridge is not yet commissioned");
+    }
+    await this.server.act((agent) =>
+      agent.get(CommissioningServer).enterCommissionableMode(),
+    );
+    this.log.info("Opened basic commissioning window for multi-fabric pairing");
   }
 
   private startAutoForceSyncIfEnabled() {
