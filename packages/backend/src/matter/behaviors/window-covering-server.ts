@@ -219,7 +219,12 @@ export class WindowCoveringServerBase extends FeaturedBase {
     );
 
     if (Object.keys(appliedPatch).length > 0) {
-      logger.info(
+      // Log operational status changes (movement start/stop) at INFO,
+      // position-only updates at DEBUG to avoid flooding the log.
+      const hasOperationalChange = "operationalStatus" in appliedPatch;
+      const log = hasOperationalChange ? logger.info : logger.debug;
+      log.call(
+        logger,
         `Cover ${entity.entity_id} state changed: ${JSON.stringify(appliedPatch)}`,
       );
     }
