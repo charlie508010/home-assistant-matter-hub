@@ -111,10 +111,11 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
 
     if (flags?.serverMode && flags?.vacuumOnOff) {
       result.push({
-        severity: "error",
+        severity: "warning",
         message:
-          "Server Mode + Vacuum OnOff is a conflicting combination. " +
-          "Server Mode is for Apple Home (Siri), but Vacuum OnOff breaks Apple Home.",
+          "Server Mode + Vacuum OnOff: This combination is required for Alexa " +
+          "(Alexa needs OnOff/PowerController on vacuums). " +
+          "If you also use Apple Home, the OnOff cluster may break its vacuum UI.",
       });
     }
 
