@@ -538,6 +538,15 @@ function createCleanModeConfig(
     setCleanMode: (mode: number, agent: Agent) => {
       const homeAssistant = agent.get(HomeAssistantEntityBehavior);
       const vacuumEntityId = homeAssistant.entityId;
+      const mapping = homeAssistant.state.mapping;
+
+      logger.info(
+        `setCleanMode(${mode}) for ${vacuumEntityId} — ` +
+          `suctionEntity=${mapping?.suctionLevelEntity ?? "none"}, ` +
+          `mopEntity=${mapping?.mopIntensityEntity ?? "none"}, ` +
+          `fanSpeedList=${JSON.stringify(fanSpeedList ?? [])}, ` +
+          `mopIntensityList=${JSON.stringify(mopIntensityList ?? [])}`,
+      );
 
       // Mop-intensity modes: set mop intensity entity
       if (
@@ -551,11 +560,14 @@ function createCleanModeConfig(
           logger.warn(`Invalid mop intensity mode index: ${mopIndex}`);
           return undefined;
         }
-        const mapping = homeAssistant.state.mapping;
         if (mapping?.mopIntensityEntity) {
-          const { options } = readSelectEntity(
+          const { state, options } = readSelectEntity(
             mapping.mopIntensityEntity,
             agent,
+          );
+          logger.info(
+            `Mop intensity entity ${mapping.mopIntensityEntity}: ` +
+              `current="${state}", options=${JSON.stringify(options ?? [])}`,
           );
           const option = matchMopIntensityOption(mopName, options);
           if (option) {
@@ -567,7 +579,16 @@ function createCleanModeConfig(
               data: { option },
               target: mapping.mopIntensityEntity,
             });
+          } else {
+            logger.warn(
+              `No match for mop intensity "${mopName}" in options: ` +
+                `[${(options ?? []).join(", ")}]`,
+            );
           }
+        } else {
+          logger.warn(
+            `Mop intensity mode ${mode} requested but no mopIntensityEntity configured`,
+          );
         }
         return undefined;
       }
@@ -581,13 +602,15 @@ function createCleanModeConfig(
           return undefined;
         }
 
-        const mapping = homeAssistant.state.mapping;
-
         // Use suctionLevelEntity if configured
         if (mapping?.suctionLevelEntity) {
-          const { options } = readSelectEntity(
+          const { state, options } = readSelectEntity(
             mapping.suctionLevelEntity,
             agent,
+          );
+          logger.info(
+            `Suction entity ${mapping.suctionLevelEntity}: ` +
+              `current="${state}", options=${JSON.stringify(options ?? [])}`,
           );
           const option = matchFanSpeedOption(fanSpeedName, options);
           if (option) {
@@ -599,6 +622,11 @@ function createCleanModeConfig(
               data: { option },
               target: mapping.suctionLevelEntity,
             });
+          } else {
+            logger.warn(
+              `No match for fan speed "${fanSpeedName}" in suction options: ` +
+                `[${(options ?? []).join(", ")}]`,
+            );
           }
           return undefined;
         }
