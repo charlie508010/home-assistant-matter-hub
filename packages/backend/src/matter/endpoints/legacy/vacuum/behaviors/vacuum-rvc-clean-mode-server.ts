@@ -221,7 +221,7 @@ function buildFanSpeedModes(fanSpeedList: string[]): RvcCleanMode.ModeOption[] {
 
 const MOP_TAG_PATTERNS: Array<{ pattern: RegExp; tag: number }> = [
   {
-    pattern: /^(low|light|gentle|mild|slightly_wet|leicht)$/i,
+    pattern: /^(low|light|gentle|mild|slightly_wet|slightly_dry|dry|leicht)$/i,
     tag: RvcCleanMode.ModeTag.Quiet,
   },
   {
@@ -231,7 +231,7 @@ const MOP_TAG_PATTERNS: Array<{ pattern: RegExp; tag: number }> = [
     tag: RvcCleanMode.ModeTag.Auto,
   },
   {
-    pattern: /^(high|intense|strong|very_wet|heavy|hoch|stark)$/i,
+    pattern: /^(high|intense|strong|very_wet|wet|heavy|hoch|stark)$/i,
     tag: RvcCleanMode.ModeTag.Max,
   },
   {
@@ -496,14 +496,26 @@ function createCleanModeConfig(
         fanSpeedList.length > 0
       ) {
         let speedState: string | undefined;
+        let entityOptions: string[] | undefined;
         if (mapping?.suctionLevelEntity) {
-          const { state } = readSelectEntity(mapping.suctionLevelEntity, agent);
-          speedState = state;
+          const sel = readSelectEntity(mapping.suctionLevelEntity, agent);
+          speedState = sel.state;
+          entityOptions = sel.options;
         } else {
           speedState =
             (attributes.fan_speed as string | undefined) ?? undefined;
         }
-        const speedMode = fanSpeedToModeId(speedState, fanSpeedList);
+        let speedMode = fanSpeedToModeId(speedState, fanSpeedList);
+        // Positional fallback: entity option names may differ from
+        // fan_speed_list (e.g. "quiet" vs "Silent"). Match by index.
+        if (speedMode === undefined && speedState && entityOptions) {
+          const idx = entityOptions.findIndex(
+            (o) => o.toLowerCase() === speedState!.toLowerCase(),
+          );
+          if (idx >= 0 && idx < fanSpeedList.length) {
+            speedMode = FAN_SPEED_MODE_BASE + idx;
+          }
+        }
         if (speedMode !== undefined) {
           logger.debug(
             `Current mode: Vacuum + fan_speed="${speedState}" -> mode ${speedMode}`,
@@ -519,8 +531,21 @@ function createCleanModeConfig(
         mopIntensityList.length > 0 &&
         mapping?.mopIntensityEntity
       ) {
-        const { state } = readSelectEntity(mapping.mopIntensityEntity, agent);
-        const mopMode = mopIntensityToModeId(state, mopIntensityList);
+        const { state, options } = readSelectEntity(
+          mapping.mopIntensityEntity,
+          agent,
+        );
+        let mopMode = mopIntensityToModeId(state, mopIntensityList);
+        // Positional fallback: entity option names may differ from
+        // mopIntensityList (e.g. "moist" vs "medium"). Match by index.
+        if (mopMode === undefined && state && options) {
+          const idx = options.findIndex(
+            (o) => o.toLowerCase() === state!.toLowerCase(),
+          );
+          if (idx >= 0 && idx < mopIntensityList.length) {
+            mopMode = MOP_INTENSITY_MODE_BASE + idx;
+          }
+        }
         if (mopMode !== undefined) {
           logger.debug(
             `Current mode: Mop + intensity="${state}" -> mode ${mopMode}`,
@@ -569,7 +594,15 @@ function createCleanModeConfig(
             `Mop intensity entity ${mapping.mopIntensityEntity}: ` +
               `current="${state}", options=${JSON.stringify(options ?? [])}`,
           );
-          const option = matchMopIntensityOption(mopName, options);
+          let option = matchMopIntensityOption(mopName, options);
+          // Positional fallback: generic names (low/medium/high) may not
+          // match entity options (slightly_dry/moist/wet). Use same index.
+          if (!option && options && mopIndex < options.length) {
+            option = options[mopIndex];
+            logger.info(
+              `Positional match for mop "${mopName}" -> "${option}" (index ${mopIndex})`,
+            );
+          }
           if (option) {
             logger.info(
               `Setting mop intensity to: ${option} via ${mapping.mopIntensityEntity}`,
@@ -612,7 +645,15 @@ function createCleanModeConfig(
             `Suction entity ${mapping.suctionLevelEntity}: ` +
               `current="${state}", options=${JSON.stringify(options ?? [])}`,
           );
-          const option = matchFanSpeedOption(fanSpeedName, options);
+          let option = matchFanSpeedOption(fanSpeedName, options);
+          // Positional fallback: fan_speed_list names (Silent/Strong) may
+          // differ from suction entity options (quiet/strong). Use same index.
+          if (!option && options && fanSpeedIndex < options.length) {
+            option = options[fanSpeedIndex];
+            logger.info(
+              `Positional match for fan "${fanSpeedName}" -> "${option}" (index ${fanSpeedIndex})`,
+            );
+          }
           if (option) {
             logger.info(
               `Setting suction to: ${option} via ${mapping.suctionLevelEntity}`,
