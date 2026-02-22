@@ -163,8 +163,9 @@ const CLEAN_TYPE_LABELS: Record<CleanType, string> = {
 // Fan speed tag patterns (regex-based, manufacturer-agnostic)
 // ---------------------------------------------------------------------------
 // Each pattern matches the FULL fan_speed_list entry (anchored with ^ $).
-// Compound names like "max_plus" deliberately do NOT match — they become
-// their own untagged mode so Apple Home shows them separately.
+// Compound names like "max_plus" do NOT match any pattern.
+// Apple Home hides modes without a recognized intensity tag,
+// so unmatched speeds will not be selectable from the Apple Home UI.
 
 const FAN_TAG_PATTERNS: Array<{ pattern: RegExp; tag: number }> = [
   {
@@ -172,10 +173,11 @@ const FAN_TAG_PATTERNS: Array<{ pattern: RegExp; tag: number }> = [
     tag: RvcCleanMode.ModeTag.Quiet,
   },
   {
-    // Only literal "auto" — Apple Home renders the Auto tag as "Automatic"
-    // which is wrong for names like "normal" or "standard".
-    // Those remain untagged so Apple Home uses our label instead.
-    pattern: /^(auto)$/i,
+    // Apple Home renders the Auto tag as "Automatic".
+    // Mid-range names like "normal", "standard", "balanced" map here
+    // because untagged modes are hidden in Apple Home entirely.
+    // "Automatic" is imperfect but the only way to make them visible.
+    pattern: /^(auto|normal|standard|balanced|medium|default|regular|mittel)$/i,
     tag: RvcCleanMode.ModeTag.Auto,
   },
   {
@@ -197,12 +199,25 @@ function formatFanSpeedLabel(name: string): string {
 }
 
 function buildFanSpeedModes(fanSpeedList: string[]): RvcCleanMode.ModeOption[] {
+  // Determine which index should own each tag (last match wins).
+  // Fan speed lists are typically ordered weakest→strongest,
+  // so the last match ensures the strongest variant gets the tag
+  // (e.g. "max" wins over "strong" for the Max tag).
+  const tagOwner = new Map<number, number>();
+  for (let i = 0; i < fanSpeedList.length; i++) {
+    const tag = getFanSpeedTag(fanSpeedList[i]);
+    if (tag !== undefined) {
+      tagOwner.set(tag, i);
+    }
+  }
+
   return fanSpeedList.map((name, index) => {
     const tag = getFanSpeedTag(name);
+    const isOwner = tag !== undefined && tagOwner.get(tag) === index;
     const modeTags: { value: number }[] = [
       { value: RvcCleanMode.ModeTag.Vacuum },
     ];
-    if (tag !== undefined) {
+    if (isOwner) {
       modeTags.push({ value: tag });
     }
     return {
@@ -225,9 +240,10 @@ const MOP_TAG_PATTERNS: Array<{ pattern: RegExp; tag: number }> = [
     tag: RvcCleanMode.ModeTag.Quiet,
   },
   {
-    // Only literal "auto" — Apple Home renders the Auto tag as "Automatic"
-    // which is wrong for names like "moderate" or "standard".
-    pattern: /^(auto)$/i,
+    // Apple Home renders the Auto tag as "Automatic".
+    // Mid-range names like "medium", "moderate" map here
+    // because untagged modes are hidden in Apple Home entirely.
+    pattern: /^(auto|medium|moderate|normal|standard|mittel)$/i,
     tag: RvcCleanMode.ModeTag.Auto,
   },
   {
@@ -251,10 +267,20 @@ function getMopIntensityTag(name: string): number | undefined {
 function buildMopIntensityModes(
   mopIntensityList: string[],
 ): RvcCleanMode.ModeOption[] {
+  // Dedup: last match wins per tag (same logic as fan speeds).
+  const tagOwner = new Map<number, number>();
+  for (let i = 0; i < mopIntensityList.length; i++) {
+    const tag = getMopIntensityTag(mopIntensityList[i]);
+    if (tag !== undefined) {
+      tagOwner.set(tag, i);
+    }
+  }
+
   return mopIntensityList.map((name, index) => {
     const tag = getMopIntensityTag(name);
+    const isOwner = tag !== undefined && tagOwner.get(tag) === index;
     const modeTags: { value: number }[] = [{ value: RvcCleanMode.ModeTag.Mop }];
-    if (tag !== undefined) {
+    if (isOwner) {
       modeTags.push({ value: tag });
     }
     return {
