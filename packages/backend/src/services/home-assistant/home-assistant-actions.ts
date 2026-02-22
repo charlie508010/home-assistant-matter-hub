@@ -81,7 +81,11 @@ export class HomeAssistantActions extends Service {
   }
 
   call(action: HomeAssistantAction, entityId: string) {
-    const key = `${entityId}-${action.action}`;
+    // Use the actual target entity for the debounce key so that actions
+    // targeting different entities (e.g. suction level vs cleaning mode)
+    // are debounced independently instead of being merged incorrectly.
+    const target = action.target ?? entityId;
+    const key = `${target}-${action.action}`;
     this.debounceContext.get(key, 100)({ ...action, entityId });
   }
 
