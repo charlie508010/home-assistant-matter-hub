@@ -3,7 +3,7 @@
 This guide covers features available in the Alpha version of Home-Assistant-Matter-Hub.
 
 > [!NOTE]
-> Alpha is currently in sync with Stable (v2.1.0). All alpha features have been promoted to stable. New alpha features will appear here as development continues.
+> Alpha is currently in sync with Stable (v2.0.26). All alpha features have been promoted to stable. New alpha features will appear here as development continues.
 
 > [!WARNING]
 > Alpha versions are for testing only and may contain bugs. Use at your own risk!
@@ -34,15 +34,15 @@ docker run -d \
 
 ## Current Alpha Features
 
-Alpha is currently in sync with Stable (v2.1.0). No new alpha-only features at this time.
+Alpha is currently in sync with Stable (v2.0.26). No new alpha-only features at this time.
 
 ---
 
-## Features Now in Stable (v2.1.0)
+## Features Now in Stable (v2.0.26)
 
 The following features have graduated from Alpha to Stable:
 
-**New in v2.1.0:**
+**New in v2.0.26:**
 - **Authentication UI** - Configure credentials from the web UI Settings page (#197)
 - **Select Entity Support** - `select` and `input_select` entities mapped to Matter ModeSelectDevice
 - **Webhook Event Bridge** - `hamh_action` events on the HA event bus for controller command automations
@@ -146,7 +146,7 @@ The following features have graduated from Alpha to Stable:
 
 ---
 
-## Feature Details (now in Stable v2.0.25)
+## Feature Details (now in Stable v2.0.26)
 
 The following sections provide detailed usage instructions for features that have been promoted to stable.
 

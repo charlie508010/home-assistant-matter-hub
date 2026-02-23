@@ -178,11 +178,11 @@ Also ensure you've set the **Mop Intensity Entity** in the Entity Mapping for yo
 
 ## What are select / input_select entities used for?
 
-Since v2.1.0, `select` and `input_select` entities are automatically mapped to Matter **ModeSelectDevice**. Each option becomes a selectable mode in your controller. Use cases include washing machine programs, HVAC modes, irrigation zones, or scene selectors.
+Since v2.0.26, `select` and `input_select` entities are automatically mapped to Matter **ModeSelectDevice**. Each option becomes a selectable mode in your controller. Use cases include washing machine programs, HVAC modes, irrigation zones, or scene selectors.
 
 ## What's the difference between Stable and Alpha?
 
-- **Stable** (v2.1.0): Production-ready, recommended for daily use
+- **Stable** (v2.0.26): Production-ready, recommended for daily use
 - **Alpha**: New features for testing, may contain bugs
 
 See the [Alpha Features Guide](./Guides/Alpha%20Features.md) for details on alpha features.
@@ -200,7 +200,7 @@ When reporting Alpha issues, include:
 Since v2.0.24, thermostats support **auto-resume** — when off and you set a temperature (even the same one), it automatically turns on. This works with all voice assistants.
 
 If not working:
-- Update to v2.1.0+
+- Update to v2.0.26+
 - Only works for single-temp mode (not range/auto)
 - Thermostat must be in "Off" state
 
@@ -243,7 +243,7 @@ If changes still don't apply, check the logs for errors during endpoint recreati
 
 ## How do I use the webhook event bridge (hamh_action)?
 
-Since v2.1.0, HAMH fires `hamh_action` events on the HA event bus when controllers interact with exposed devices. You can use these in HA automations:
+Since v2.0.26, HAMH fires `hamh_action` events on the HA event bus when controllers interact with exposed devices. You can use these in HA automations:
 
 ```yaml
 trigger:
