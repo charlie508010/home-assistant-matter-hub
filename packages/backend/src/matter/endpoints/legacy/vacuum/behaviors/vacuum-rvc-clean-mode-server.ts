@@ -405,6 +405,38 @@ function findMatchingCleanOption(
   return aliases[0];
 }
 
+/**
+ * Switch the cleaning mode entity if the target type isn't already active.
+ * Returns an action to dispatch, or undefined if no switch is needed.
+ * Only switches between pure Vacuum↔Mop; combined modes are left alone.
+ */
+function switchCleaningModeIfNeeded(
+  targetCleanType: CleanType,
+  agent: Agent,
+): { action: string; data: { option: string }; target: string } | undefined {
+  const selectEntityId = getCleaningModeSelectEntity(agent);
+  const { state, options } = readSelectEntity(selectEntityId, agent);
+  const currentCleanType = parseCleanType(state);
+
+  const needsSwitch =
+    (targetCleanType === CleanType.Mopping &&
+      currentCleanType === CleanType.Sweeping) ||
+    (targetCleanType === CleanType.Sweeping &&
+      currentCleanType === CleanType.Mopping);
+
+  if (!needsSwitch) return undefined;
+
+  const optionToUse = findMatchingCleanOption(targetCleanType, options);
+  logger.info(
+    `Switching cleaning mode to: ${optionToUse} via ${selectEntityId}`,
+  );
+  return {
+    action: "select.select_option",
+    data: { option: optionToUse },
+    target: selectEntityId,
+  };
+}
+
 function matchFanSpeedOption(
   name: string,
   availableOptions: string[] | undefined,
@@ -631,10 +663,20 @@ function createCleanModeConfig(
             `Mop intensity mode ${mode} requested but no mopIntensityEntity configured`,
           );
         }
+
+        // Apple Home sends a mop intensity mode (not the base Mop mode)
+        // when switching to Mop. Ensure cleaning mode is set to mopping.
+        if (includeCleanTypes) {
+          const cleanAction = switchCleaningModeIfNeeded(
+            CleanType.Mopping,
+            agent,
+          );
+          if (cleanAction) return cleanAction;
+        }
         return undefined;
       }
 
-      // Fan-speed modes: set suction/fan speed, not cleaning type
+      // Fan-speed modes: set suction/fan speed and switch cleaning mode
       if (fanSpeedList && fanSpeedList.length > 0 && isFanSpeedMode(mode)) {
         const fanSpeedIndex = mode - FAN_SPEED_MODE_BASE;
         const fanSpeedName = fanSpeedList[fanSpeedIndex];
@@ -677,10 +719,27 @@ function createCleanModeConfig(
                 `[${(options ?? []).join(", ")}]`,
             );
           }
+
+          // Apple Home sends a fan speed mode (not the base Vacuum mode)
+          // when switching to Vacuum. Ensure cleaning mode is set to sweeping.
+          if (includeCleanTypes) {
+            const cleanAction = switchCleaningModeIfNeeded(
+              CleanType.Sweeping,
+              agent,
+            );
+            if (cleanAction) return cleanAction;
+          }
           return undefined;
         }
 
         // Otherwise use vacuum.set_fan_speed with the original name
+        if (includeCleanTypes) {
+          const cleanAction = switchCleaningModeIfNeeded(
+            CleanType.Sweeping,
+            agent,
+          );
+          if (cleanAction) homeAssistant.callAction(cleanAction);
+        }
         logger.info(
           `Setting fan speed to: ${fanSpeedName} via vacuum.set_fan_speed`,
         );
