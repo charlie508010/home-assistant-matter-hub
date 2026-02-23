@@ -406,26 +406,16 @@ function findMatchingCleanOption(
 }
 
 /**
- * Switch the cleaning mode entity if the target type isn't already active.
- * Returns an action to dispatch, or undefined if no switch is needed.
- * Only switches between pure Vacuum↔Mop; combined modes are left alone.
+ * Build a cleaning mode action for the target type.
+ * Always returns an action — the debounce layer ensures rapid switches
+ * resolve to the last requested type.
  */
-function switchCleaningModeIfNeeded(
+function buildCleaningModeAction(
   targetCleanType: CleanType,
   agent: Agent,
-): { action: string; data: { option: string }; target: string } | undefined {
+): { action: string; data: { option: string }; target: string } {
   const selectEntityId = getCleaningModeSelectEntity(agent);
-  const { state, options } = readSelectEntity(selectEntityId, agent);
-  const currentCleanType = parseCleanType(state);
-
-  const needsSwitch =
-    (targetCleanType === CleanType.Mopping &&
-      currentCleanType === CleanType.Sweeping) ||
-    (targetCleanType === CleanType.Sweeping &&
-      currentCleanType === CleanType.Mopping);
-
-  if (!needsSwitch) return undefined;
-
+  const { options } = readSelectEntity(selectEntityId, agent);
   const optionToUse = findMatchingCleanOption(targetCleanType, options);
   logger.info(
     `Switching cleaning mode to: ${optionToUse} via ${selectEntityId}`,
@@ -613,7 +603,7 @@ function createCleanModeConfig(
           `mopIntensityList=${JSON.stringify(mopIntensityList ?? [])}`,
       );
 
-      // Mop-intensity modes: set mop intensity entity
+      // Mop-intensity modes: switch to mopping first, then set intensity
       if (
         mopIntensityList &&
         mopIntensityList.length > 0 &&
@@ -625,6 +615,16 @@ function createCleanModeConfig(
           logger.warn(`Invalid mop intensity mode index: ${mopIndex}`);
           return undefined;
         }
+
+        // Ensure cleaning mode is mopping before setting intensity.
+        // Dreame makes the mop entity unavailable while in vacuum mode,
+        // so the cleaning mode must change first.
+        if (includeCleanTypes) {
+          homeAssistant.callAction(
+            buildCleaningModeAction(CleanType.Mopping, agent),
+          );
+        }
+
         if (mapping?.mopIntensityEntity) {
           const { state, options } = readSelectEntity(
             mapping.mopIntensityEntity,
@@ -647,31 +647,20 @@ function createCleanModeConfig(
             logger.info(
               `Setting mop intensity to: ${option} via ${mapping.mopIntensityEntity}`,
             );
-            homeAssistant.callAction({
+            return {
               action: "select.select_option",
               data: { option },
               target: mapping.mopIntensityEntity,
-            });
-          } else {
-            logger.warn(
-              `No match for mop intensity "${mopName}" in options: ` +
-                `[${(options ?? []).join(", ")}]`,
-            );
+            };
           }
+          logger.warn(
+            `No match for mop intensity "${mopName}" in options: ` +
+              `[${(options ?? []).join(", ")}]`,
+          );
         } else {
           logger.warn(
             `Mop intensity mode ${mode} requested but no mopIntensityEntity configured`,
           );
-        }
-
-        // Apple Home sends a mop intensity mode (not the base Mop mode)
-        // when switching to Mop. Ensure cleaning mode is set to mopping.
-        if (includeCleanTypes) {
-          const cleanAction = switchCleaningModeIfNeeded(
-            CleanType.Mopping,
-            agent,
-          );
-          if (cleanAction) return cleanAction;
         }
         return undefined;
       }
@@ -687,6 +676,14 @@ function createCleanModeConfig(
 
         // Use suctionLevelEntity if configured
         if (mapping?.suctionLevelEntity) {
+          // Ensure cleaning mode is sweeping before setting suction.
+          // Dreame makes the suction entity unavailable while in mop mode.
+          if (includeCleanTypes) {
+            homeAssistant.callAction(
+              buildCleaningModeAction(CleanType.Sweeping, agent),
+            );
+          }
+
           const { state, options } = readSelectEntity(
             mapping.suctionLevelEntity,
             agent,
@@ -708,37 +705,24 @@ function createCleanModeConfig(
             logger.info(
               `Setting suction to: ${option} via ${mapping.suctionLevelEntity}`,
             );
-            homeAssistant.callAction({
+            return {
               action: "select.select_option",
               data: { option },
               target: mapping.suctionLevelEntity,
-            });
-          } else {
-            logger.warn(
-              `No match for fan speed "${fanSpeedName}" in suction options: ` +
-                `[${(options ?? []).join(", ")}]`,
-            );
+            };
           }
-
-          // Apple Home sends a fan speed mode (not the base Vacuum mode)
-          // when switching to Vacuum. Ensure cleaning mode is set to sweeping.
-          if (includeCleanTypes) {
-            const cleanAction = switchCleaningModeIfNeeded(
-              CleanType.Sweeping,
-              agent,
-            );
-            if (cleanAction) return cleanAction;
-          }
+          logger.warn(
+            `No match for fan speed "${fanSpeedName}" in suction options: ` +
+              `[${(options ?? []).join(", ")}]`,
+          );
           return undefined;
         }
 
         // Otherwise use vacuum.set_fan_speed with the original name
         if (includeCleanTypes) {
-          const cleanAction = switchCleaningModeIfNeeded(
-            CleanType.Sweeping,
-            agent,
+          homeAssistant.callAction(
+            buildCleaningModeAction(CleanType.Sweeping, agent),
           );
-          if (cleanAction) homeAssistant.callAction(cleanAction);
         }
         logger.info(
           `Setting fan speed to: ${fanSpeedName} via vacuum.set_fan_speed`,
