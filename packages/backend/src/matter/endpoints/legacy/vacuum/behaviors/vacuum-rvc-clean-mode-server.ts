@@ -181,7 +181,7 @@ const FAN_TAG_PATTERNS: Array<{ pattern: RegExp; tag: number }> = [
     tag: RvcCleanMode.ModeTag.Auto,
   },
   {
-    pattern: /^(turbo|max|strong|boost|power|high|full|stark)$/i,
+    pattern: /^(turbo|max|strong|boost|power|high|full|stark|max_plus|max\+)$/i,
     tag: RvcCleanMode.ModeTag.Max,
   },
 ];
@@ -199,25 +199,15 @@ function formatFanSpeedLabel(name: string): string {
 }
 
 function buildFanSpeedModes(fanSpeedList: string[]): RvcCleanMode.ModeOption[] {
-  // Determine which index should own each tag (last match wins).
-  // Fan speed lists are typically ordered weakest→strongest,
-  // so the last match ensures the strongest variant gets the tag
-  // (e.g. "max" wins over "strong" for the Max tag).
-  const tagOwner = new Map<number, number>();
-  for (let i = 0; i < fanSpeedList.length; i++) {
-    const tag = getFanSpeedTag(fanSpeedList[i]);
-    if (tag !== undefined) {
-      tagOwner.set(tag, i);
-    }
-  }
-
+  // Assign intensity tags to ALL matching speeds so Apple Home
+  // shows every recognized speed. Multiple speeds can share the
+  // same tag — Apple Home distinguishes them by label.
   return fanSpeedList.map((name, index) => {
     const tag = getFanSpeedTag(name);
-    const isOwner = tag !== undefined && tagOwner.get(tag) === index;
     const modeTags: { value: number }[] = [
       { value: RvcCleanMode.ModeTag.Vacuum },
     ];
-    if (isOwner) {
+    if (tag !== undefined) {
       modeTags.push({ value: tag });
     }
     return {
@@ -267,20 +257,12 @@ function getMopIntensityTag(name: string): number | undefined {
 function buildMopIntensityModes(
   mopIntensityList: string[],
 ): RvcCleanMode.ModeOption[] {
-  // Dedup: last match wins per tag (same logic as fan speeds).
-  const tagOwner = new Map<number, number>();
-  for (let i = 0; i < mopIntensityList.length; i++) {
-    const tag = getMopIntensityTag(mopIntensityList[i]);
-    if (tag !== undefined) {
-      tagOwner.set(tag, i);
-    }
-  }
-
+  // Assign intensity tags to ALL matching mop intensities so
+  // Apple Home shows every recognized option by label.
   return mopIntensityList.map((name, index) => {
     const tag = getMopIntensityTag(name);
-    const isOwner = tag !== undefined && tagOwner.get(tag) === index;
     const modeTags: { value: number }[] = [{ value: RvcCleanMode.ModeTag.Mop }];
-    if (isOwner) {
+    if (tag !== undefined) {
       modeTags.push({ value: tag });
     }
     return {
