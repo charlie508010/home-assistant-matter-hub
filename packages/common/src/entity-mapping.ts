@@ -116,6 +116,26 @@ export interface EntityMappingConfig {
    * Example: "select.r2_d2_mop_pad_humidity"
    */
   readonly mopIntensityEntity?: string;
+  /**
+   * Optional: Array of custom service area definitions for zone-based robots.
+   * Each entry defines a named area mapped to a Home Assistant service call.
+   * When the area is selected via Matter ServiceArea and cleaning starts,
+   * the configured service is called with the provided data.
+   * Works for any zone-based robot (vacuums, lawn mowers, pool cleaners, etc.).
+   * Example: [{ name: "Front Yard", service: "script.mow_front_yard", data: { zone: 1 } }]
+   */
+  readonly customServiceAreas?: CustomServiceArea[];
+}
+
+export interface CustomServiceArea {
+  /** Display name shown in Apple Home / Matter controllers */
+  readonly name: string;
+  /** Home Assistant service to call (e.g., "script.start_zone", "button.press") */
+  readonly service: string;
+  /** Optional: Target entity for the service call (defaults to the vacuum entity) */
+  readonly target?: string;
+  /** Optional: Additional data to pass to the service call */
+  readonly data?: Record<string, unknown>;
 }
 
 export interface EntityMappingRequest {
@@ -135,6 +155,7 @@ export interface EntityMappingRequest {
   readonly energyEntity?: string;
   readonly suctionLevelEntity?: string;
   readonly mopIntensityEntity?: string;
+  readonly customServiceAreas?: CustomServiceArea[];
 }
 
 export interface EntityMappingResponse {

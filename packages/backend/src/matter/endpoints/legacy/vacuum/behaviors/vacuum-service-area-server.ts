@@ -1,4 +1,5 @@
 import type {
+  CustomServiceArea,
   VacuumDeviceAttributes,
   VacuumRoom,
 } from "@home-assistant-matter-hub/common";
@@ -182,6 +183,40 @@ export function createDefaultServiceAreaServer() {
         },
       },
     ],
+    selectedAreas: [],
+    currentArea: null,
+  });
+}
+
+/**
+ * Create a ServiceAreaServer from user-defined custom service areas.
+ * Each area maps to a custom HA service call (e.g., script.mow_zone_1).
+ * Area IDs are assigned sequentially starting from 1.
+ *
+ * @param customAreas - Array of custom service area definitions from entity mapping config
+ */
+export function createCustomServiceAreaServer(
+  customAreas: CustomServiceArea[],
+) {
+  const supportedAreas: ServiceArea.Area[] = customAreas.map((area, index) => ({
+    areaId: index + 1,
+    mapId: null,
+    areaInfo: {
+      locationInfo: {
+        locationName: area.name,
+        floorNumber: null,
+        areaType: null,
+      },
+      landmarkInfo: null,
+    },
+  }));
+
+  logger.info(
+    `Using ${customAreas.length} custom service areas: ${customAreas.map((a) => a.name).join(", ")}`,
+  );
+
+  return ServiceAreaServer({
+    supportedAreas,
     selectedAreas: [],
     currentArea: null,
   });

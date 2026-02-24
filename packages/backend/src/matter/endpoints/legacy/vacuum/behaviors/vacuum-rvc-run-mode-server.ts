@@ -1,4 +1,5 @@
 import {
+  type CustomServiceArea,
   type VacuumDeviceAttributes,
   VacuumDeviceFeature,
   VacuumState,
@@ -74,6 +75,54 @@ function buildSupportedModes(
   return modes;
 }
 
+/**
+ * Handle custom service areas: call the configured HA service for each selected area.
+ * Custom areas use sequential IDs (1, 2, 3...) matching createCustomServiceAreaServer.
+ */
+function handleCustomServiceAreas(
+  selectedAreas: number[],
+  customAreas: CustomServiceArea[],
+  homeAssistant: HomeAssistantEntityBehavior,
+  serviceArea: { state: { selectedAreas: number[] } },
+) {
+  // Clear selected areas after use
+  serviceArea.state.selectedAreas = [];
+
+  // Map area IDs back to custom area configs (IDs are 1-based index)
+  const matched = selectedAreas
+    .map((areaId) => customAreas[areaId - 1])
+    .filter(Boolean);
+
+  if (matched.length === 0) {
+    logger.warn(
+      `Custom service areas: no match for selected IDs ${selectedAreas.join(", ")}`,
+    );
+    return { action: "vacuum.start" };
+  }
+
+  logger.info(
+    `Custom service areas: calling ${matched.length} service(s): ${matched.map((a) => `${a.service} (${a.name})`).join(", ")}`,
+  );
+
+  // Dispatch additional areas (2..N) directly
+  for (let i = 1; i < matched.length; i++) {
+    const area = matched[i];
+    homeAssistant.callAction({
+      action: area.service,
+      target: area.target,
+      data: area.data,
+    });
+  }
+
+  // Return the first area as the primary action
+  const first = matched[0];
+  return {
+    action: first.service,
+    target: first.target,
+    data: first.data,
+  };
+}
+
 const vacuumRvcRunModeConfig = {
   getCurrentMode: (entity: { state: string }) => {
     const state = entity.state as VacuumState;
@@ -108,6 +157,17 @@ const vacuumRvcRunModeConfig = {
         const homeAssistant = agent.get(HomeAssistantEntityBehavior);
         const entity = homeAssistant.entity;
         const attributes = entity.state.attributes as VacuumDeviceAttributes;
+
+        // Check for user-defined custom service areas first (lawn mowers, generic zone robots)
+        const customAreas = homeAssistant.state.mapping?.customServiceAreas;
+        if (customAreas && customAreas.length > 0) {
+          return handleCustomServiceAreas(
+            selectedAreas,
+            customAreas,
+            homeAssistant,
+            serviceArea,
+          );
+        }
 
         // Check if we have button entities mapped for rooms (Roborock integration)
         const roomEntities = homeAssistant.state.mapping?.roomEntities;

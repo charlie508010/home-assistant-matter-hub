@@ -119,6 +119,10 @@ export class EntityMappingStorage extends Service {
       pressureEntity: request.pressureEntity?.trim() || undefined,
       suctionLevelEntity: request.suctionLevelEntity?.trim() || undefined,
       mopIntensityEntity: request.mopIntensityEntity?.trim() || undefined,
+      customServiceAreas:
+        request.customServiceAreas?.filter(
+          (a) => a.name?.trim() && a.service?.trim(),
+        ) ?? undefined,
     };
 
     if (
@@ -135,7 +139,8 @@ export class EntityMappingStorage extends Service {
       !config.energyEntity &&
       !config.pressureEntity &&
       !config.suctionLevelEntity &&
-      !config.mopIntensityEntity
+      !config.mopIntensityEntity &&
+      (!config.customServiceAreas || config.customServiceAreas.length === 0)
     ) {
       bridgeMap.delete(request.entityId);
     } else {

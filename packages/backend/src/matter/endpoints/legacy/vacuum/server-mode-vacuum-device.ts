@@ -15,6 +15,7 @@ import {
 import { VacuumRvcOperationalStateServer } from "./behaviors/vacuum-rvc-operational-state-server.js";
 import { createVacuumRvcRunModeServer } from "./behaviors/vacuum-rvc-run-mode-server.js";
 import {
+  createCustomServiceAreaServer,
   createDefaultServiceAreaServer,
   createVacuumServiceAreaServer,
 } from "./behaviors/vacuum-service-area-server.js";
@@ -78,9 +79,12 @@ export function ServerModeVacuumDevice(
   device = device.with(VacuumPowerSourceServer);
 
   // ServiceArea — always included.
+  const customAreas = homeAssistantEntity.mapping?.customServiceAreas;
   const roomEntities = homeAssistantEntity.mapping?.roomEntities;
   const rooms = parseVacuumRooms(attributes);
-  if (rooms.length > 0 || (roomEntities && roomEntities.length > 0)) {
+  if (customAreas && customAreas.length > 0) {
+    device = device.with(createCustomServiceAreaServer(customAreas));
+  } else if (rooms.length > 0 || (roomEntities && roomEntities.length > 0)) {
     device = device.with(
       createVacuumServiceAreaServer(attributes, roomEntities),
     );

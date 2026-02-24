@@ -1,4 +1,5 @@
 import type {
+  CustomServiceArea,
   EntityMappingConfig,
   MatterDeviceType,
 } from "@home-assistant-matter-hub/common";
@@ -6,6 +7,8 @@ import {
   domainToDefaultMatterTypes,
   matterDeviceTypeLabels,
 } from "@home-assistant-matter-hub/common";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import DeleteIcon from "@mui/icons-material/Delete";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -17,6 +20,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import IconButton from "@mui/material/IconButton";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
@@ -66,6 +70,9 @@ export function EntityMappingDialog({
   const [energyEntity, setEnergyEntity] = useState("");
   const [suctionLevelEntity, setSuctionLevelEntity] = useState("");
   const [mopIntensityEntity, setMopIntensityEntity] = useState("");
+  const [customServiceAreas, setCustomServiceAreas] = useState<
+    CustomServiceArea[]
+  >([]);
   const [availableButtons, setAvailableButtons] = useState<RelatedButton[]>([]);
   const [loadingButtons, setLoadingButtons] = useState(false);
 
@@ -88,6 +95,7 @@ export function EntityMappingDialog({
       setEnergyEntity(currentMapping?.energyEntity || "");
       setSuctionLevelEntity(currentMapping?.suctionLevelEntity || "");
       setMopIntensityEntity(currentMapping?.mopIntensityEntity || "");
+      setCustomServiceAreas(currentMapping?.customServiceAreas || []);
       setAvailableButtons([]);
     }
   }, [open, entityId, currentMapping]);
@@ -133,6 +141,8 @@ export function EntityMappingDialog({
       pressureEntity: pressureEntity.trim() || undefined,
       batteryEntity: batteryEntity.trim() || undefined,
       roomEntities: roomEntities.length > 0 ? roomEntities : undefined,
+      customServiceAreas:
+        customServiceAreas.length > 0 ? customServiceAreas : undefined,
       disableLockPin: disableLockPin || undefined,
       powerEntity: powerEntity.trim() || undefined,
       energyEntity: energyEntity.trim() || undefined,
@@ -155,6 +165,7 @@ export function EntityMappingDialog({
     energyEntity,
     suctionLevelEntity,
     mopIntensityEntity,
+    customServiceAreas,
     onSave,
   ]);
 
@@ -296,7 +307,7 @@ export function EntityMappingDialog({
           </>
         )}
 
-        {showRoomEntitiesField && (
+        {showRoomEntitiesField && customServiceAreas.length === 0 && (
           <Box sx={{ mt: 2, mb: 1 }}>
             <Typography variant="subtitle2" gutterBottom>
               Room Button Entities (Roborock)
@@ -416,6 +427,96 @@ export function EntityMappingDialog({
               domain="sensor"
             />
           </>
+        )}
+
+        {showRoomEntitiesField && (
+          <Box sx={{ mt: 2, mb: 1 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Custom Service Areas
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ mb: 1, display: "block" }}
+            >
+              Define custom zones mapped to HA service calls. Works for lawn
+              mowers, pool cleaners, or any zone-based robot. When configured,
+              these replace auto-detected rooms.
+            </Typography>
+            {customServiceAreas.map((area, index) => (
+              <Box
+                key={`area-${area.name || index}`}
+                sx={{
+                  display: "flex",
+                  gap: 1,
+                  mb: 1,
+                  alignItems: "flex-start",
+                }}
+              >
+                <TextField
+                  size="small"
+                  label="Name"
+                  value={area.name}
+                  onChange={(e) => {
+                    const updated = [...customServiceAreas];
+                    updated[index] = { ...area, name: e.target.value };
+                    setCustomServiceAreas(updated);
+                  }}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  size="small"
+                  label="Service"
+                  placeholder="script.start_zone"
+                  value={area.service}
+                  onChange={(e) => {
+                    const updated = [...customServiceAreas];
+                    updated[index] = { ...area, service: e.target.value };
+                    setCustomServiceAreas(updated);
+                  }}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  size="small"
+                  label="Target (optional)"
+                  placeholder="button.zone_1"
+                  value={area.target || ""}
+                  onChange={(e) => {
+                    const updated = [...customServiceAreas];
+                    updated[index] = {
+                      ...area,
+                      target: e.target.value || undefined,
+                    };
+                    setCustomServiceAreas(updated);
+                  }}
+                  sx={{ flex: 1 }}
+                />
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => {
+                    setCustomServiceAreas(
+                      customServiceAreas.filter((_, i) => i !== index),
+                    );
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            ))}
+            <Button
+              size="small"
+              startIcon={<AddCircleOutlineIcon />}
+              onClick={() =>
+                setCustomServiceAreas([
+                  ...customServiceAreas,
+                  { name: "", service: "" },
+                ])
+              }
+            >
+              Add Area
+            </Button>
+          </Box>
         )}
 
         {showLockPinField && (
