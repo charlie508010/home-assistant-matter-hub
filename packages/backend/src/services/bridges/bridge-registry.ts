@@ -217,9 +217,9 @@ export class BridgeRegistry {
 
   /**
    * Auto-detect vacuum-related select entities on the same HA device.
-   * HA integrations (Dreame, Roborock, Ecovacs, etc.) expose vacuum features
-   * as select entities with well-known suffixes. This finds them automatically
-   * so users don't need to configure each entity manually.
+   * HA integrations (Dreame, Roborock, Ecovacs, Valetudo, etc.) expose vacuum
+   * features as select entities with well-known suffixes. This finds them
+   * automatically so users don't need to configure each entity manually.
    */
   findVacuumSelectEntities(deviceId: string): {
     cleaningModeEntity?: string;
@@ -241,24 +241,97 @@ export class BridgeRegistry {
 
       const id = entity.entity_id.toLowerCase();
 
-      if (!cleaningModeEntity && id.includes("cleaning_mode")) {
-        cleaningModeEntity = entity.entity_id;
+      // Cleaning mode: Dreame/Ecovacs use "cleaning_mode", Valetudo uses
+      // plain "_mode" with vacuum-related options (vacuum, mop, etc.).
+      if (!cleaningModeEntity) {
+        if (id.includes("cleaning_mode")) {
+          cleaningModeEntity = entity.entity_id;
+        } else if (id.endsWith("_mode")) {
+          const options = (state.attributes as { options?: string[] })?.options;
+          if (
+            options &&
+            options.some((o) =>
+              /^(vacuum|mop|sweep|vacuum_and_mop|vacuum_then_mop|mopping|sweeping|sweeping_and_mopping|mopping_after_sweeping)$/i.test(
+                o,
+              ),
+            )
+          ) {
+            cleaningModeEntity = entity.entity_id;
+          }
+        }
       }
-      if (!suctionLevelEntity && id.includes("suction_level")) {
+
+      // Suction level: Dreame/Ecovacs use "suction_level",
+      // Valetudo uses "_fan" (e.g. select.valetudo_broesel_fan).
+      if (
+        !suctionLevelEntity &&
+        (id.includes("suction_level") || id.endsWith("_fan"))
+      ) {
         suctionLevelEntity = entity.entity_id;
       }
+
+      // Mop intensity / water level: Dreame uses "mop_intensity" /
+      // "mop_pad_humidity", others use "water_volume" / "water_amount",
+      // Valetudo uses "_water" (e.g. select.valetudo_broesel_water).
       if (
         !mopIntensityEntity &&
         (id.includes("mop_intensity") ||
           id.includes("mop_pad_humidity") ||
           id.includes("water_volume") ||
-          id.includes("water_amount"))
+          id.includes("water_amount") ||
+          id.endsWith("_water"))
       ) {
         mopIntensityEntity = entity.entity_id;
       }
     }
 
     return { cleaningModeEntity, suctionLevelEntity, mopIntensityEntity };
+  }
+
+  private static readonly valetudoLogger = Logger.get("ValetudoRooms");
+
+  /**
+   * Find Valetudo map segments from the sensor.*_map_segments entity on the
+   * same HA device. Valetudo exposes room/segment data via MQTT as a sensor
+   * with numeric segment IDs in its attributes.
+   *
+   * Attribute format:
+   * - Unnamed segments: { "1": 1, "2": 2, "4": 4 }
+   * - Named segments:   { "1": "Kitchen", "2": "Living Room" }
+   */
+  findValetudoMapSegments(deviceId: string): VacuumRoom[] {
+    const entities = values(this.registry.entities);
+    const mapSensor = entities.find(
+      (e) =>
+        e.device_id === deviceId &&
+        e.entity_id.startsWith("sensor.") &&
+        e.entity_id.endsWith("_map_segments"),
+    );
+
+    if (!mapSensor) return [];
+
+    const state = this.registry.states[mapSensor.entity_id];
+    if (!state) return [];
+
+    const attrs = state.attributes as Record<string, unknown>;
+    const rooms: VacuumRoom[] = [];
+
+    for (const [key, value] of Object.entries(attrs)) {
+      // Only process numeric keys (segment IDs); skip HA metadata
+      // like icon, friendly_name, unit_of_measurement, etc.
+      if (!/^\d+$/.test(key)) continue;
+
+      const segmentId = Number.parseInt(key, 10);
+      const name = typeof value === "string" ? value : `Segment ${key}`;
+      rooms.push({ id: segmentId, name });
+    }
+
+    if (rooms.length > 0) {
+      BridgeRegistry.valetudoLogger.info(
+        `Found ${rooms.length} Valetudo segments via ${mapSensor.entity_id}`,
+      );
+    }
+    return rooms;
   }
 
   private static readonly roborockLogger = Logger.get("RoborockRooms");

@@ -226,7 +226,8 @@ function buildFanSpeedModes(fanSpeedList: string[]): RvcCleanMode.ModeOption[] {
 
 const MOP_TAG_PATTERNS: Array<{ pattern: RegExp; tag: number }> = [
   {
-    pattern: /^(low|light|gentle|mild|slightly_wet|slightly_dry|dry|leicht)$/i,
+    pattern:
+      /^(low|light|gentle|mild|min|slightly_wet|slightly_dry|dry|leicht)$/i,
     tag: RvcCleanMode.ModeTag.Quiet,
   },
   {
@@ -237,7 +238,7 @@ const MOP_TAG_PATTERNS: Array<{ pattern: RegExp; tag: number }> = [
     tag: RvcCleanMode.ModeTag.Auto,
   },
   {
-    pattern: /^(high|intense|strong|very_wet|wet|heavy|hoch|stark)$/i,
+    pattern: /^(high|intense|strong|max|very_wet|wet|heavy|hoch|stark)$/i,
     tag: RvcCleanMode.ModeTag.Max,
   },
   {

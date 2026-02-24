@@ -152,6 +152,27 @@ const vacuumRvcRunModeConfig = {
           // Clear selected areas after use
           serviceArea.state.selectedAreas = [];
 
+          // Valetudo vacuums use segment_cleanup via vacuum.send_command.
+          // Check entity ID first — Valetudo replaces stock firmware so
+          // attribute-based detection (isDreame/isRoborock) won't work.
+          const vacuumEntityId = homeAssistant.entityId;
+          if (vacuumEntityId.startsWith("vacuum.valetudo_")) {
+            logger.info(
+              `Valetudo vacuum: Using segment_cleanup for rooms: ${roomIds.join(", ")}`,
+            );
+            return {
+              action: "vacuum.send_command",
+              data: {
+                command: "segment_cleanup",
+                params: {
+                  segment_ids: roomIds,
+                  iterations: 1,
+                  customOrder: true,
+                },
+              },
+            };
+          }
+
           // Dreame vacuums use their own service
           if (isDreameVacuum(attributes)) {
             return {
@@ -257,6 +278,25 @@ const vacuumRvcRunModeConfig = {
     if (room) {
       // Use originalId for commands (Dreame multi-floor: id is deduplicated, originalId is per-floor)
       const commandId = room.originalId ?? room.id;
+
+      // Valetudo vacuums use segment_cleanup via vacuum.send_command
+      const vacuumEntityId = entity.entity_id;
+      if (vacuumEntityId.startsWith("vacuum.valetudo_")) {
+        logger.info(
+          `Valetudo vacuum: Using segment_cleanup for room ${room.name} (id: ${commandId})`,
+        );
+        return {
+          action: "vacuum.send_command",
+          data: {
+            command: "segment_cleanup",
+            params: {
+              segment_ids: [commandId],
+              iterations: 1,
+              customOrder: true,
+            },
+          },
+        };
+      }
 
       // Dreame vacuums use their own service: dreame_vacuum.vacuum_clean_segment
       if (isDreameVacuum(attributes)) {

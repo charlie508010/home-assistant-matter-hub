@@ -229,13 +229,16 @@ export class LegacyEndpoint extends EntityEndpoint {
           );
         }
 
-        // Auto-detect rooms via roborock.get_maps when no rooms in attributes
+        // Auto-detect rooms when no rooms in attributes
         const vacAttrs = state.attributes as VacuumDeviceAttributes;
         if (!vacAttrs.rooms && !vacAttrs.segments && !vacAttrs.room_mapping) {
-          const roborockRooms = await registry.resolveRoborockRooms(entityId);
-          if (roborockRooms.length > 0) {
+          // Try Valetudo map segments sensor first
+          const valetudoRooms = registry.findValetudoMapSegments(
+            entity.device_id,
+          );
+          if (valetudoRooms.length > 0) {
             const roomsObj: Record<string, string> = {};
-            for (const r of roborockRooms) {
+            for (const r of valetudoRooms) {
               roomsObj[String(r.id)] = r.name;
             }
             state = {
@@ -246,8 +249,27 @@ export class LegacyEndpoint extends EntityEndpoint {
               } as typeof state.attributes,
             };
             logger.debug(
-              `Auto-detected ${roborockRooms.length} Roborock rooms for ${entityId}`,
+              `Auto-detected ${valetudoRooms.length} Valetudo segments for ${entityId}`,
             );
+          } else {
+            // Try Roborock integration service call
+            const roborockRooms = await registry.resolveRoborockRooms(entityId);
+            if (roborockRooms.length > 0) {
+              const roomsObj: Record<string, string> = {};
+              for (const r of roborockRooms) {
+                roomsObj[String(r.id)] = r.name;
+              }
+              state = {
+                ...state,
+                attributes: {
+                  ...state.attributes,
+                  rooms: roomsObj,
+                } as typeof state.attributes,
+              };
+              logger.debug(
+                `Auto-detected ${roborockRooms.length} Roborock rooms for ${entityId}`,
+              );
+            }
           }
         }
       }
