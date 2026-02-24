@@ -232,6 +232,17 @@ const featureFlagSchema: JSONSchema7 = {
         "Enabling this may break Apple Home (shows 'Updating') and Google Home.",
       type: "boolean",
     },
+
+    vacuumMinimalClusters: {
+      title: "Vacuum: Minimal Clusters (Alexa troubleshooting)",
+      description:
+        "Strip the vacuum endpoint to only the clusters required by the Matter RVC spec. " +
+        "Removes PowerSource (battery) and the default ServiceArea placeholder. " +
+        "Enable this if Alexa commissions the vacuum but the device never appears in the app. " +
+        "Trade-off: battery percentage will not be reported to Matter controllers.",
+      type: "boolean",
+      default: false,
+    },
   },
   additionalProperties: false,
 };

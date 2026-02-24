@@ -215,6 +215,10 @@ export class BridgeRegistry {
     return this.dataProvider.featureFlags?.vacuumOnOff !== false;
   }
 
+  isVacuumMinimalClustersEnabled(): boolean {
+    return this.dataProvider.featureFlags?.vacuumMinimalClusters === true;
+  }
+
   /**
    * Auto-detect vacuum-related select entities on the same HA device.
    * HA integrations (Dreame, Roborock, Ecovacs, Valetudo, etc.) expose vacuum

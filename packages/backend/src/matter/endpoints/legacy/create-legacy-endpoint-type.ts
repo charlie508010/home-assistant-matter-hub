@@ -53,6 +53,7 @@ import { WaterHeaterDevice } from "./water-heater/index.js";
  */
 export interface LegacyEndpointOptions {
   vacuumOnOff?: boolean;
+  vacuumMinimalClusters?: boolean;
 }
 
 export function createLegacyEndpointType(
@@ -79,6 +80,7 @@ export function createLegacyEndpointType(
       type = VacuumDevice(
         { entity, customName, mapping },
         options?.vacuumOnOff,
+        options?.vacuumMinimalClusters,
       );
     } else {
       const factory = deviceCtrs[domain];
