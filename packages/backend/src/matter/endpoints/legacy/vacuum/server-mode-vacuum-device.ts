@@ -16,7 +16,6 @@ import { VacuumRvcOperationalStateServer } from "./behaviors/vacuum-rvc-operatio
 import { createVacuumRvcRunModeServer } from "./behaviors/vacuum-rvc-run-mode-server.js";
 import {
   createCustomServiceAreaServer,
-  createDefaultServiceAreaServer,
   createVacuumServiceAreaServer,
 } from "./behaviors/vacuum-service-area-server.js";
 import { parseVacuumRooms } from "./utils/parse-vacuum-rooms.js";
@@ -78,7 +77,9 @@ export function ServerModeVacuumDevice(
   // PowerSource — always included.
   device = device.with(VacuumPowerSourceServer);
 
-  // ServiceArea — always included.
+  // ServiceArea — only included when rooms or custom areas are configured.
+  // Omitted for vacuums without room data to avoid exposing an unnecessary
+  // cluster that some controllers (Alexa) may not handle gracefully.
   const customAreas = homeAssistantEntity.mapping?.customServiceAreas;
   const roomEntities = homeAssistantEntity.mapping?.roomEntities;
   const rooms = parseVacuumRooms(attributes);
@@ -88,8 +89,6 @@ export function ServerModeVacuumDevice(
     device = device.with(
       createVacuumServiceAreaServer(attributes, roomEntities),
     );
-  } else {
-    device = device.with(createDefaultServiceAreaServer());
   }
 
   // RvcCleanMode — always included.
