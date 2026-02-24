@@ -10,6 +10,25 @@ import { RvcOperationalStateServer } from "../../../../behaviors/rvc-operational
 
 const logger = Logger.get("VacuumRvcOperationalStateServer");
 
+interface ChargingAttributes {
+  battery_icon?: string;
+  is_charging?: boolean;
+  charging?: boolean;
+  status?: string;
+}
+
+function isCharging(entity: { attributes: Record<string, unknown> }): boolean {
+  const attrs = entity.attributes as ChargingAttributes;
+  if (attrs.battery_icon?.includes("charging")) return true;
+  if (attrs.is_charging === true || attrs.charging === true) return true;
+  if (
+    typeof attrs.status === "string" &&
+    attrs.status.toLowerCase().includes("charg")
+  )
+    return true;
+  return false;
+}
+
 export const VacuumRvcOperationalStateServer = RvcOperationalStateServer({
   getOperationalState(entity): RvcOperationalState.OperationalState {
     const state = entity.state as VacuumState | "unavailable";
@@ -25,7 +44,11 @@ export const VacuumRvcOperationalStateServer = RvcOperationalStateServer({
     let operationalState: RvcOperationalState.OperationalState;
 
     if (state === VacuumState.docked) {
-      operationalState = RvcOperationalState.OperationalState.Docked;
+      if (isCharging(entity)) {
+        operationalState = RvcOperationalState.OperationalState.Charging;
+      } else {
+        operationalState = RvcOperationalState.OperationalState.Docked;
+      }
     } else if (state === VacuumState.returning) {
       operationalState = RvcOperationalState.OperationalState.SeekingCharger;
     } else if (cleaningStates.includes(state)) {
@@ -33,16 +56,9 @@ export const VacuumRvcOperationalStateServer = RvcOperationalStateServer({
     } else if (state === VacuumState.paused) {
       operationalState = RvcOperationalState.OperationalState.Paused;
     } else if (state === VacuumState.idle) {
-      // Idle could mean docked/charging or just idle - check if charging
-      const attributes = entity.attributes as {
-        battery_icon?: string;
-        is_charging?: boolean;
-        charging?: boolean;
-      };
-      const batteryIcon = attributes.battery_icon;
-      const isCharging = attributes.is_charging ?? attributes.charging;
-      if (batteryIcon?.includes("charging") || isCharging === true) {
-        operationalState = RvcOperationalState.OperationalState.Docked;
+      // Idle could mean docked/charging or just idle
+      if (isCharging(entity)) {
+        operationalState = RvcOperationalState.OperationalState.Charging;
       } else {
         operationalState = RvcOperationalState.OperationalState.Paused;
       }
