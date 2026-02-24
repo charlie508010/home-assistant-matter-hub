@@ -155,6 +155,31 @@ jobs:
           dockerfile: ${{ matrix.dockerfile }}
           package-version: ${{ needs.release.outputs.release-version }}
 
+  npm-publish:
+    name: "Publish to npm"
+    runs-on: ubuntu-latest
+    needs: [release]
+    if: needs.release.outputs.release-version != ''
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-node
+
+      - name: Download Package
+        uses: actions/download-artifact@v6
+        with:
+          name: package.tgz
+          path: apps/home-assistant-matter-hub/
+          merge-multiple: true
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm publish apps/home-assistant-matter-hub/package.tgz --provenance --no-git-checks --access public --tag ${{ needs.release.outputs.release-channel }}
+
   publish-pages:
     name: "Publish Documentation"
     runs-on: ubuntu-latest
