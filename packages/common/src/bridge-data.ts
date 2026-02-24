@@ -53,11 +53,13 @@ interface AllBridgeFeatureFlags {
   readonly autoForceSync: boolean;
   /**
    * Vacuum OnOff Cluster: Add an OnOff cluster to robot vacuum endpoints.
-   * This enables basic start/stop control in Alexa (mapped to PowerController).
-   * WARNING: This adds a non-standard cluster to the RVC device type and may cause
-   * issues with Apple Home (broken UI, "Updating" status) and Google Home.
-   * Only enable this if you primarily use Alexa to control your vacuum.
-   * Default: false (disabled)
+   * Amazon Alexa REQUIRES PowerController (mapped from OnOff) for robotic vacuums.
+   * Without it, the vacuum commissions but never appears in the Alexa app.
+   *
+   * In Server Mode: OnOff is included by default. Set to false to disable
+   * (e.g. if Apple Home shows "Updating" or renders the vacuum as a switch).
+   *
+   * In Bridge Mode: OnOff is excluded by default. Set to true to enable for Alexa.
    */
   readonly vacuumOnOff: boolean;
 }

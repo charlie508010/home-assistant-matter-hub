@@ -91,15 +91,6 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
     const flags = cfg?.featureFlags;
     const result: { severity: "warning" | "error"; message: string }[] = [];
 
-    if (flags?.vacuumOnOff) {
-      result.push({
-        severity: "warning",
-        message:
-          "Vacuum OnOff is enabled. This adds a non-standard cluster to the RVC device type " +
-          "which may break Apple Home (shows 'Updating') and Google Home. Only use with Alexa.",
-      });
-    }
-
     if (flags?.serverMode) {
       result.push({
         severity: "warning",
@@ -109,13 +100,22 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
       });
     }
 
-    if (flags?.serverMode && flags?.vacuumOnOff) {
+    if (flags?.serverMode && flags?.vacuumOnOff === false) {
       result.push({
         severity: "warning",
         message:
-          "Server Mode + Vacuum OnOff: This combination is required for Alexa " +
-          "(Alexa needs OnOff/PowerController on vacuums). " +
-          "If you also use Apple Home, the OnOff cluster may break its vacuum UI.",
+          "Server Mode with Vacuum OnOff disabled: Alexa REQUIRES the OnOff cluster " +
+          "(PowerController) for robotic vacuums. Without it, the vacuum commissions " +
+          "but never appears in Alexa. Only disable this for Apple Home.",
+      });
+    }
+
+    if (!flags?.serverMode && flags?.vacuumOnOff) {
+      result.push({
+        severity: "warning",
+        message:
+          "Vacuum OnOff is enabled in bridge mode. This adds a non-standard cluster " +
+          "to the RVC device type which may cause issues with Apple Home and Google Home.",
       });
     }
 

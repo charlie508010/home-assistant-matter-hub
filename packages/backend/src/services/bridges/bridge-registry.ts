@@ -206,6 +206,16 @@ export class BridgeRegistry {
   }
 
   /**
+   * Check if the vacuum OnOff cluster should be included for server-mode vacuums.
+   * Server mode defaults to INCLUDING OnOff because Amazon Alexa requires
+   * PowerController (mapped from OnOff) for robotic vacuum devices.
+   * Users can explicitly set vacuumOnOff=false to disable it (e.g. for Apple Home).
+   */
+  isServerModeVacuumOnOffEnabled(): boolean {
+    return this.dataProvider.featureFlags?.vacuumOnOff !== false;
+  }
+
+  /**
    * Auto-detect vacuum-related select entities on the same HA device.
    * HA integrations (Dreame, Roborock, Ecovacs, etc.) expose vacuum features
    * as select entities with well-known suffixes. This finds them automatically

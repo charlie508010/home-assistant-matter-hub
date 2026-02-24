@@ -147,7 +147,7 @@ export class ServerModeVacuumEndpoint extends EntityEndpoint {
         customName,
         mapping: effectiveMapping,
       },
-      registry.isVacuumOnOffEnabled(),
+      registry.isServerModeVacuumOnOffEnabled(),
     );
 
     if (!endpointType) {

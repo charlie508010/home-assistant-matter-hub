@@ -45,15 +45,27 @@ export interface BridgeDetailsProps {
 export const BridgeDetails = ({ bridge }: BridgeDetailsProps) => {
   return (
     <Grid container spacing={2}>
-      {bridge.featureFlags?.vacuumOnOff && (
+      {bridge.featureFlags?.serverMode &&
+        bridge.featureFlags?.vacuumOnOff === false && (
+          <Grid size={{ xs: 12 }}>
+            <Alert severity="warning" icon={<WarningAmberIcon />}>
+              <AlertTitle>
+                Vacuum OnOff Disabled (Alexa incompatible)
+              </AlertTitle>
+              Alexa <strong>requires</strong> the OnOff cluster
+              (PowerController) for robotic vacuums. With OnOff disabled, the
+              vacuum commissions but never appears in the Alexa app. Only
+              disable this if you exclusively use <strong>Apple Home</strong>.
+            </Alert>
+          </Grid>
+        )}
+      {!bridge.featureFlags?.serverMode && bridge.featureFlags?.vacuumOnOff && (
         <Grid size={{ xs: 12 }}>
           <Alert severity="info" icon={<WarningAmberIcon />}>
             <AlertTitle>Vacuum OnOff Cluster Enabled (Alexa)</AlertTitle>
-            Alexa <strong>requires</strong> the OnOff cluster (PowerController)
-            to display robotic vacuums. Without it, the vacuum is commissioned
-            but never appears in the Alexa app. This may cause issues with{" "}
-            <strong>Apple Home</strong> and <strong>Google Home</strong> — only
-            use on Alexa-only vacuum bridges.
+            OnOff cluster is active for Alexa PowerController compatibility.
+            This may cause issues with <strong>Apple Home</strong> and{" "}
+            <strong>Google Home</strong>.
           </Alert>
         </Grid>
       )}

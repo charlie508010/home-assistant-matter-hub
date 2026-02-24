@@ -65,10 +65,11 @@ export function ServerModeVacuumDevice(
     createVacuumRvcRunModeServer(attributes),
   ).set({ homeAssistantEntity });
 
-  // OnOff is NOT part of the RoboticVacuumCleaner device type spec.
-  // Including it may confuse Apple Home's UI rendering (shows "Updating"
-  // or renders as switch instead of vacuum). Only enabled via feature flag
-  // for Alexa compatibility (maps OnOff to PowerController for start/stop).
+  // OnOff is NOT part of the RoboticVacuumCleaner device type spec, but
+  // Amazon Alexa REQUIRES PowerController (mapped from OnOff) for robotic
+  // vacuum devices. Without it, the device commissions but never appears
+  // in the Alexa app. Included by default in server mode; users can
+  // disable via feature flag if it causes Apple Home UI issues.
   if (includeOnOff) {
     device = device.with(VacuumOnOffServer);
   }
