@@ -218,6 +218,19 @@ export function ClimateDevice(
     maxCoolSetpointLimit: toMatterTemp(attributes.max_temp) ?? 5000,
   };
 
+  // AutoMode only when device supports heat_cool (dual setpoint) AND has
+  // explicit heat or cool modes. Devices with only 'auto' (single-setpoint)
+  // must NOT get AutoMode — Apple Home would show Auto and expect dual
+  // setpoints, causing mode flipping. heat_cool-only zones (e.g. HVAC zones
+  // that follow the main system) also must NOT get AutoMode — they can't
+  // independently switch between heating and cooling (#207).
+  const autoMode =
+    supportsHeating &&
+    supportsCooling &&
+    attributes.hvac_modes.includes(ClimateHvacMode.heat_cool) &&
+    (attributes.hvac_modes.includes(ClimateHvacMode.heat) ||
+      attributes.hvac_modes.includes(ClimateHvacMode.cool));
+
   // Pass thermostat state at the endpoint type level using the behavior ID.
   // This ensures Matter.js's internal validation sees the values.
   // Only include attributes for the features the device actually supports.
@@ -229,18 +242,7 @@ export function ClimateDevice(
     {
       heating: supportsHeating,
       cooling: supportsCooling,
-      // AutoMode only when device supports heat_cool (dual setpoint) AND has
-      // explicit heat or cool modes. Devices with only 'auto' (single-setpoint)
-      // must NOT get AutoMode — Apple Home would show Auto and expect dual
-      // setpoints, causing mode flipping. heat_cool-only zones (e.g. HVAC zones
-      // that follow the main system) also must NOT get AutoMode — they can't
-      // independently switch between heating and cooling (#207).
-      autoMode:
-        supportsHeating &&
-        supportsCooling &&
-        attributes.hvac_modes.includes(ClimateHvacMode.heat_cool) &&
-        (attributes.hvac_modes.includes(ClimateHvacMode.heat) ||
-          attributes.hvac_modes.includes(ClimateHvacMode.cool)),
+      autoMode,
     },
     initialState,
   ).set({
@@ -270,11 +272,7 @@ export function ClimateDevice(
         : {}),
       localTemperature: initialState.localTemperature ?? null,
       // minSetpointDeadBand only valid with AutoMode (dual setpoint) feature
-      ...(supportsHeating &&
-      supportsCooling &&
-      attributes.hvac_modes.includes(ClimateHvacMode.heat_cool)
-        ? { minSetpointDeadBand: 0 }
-        : {}),
+      ...(autoMode ? { minSetpointDeadBand: 0 } : {}),
     },
   });
 }
