@@ -173,6 +173,7 @@ const vacuumRvcRunModeConfig = {
             );
             return {
               action: "mqtt.publish",
+              target: false as const,
               data: {
                 topic: `valetudo/${identifier}/MapSegmentationCapability/clean/set`,
                 payload: JSON.stringify({
@@ -300,6 +301,7 @@ const vacuumRvcRunModeConfig = {
         );
         return {
           action: "mqtt.publish",
+          target: false as const,
           data: {
             topic: `valetudo/${identifier}/MapSegmentationCapability/clean/set`,
             payload: JSON.stringify({
