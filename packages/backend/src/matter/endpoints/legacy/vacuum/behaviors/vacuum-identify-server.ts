@@ -24,13 +24,14 @@ export class VacuumIdentifyServer extends IdentifyServer {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const features =
       homeAssistant.entity.state.attributes.supported_features ?? 0;
-    if (testBit(features, VacuumDeviceFeature.LOCATE)) {
-      logger.info(`${source} → vacuum.locate for ${homeAssistant.entityId}`);
-      homeAssistant.callAction({ action: "vacuum.locate" });
-    } else {
-      logger.debug(
-        `${source} for ${homeAssistant.entityId} — LOCATE not supported`,
+    const hasLocate = testBit(features, VacuumDeviceFeature.LOCATE);
+    if (!hasLocate) {
+      logger.warn(
+        `${source} for ${homeAssistant.entityId} — LOCATE not in supported_features (${features}), calling vacuum.locate anyway`,
       );
+    } else {
+      logger.info(`${source} → vacuum.locate for ${homeAssistant.entityId}`);
     }
+    homeAssistant.callAction({ action: "vacuum.locate" });
   }
 }
