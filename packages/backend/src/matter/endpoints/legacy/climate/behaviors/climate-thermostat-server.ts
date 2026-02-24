@@ -72,6 +72,20 @@ const hvacModeToSystemMode: Record<ClimateHvacMode, Thermostat.SystemMode> = {
   [ClimateHvacMode.off]: Thermostat.SystemMode.Off,
 };
 
+/**
+ * Detect heat_cool-only zones: entities that have heat_cool but no explicit
+ * heat or cool mode. These zones follow the main system and can't independently
+ * switch between heating and cooling. Per Matter spec, they SHOULD report
+ * CoolingOnly or HeatingOnly based on the current capability.
+ */
+function isHeatCoolOnly(modes: ClimateHvacMode[]): boolean {
+  return (
+    modes.includes(ClimateHvacMode.heat_cool) &&
+    !modes.includes(ClimateHvacMode.heat) &&
+    !modes.includes(ClimateHvacMode.cool)
+  );
+}
+
 const config: ThermostatServerConfig = {
   // Temperature range (target_temp_low/high) only works in heat_cool mode.
   // In heat or cool mode, HA expects a single "temperature" value.
@@ -108,9 +122,19 @@ const config: ThermostatServerConfig = {
     // HA auto ≠ Matter Auto — it's a single-setpoint mode where the device decides.
     if (systemMode === Thermostat.SystemMode.Auto) {
       const modes = attributes(entity).hvac_modes ?? [];
-      const hasHeatCool = modes.includes(ClimateHvacMode.heat_cool);
 
-      // Device supports heat_cool (dual setpoint): keep SystemMode.Auto
+      // heat_cool-only zones (e.g. HVAC zones that follow the main system):
+      // Can't independently switch — use hvac_action to determine Heat or Cool.
+      if (isHeatCoolOnly(modes)) {
+        const action = attributes(entity).hvac_action;
+        if (action === ClimateHvacAction.cooling) {
+          return Thermostat.SystemMode.Cool;
+        }
+        return Thermostat.SystemMode.Heat;
+      }
+
+      // Device supports heat_cool with explicit heat/cool: keep SystemMode.Auto
+      const hasHeatCool = modes.includes(ClimateHvacMode.heat_cool);
       if (hasHeatCool) {
         return systemMode;
       }
@@ -146,6 +170,17 @@ const config: ThermostatServerConfig = {
   },
   getControlSequence: (entity) => {
     const modes = attributes(entity).hvac_modes ?? [];
+
+    // heat_cool-only zones: report CoolingOnly or HeatingOnly based on
+    // current capability, per Matter spec ControlSequenceOfOperationEnum note.
+    if (isHeatCoolOnly(modes)) {
+      const action = attributes(entity).hvac_action;
+      if (action === ClimateHvacAction.cooling) {
+        return Thermostat.ControlSequenceOfOperation.CoolingOnly;
+      }
+      return Thermostat.ControlSequenceOfOperation.HeatingOnly;
+    }
+
     const hasCooling = modes.some(
       (m) => m === ClimateHvacMode.cool || m === ClimateHvacMode.heat_cool,
     );
@@ -168,8 +203,12 @@ const config: ThermostatServerConfig = {
     const hvacModes = attributes(homeAssistant.entity.state).hvac_modes ?? [];
     let targetMode = systemModeToHvacMode[systemMode] ?? ClimateHvacMode.off;
 
-    // Handle Auto mode: prefer 'auto' if explicitly available, otherwise use 'heat_cool' (default)
-    if (systemMode === Thermostat.SystemMode.Auto) {
+    // heat_cool-only zones: map any non-Off mode back to heat_cool
+    // since the zone can't independently switch between heat and cool.
+    if (isHeatCoolOnly(hvacModes) && systemMode !== Thermostat.SystemMode.Off) {
+      targetMode = ClimateHvacMode.heat_cool;
+    } else if (systemMode === Thermostat.SystemMode.Auto) {
+      // Handle Auto mode: prefer 'auto' if explicitly available, otherwise use 'heat_cool' (default)
       if (hvacModes.includes(ClimateHvacMode.auto)) {
         targetMode = ClimateHvacMode.auto;
       }

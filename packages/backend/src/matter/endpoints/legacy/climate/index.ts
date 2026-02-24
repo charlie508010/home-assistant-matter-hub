@@ -229,13 +229,18 @@ export function ClimateDevice(
     {
       heating: supportsHeating,
       cooling: supportsCooling,
-      // AutoMode only when device supports heat_cool (dual setpoint).
-      // Devices with only 'auto' (single-setpoint) must NOT get AutoMode —
-      // Apple Home would show Auto and expect dual setpoints, causing mode flipping.
+      // AutoMode only when device supports heat_cool (dual setpoint) AND has
+      // explicit heat or cool modes. Devices with only 'auto' (single-setpoint)
+      // must NOT get AutoMode — Apple Home would show Auto and expect dual
+      // setpoints, causing mode flipping. heat_cool-only zones (e.g. HVAC zones
+      // that follow the main system) also must NOT get AutoMode — they can't
+      // independently switch between heating and cooling (#207).
       autoMode:
         supportsHeating &&
         supportsCooling &&
-        attributes.hvac_modes.includes(ClimateHvacMode.heat_cool),
+        attributes.hvac_modes.includes(ClimateHvacMode.heat_cool) &&
+        (attributes.hvac_modes.includes(ClimateHvacMode.heat) ||
+          attributes.hvac_modes.includes(ClimateHvacMode.cool)),
     },
     initialState,
   ).set({
