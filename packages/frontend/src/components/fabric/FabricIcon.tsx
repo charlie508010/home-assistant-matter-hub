@@ -7,6 +7,7 @@ import AmazonIcon from "../../assets/brands/Amazon.svg?react";
 import AppleIcon from "../../assets/brands/Apple.svg?react";
 import GoogleIcon from "../../assets/brands/Google.svg?react";
 import SamsungIcon from "../../assets/brands/Samsung.svg?react";
+import { getVendorName } from "./vendor-names.ts";
 
 export interface FabricIconProps {
   fabric: BridgeFabric;
@@ -42,7 +43,7 @@ export const FabricIcon = ({ fabric }: FabricIconProps) => {
   const BrandIcon = useMemo(() => getIcon(fabric), [fabric]);
   return (
     <Tooltip
-      title={`${fabric.label} (0x${fabric.rootVendorId.toString(16)})`}
+      title={`${fabric.label || getVendorName(fabric.rootVendorId)} (0x${fabric.rootVendorId.toString(16).toUpperCase().padStart(4, "0")})`}
       arrow
     >
       <Box
