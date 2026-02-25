@@ -10,7 +10,6 @@ import {
   createVacuumRvcCleanModeServer,
   resolveFanSpeedList,
   resolveMopIntensityList,
-  supportsCleaningModes,
 } from "./behaviors/vacuum-rvc-clean-mode-server.js";
 import { VacuumRvcOperationalStateServer } from "./behaviors/vacuum-rvc-operational-state-server.js";
 import { createVacuumRvcRunModeServer } from "./behaviors/vacuum-rvc-run-mode-server.js";
@@ -54,6 +53,7 @@ export function ServerModeVacuumDevice(
   homeAssistantEntity: HomeAssistantEntityBehavior.State,
   includeOnOff = false,
   minimalClusters = false,
+  cleaningModeOptions?: string[],
 ): EndpointType | undefined {
   if (homeAssistantEntity.entity.state === undefined) {
     return undefined;
@@ -99,8 +99,6 @@ export function ServerModeVacuumDevice(
 
   // RvcCleanMode — always included.
   // Alexa probes for cluster 0x55 during discovery and may refuse the device without it.
-  const hasCleaningModeEntity =
-    !!homeAssistantEntity.mapping?.cleaningModeEntity;
   const fanSpeedList = resolveFanSpeedList(
     attributes,
     homeAssistantEntity.mapping?.suctionLevelEntity,
@@ -108,15 +106,13 @@ export function ServerModeVacuumDevice(
   const mopIntensityList = resolveMopIntensityList(
     homeAssistantEntity.mapping?.mopIntensityEntity,
   );
-  const hasCleanTypes =
-    supportsCleaningModes(attributes) || hasCleaningModeEntity;
-  if (hasCleanTypes || fanSpeedList || mopIntensityList) {
+  if (cleaningModeOptions || fanSpeedList || mopIntensityList) {
     device = device.with(
       createVacuumRvcCleanModeServer(
         attributes,
         fanSpeedList,
         mopIntensityList,
-        hasCleanTypes,
+        cleaningModeOptions,
       ),
     );
   } else {

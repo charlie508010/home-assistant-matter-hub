@@ -14,6 +14,7 @@ import type { BridgeRegistry } from "../../services/bridges/bridge-registry.js";
 import type { HomeAssistantStates } from "../../services/home-assistant/home-assistant-registry.js";
 import { HomeAssistantEntityBehavior } from "../behaviors/home-assistant-entity-behavior.js";
 import { EntityEndpoint } from "./entity-endpoint.js";
+import { supportsCleaningModes } from "./legacy/vacuum/behaviors/vacuum-rvc-clean-mode-server.js";
 import { ServerModeVacuumDevice } from "./legacy/vacuum/server-mode-vacuum-device.js";
 
 const logger = Logger.get("ServerModeVacuumEndpoint");
@@ -162,6 +163,26 @@ export class ServerModeVacuumEndpoint extends EntityEndpoint {
       deviceRegistry,
     };
 
+    // Resolve cleaning mode options for accurate RvcCleanMode generation.
+    // Reads actual entity options so only supported types get modes.
+    const vacAttrsForClean = state.attributes as VacuumDeviceAttributes;
+    let cleaningModeOptions: string[] | undefined;
+    if (effectiveMapping?.cleaningModeEntity) {
+      const cmState = registry.initialState(
+        effectiveMapping.cleaningModeEntity,
+      );
+      cleaningModeOptions = (
+        cmState?.attributes as { options?: string[] } | undefined
+      )?.options;
+    } else if (supportsCleaningModes(vacAttrsForClean)) {
+      cleaningModeOptions = [
+        "vacuum",
+        "mop",
+        "vacuum_and_mop",
+        "vacuum_then_mop",
+      ];
+    }
+
     const customName = effectiveMapping?.customName;
     const endpointType = ServerModeVacuumDevice(
       {
@@ -171,6 +192,7 @@ export class ServerModeVacuumEndpoint extends EntityEndpoint {
       },
       registry.isServerModeVacuumOnOffEnabled(),
       registry.isVacuumMinimalClustersEnabled(),
+      cleaningModeOptions,
     );
 
     if (!endpointType) {

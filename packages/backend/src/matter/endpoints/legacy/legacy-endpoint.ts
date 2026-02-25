@@ -18,6 +18,7 @@ import { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-enti
 import { EntityEndpoint } from "../../endpoints/entity-endpoint.js";
 import { ComposedSensorEndpoint } from "../composed/composed-sensor-endpoint.js";
 import { createLegacyEndpointType } from "./create-legacy-endpoint-type.js";
+import { supportsCleaningModes } from "./vacuum/behaviors/vacuum-rvc-clean-mode-server.js";
 
 const logger = Logger.get("LegacyEndpoint");
 
@@ -308,10 +309,34 @@ export class LegacyEndpoint extends EntityEndpoint {
       registry: entity,
       deviceRegistry,
     };
+
+    // Resolve cleaning mode options for vacuum entities
+    let cleaningModeOptions: string[] | undefined;
+    if (entityId.startsWith("vacuum.")) {
+      if (effectiveMapping?.cleaningModeEntity) {
+        const cmState = registry.initialState(
+          effectiveMapping.cleaningModeEntity,
+        );
+        cleaningModeOptions = (
+          cmState?.attributes as { options?: string[] } | undefined
+        )?.options;
+      } else if (
+        supportsCleaningModes(state.attributes as VacuumDeviceAttributes)
+      ) {
+        cleaningModeOptions = [
+          "vacuum",
+          "mop",
+          "vacuum_and_mop",
+          "vacuum_then_mop",
+        ];
+      }
+    }
+
     const areaName = registry.getAreaName(entityId);
     const type = createLegacyEndpointType(payload, effectiveMapping, areaName, {
       vacuumOnOff: registry.isVacuumOnOffEnabled(),
       vacuumMinimalClusters: registry.isVacuumMinimalClustersEnabled(),
+      cleaningModeOptions,
     });
     if (!type) {
       return;
