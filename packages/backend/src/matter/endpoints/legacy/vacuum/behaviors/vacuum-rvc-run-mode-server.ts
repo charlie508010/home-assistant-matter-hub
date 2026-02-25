@@ -333,8 +333,10 @@ const vacuumRvcRunModeConfig = {
       ) => HomeAssistantEntityBehavior;
     },
   ) => {
-    const entity = agent.get(HomeAssistantEntityBehavior).entity;
+    const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+    const entity = homeAssistant.entity;
     const attributes = entity.state.attributes as VacuumDeviceAttributes;
+
     const rooms = parseVacuumRooms(attributes);
     const numericIdFromMode = getRoomIdFromMode(roomMode);
 
@@ -351,6 +353,23 @@ const vacuumRvcRunModeConfig = {
     logger.info(
       `Found room by mode match: ${room ? `${room.name} (id=${room.id})` : "none"}`,
     );
+
+    // Check for user-defined custom service areas (lawn mowers, generic zone robots).
+    // Match the resolved room name to the custom area name.
+    const customAreas = homeAssistant.state.mapping?.customServiceAreas;
+    if (customAreas && customAreas.length > 0 && room) {
+      const area = customAreas.find((a) => a.name === room.name);
+      if (area) {
+        logger.info(
+          `cleanRoom: custom service area "${area.name}" → ${area.service}`,
+        );
+        return {
+          action: area.service,
+          target: area.target,
+          data: area.data,
+        };
+      }
+    }
 
     if (room) {
       // Use originalId for commands (Dreame multi-floor: id is deduplicated, originalId is per-floor)

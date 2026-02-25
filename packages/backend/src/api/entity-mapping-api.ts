@@ -44,6 +44,7 @@ export function entityMappingApi(
       energyEntity: body.energyEntity,
       suctionLevelEntity: body.suctionLevelEntity,
       mopIntensityEntity: body.mopIntensityEntity,
+      customServiceAreas: body.customServiceAreas,
     };
 
     const config = await mappingStorage.setMapping(request);
