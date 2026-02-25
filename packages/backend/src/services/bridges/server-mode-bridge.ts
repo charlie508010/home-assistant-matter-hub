@@ -45,9 +45,13 @@ export class ServerModeBridge {
   // Tracks the last synced state JSON per entity to avoid pushing unchanged states.
   private lastSyncedState: string | undefined;
 
-  // Session lifecycle diagnostic handler (non-destructive, logging only).
+  // Session lifecycle diagnostic handlers (non-destructive, logging only).
   // biome-ignore lint/suspicious/noExplicitAny: matter.js internal types
   private sessionDiagHandler?: (session: any, subscription: any) => void;
+  // biome-ignore lint/suspicious/noExplicitAny: matter.js internal types
+  private sessionAddedHandler?: (session: any) => void;
+  // biome-ignore lint/suspicious/noExplicitAny: matter.js internal types
+  private sessionDeletedHandler?: (session: any) => void;
 
   get id(): string {
     return this.dataProvider.id;
@@ -260,23 +264,56 @@ export class ServerModeBridge {
         this.log.info(
           `Session ${session.id} (peer ${session.peerNodeId}): subscriptions=${session.subscriptions.size} | total: sessions=${sessions.length} subscriptions=${totalSubs}`,
         );
+        if (totalSubs === 0 && sessions.length > 0) {
+          this.log.warn(
+            `All subscriptions lost — ${sessions.length} session(s) still active, waiting for controller to re-subscribe`,
+          );
+        }
       };
       sessionManager.subscriptionsChanged.on(this.sessionDiagHandler);
+
+      this.sessionAddedHandler = (session: {
+        id: number;
+        peerNodeId: unknown;
+      }) => {
+        this.log.info(
+          `Session opened: id=${session.id} peer=${session.peerNodeId}`,
+        );
+      };
+      this.sessionDeletedHandler = (session: {
+        id: number;
+        peerNodeId: unknown;
+      }) => {
+        const sessions = [...sessionManager.sessions];
+        this.log.warn(
+          `Session closed: id=${session.id} peer=${session.peerNodeId} | remaining sessions=${sessions.length}`,
+        );
+      };
+      sessionManager.sessions.added.on(this.sessionAddedHandler);
+      sessionManager.sessions.deleted.on(this.sessionDeletedHandler);
     } catch {
       // SessionManager not yet available
     }
   }
 
   private unwireSessionDiagnostics() {
-    if (this.sessionDiagHandler) {
-      try {
-        const sessionManager = this.server.env.get(SessionManager);
+    try {
+      const sessionManager = this.server.env.get(SessionManager);
+      if (this.sessionDiagHandler) {
         sessionManager.subscriptionsChanged.off(this.sessionDiagHandler);
-      } catch {
-        // Already disposed
       }
-      this.sessionDiagHandler = undefined;
+      if (this.sessionAddedHandler) {
+        sessionManager.sessions.added.off(this.sessionAddedHandler);
+      }
+      if (this.sessionDeletedHandler) {
+        sessionManager.sessions.deleted.off(this.sessionDeletedHandler);
+      }
+    } catch {
+      // Already disposed
     }
+    this.sessionDiagHandler = undefined;
+    this.sessionAddedHandler = undefined;
+    this.sessionDeletedHandler = undefined;
   }
 
   private stopAutoForceSync() {
