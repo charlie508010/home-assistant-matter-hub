@@ -205,6 +205,7 @@ export const matterDeviceTypeLabels: Record<MatterDeviceType, string> = {
 export const domainToDefaultMatterTypes: Partial<
   Record<HomeAssistantDomain, MatterDeviceType[]>
 > = {
+  alarm_control_panel: ["mode_select", "on_off_plugin_unit"],
   automation: ["on_off_switch"],
   binary_sensor: [
     "contact_sensor",
