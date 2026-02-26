@@ -382,6 +382,7 @@ This project thrives thanks to the amazing community! Special thanks to everyone
 | [@razzietheman](https://github.com/razzietheman) | 🥈 **Active Tester** - Bridge icons (#101), sorting (#80), feature requests (#31, #30), extensive UI/UX feedback |
 | [@markgaze](https://github.com/markgaze) | 🤖 **Code Contributor** - Ecovacs Deebot room support ([#118](https://github.com/RiDDiX/home-assistant-matter-hub/pull/118)) |
 | [@omerfaruk-aran](https://github.com/omerfaruk-aran) | 🔧 **Network Debugging Expert** - Systematic mDNS/multicast root cause analysis for "No Response" issues ([#129](https://github.com/RiDDiX/home-assistant-matter-hub/issues/129)) |
+| [@gustavakerstrom](https://github.com/gustavakerstrom) | 🤖 **Code Contributor** - Template description display fix ([#215](https://github.com/RiDDiX/home-assistant-matter-hub/pull/215)) |
 
 <details>
 <summary><strong>📋 Issue Tracker - All Contributors</strong> (click to expand)</summary>
