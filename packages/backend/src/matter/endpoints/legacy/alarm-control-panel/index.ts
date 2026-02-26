@@ -1,11 +1,12 @@
 import type { HomeAssistantEntityInformation } from "@home-assistant-matter-hub/common";
 import type { EndpointType } from "@matter/main";
-import { ModeSelectDevice } from "@matter/main/devices";
+import { ModeSelectDevice, OnOffPlugInUnitDevice } from "@matter/main/devices";
 import type { HomeAssistantAction } from "../../../../services/home-assistant/home-assistant-actions.js";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
 import { ModeSelectServer } from "../../../behaviors/mode-select-server.js";
+import { OnOffServer } from "../../../behaviors/on-off-server.js";
 
 // Matter has no dedicated alarm/security panel device type.
 // ModeSelect (0x27) is the best fit: each alarm arm mode becomes a selectable
@@ -115,6 +116,45 @@ const AlarmPanelEndpointType = ModeSelectDevice.with(
   HomeAssistantEntityBehavior,
   AlarmModeServer,
 );
+
+// OnOffPlugInUnit fallback for controllers that don't support ModeSelect
+// (Apple Home, Google Home, SmartThings, Tuya).
+// On = arm (uses first available arm mode), Off = disarm.
+const AlarmOnOffServer = OnOffServer({
+  isOn: (entityState, agent) => {
+    return (
+      agent.get(HomeAssistantEntityBehavior).isAvailable &&
+      entityState.state !== "disarmed"
+    );
+  },
+  turnOn: (_, agent) => {
+    const ha = agent.get(HomeAssistantEntityBehavior);
+    const features =
+      (ha.entity.state.attributes as AlarmPanelAttributes).supported_features ??
+      0;
+    if (features & FEATURE_ARM_AWAY)
+      return { action: "alarm_control_panel.alarm_arm_away" };
+    if (features & FEATURE_ARM_HOME)
+      return { action: "alarm_control_panel.alarm_arm_home" };
+    if (features & FEATURE_ARM_NIGHT)
+      return { action: "alarm_control_panel.alarm_arm_night" };
+    return { action: "alarm_control_panel.alarm_arm_away" };
+  },
+  turnOff: () => ({ action: "alarm_control_panel.alarm_disarm" }),
+});
+
+const AlarmOnOffEndpointType = OnOffPlugInUnitDevice.with(
+  BasicInformationServer,
+  IdentifyServer,
+  HomeAssistantEntityBehavior,
+  AlarmOnOffServer,
+);
+
+export function AlarmOnOffDevice(
+  homeAssistantEntity: HomeAssistantEntityBehavior.State,
+): EndpointType {
+  return AlarmOnOffEndpointType.set({ homeAssistantEntity });
+}
 
 export function AlarmControlPanelDevice(
   homeAssistantEntity: HomeAssistantEntityBehavior.State,

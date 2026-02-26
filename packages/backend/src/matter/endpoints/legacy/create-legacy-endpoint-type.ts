@@ -8,7 +8,10 @@ import type { EndpointType } from "@matter/main";
 import { FixedLabelServer } from "@matter/main/behaviors";
 import type { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-entity-behavior.js";
 import { AirPurifierEndpoint } from "./air-purifier/index.js";
-import { AlarmControlPanelDevice } from "./alarm-control-panel/index.js";
+import {
+  AlarmControlPanelDevice,
+  AlarmOnOffDevice,
+} from "./alarm-control-panel/index.js";
 import { AutomationDevice } from "./automation/index.js";
 import { BinarySensorDevice } from "./binary-sensor/index.js";
 import { SmokeAlarmType } from "./binary-sensor/smoke-co-alarm.js";
@@ -195,7 +198,13 @@ const matterDeviceTypeFactories: Partial<
     ExtendedColorLightType(true, true).set({
       homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
     }),
-  on_off_plugin_unit: SwitchDevice,
+  on_off_plugin_unit: (ha) => {
+    const domain = ha.entity.entity_id.split(".")[0];
+    if (domain === "alarm_control_panel") {
+      return AlarmOnOffDevice(ha);
+    }
+    return SwitchDevice(ha);
+  },
   on_off_switch: SwitchDevice,
   door_lock: LockDevice,
   window_covering: CoverDevice,
