@@ -10,7 +10,11 @@ import LabelIcon from "@mui/icons-material/Label";
 import LinkIcon from "@mui/icons-material/Link";
 import LockIcon from "@mui/icons-material/Lock";
 import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
+import SettingsIcon from "@mui/icons-material/Settings";
+import StopIcon from "@mui/icons-material/Stop";
 import WarningIcon from "@mui/icons-material/Warning";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
@@ -31,6 +35,11 @@ import {
   checkBridgeIconExists,
   getBridgeIconUrl,
 } from "../../api/bridge-icons.ts";
+import {
+  restartAllBridges,
+  startAllBridges,
+  stopAllBridges,
+} from "../../api/bridges.ts";
 import { BridgeWizard } from "../../components/bridge/BridgeWizard.tsx";
 import {
   getBridgeIcon,
@@ -392,6 +401,12 @@ export const DashboardPage = () => {
           </Grid>
           <Grid size={{ xs: 6, sm: 4, md: 2 }}>
             <Box display="flex" alignItems="center" gap={1}>
+              <SettingsIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+              <Typography variant="body2">Settings</Typography>
+            </Box>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Box display="flex" alignItems="center" gap={1}>
               <MonitorHeartIcon
                 sx={{ fontSize: 18, color: "text.secondary" }}
               />
@@ -488,6 +503,40 @@ export const DashboardPage = () => {
         >
           Create Bridge
         </Button>
+        <Divider orientation="vertical" flexItem />
+        <Button
+          variant="outlined"
+          color="success"
+          startIcon={<PlayArrowIcon />}
+          onClick={async () => {
+            await startAllBridges();
+            fetchHealth();
+          }}
+        >
+          Start All
+        </Button>
+        <Button
+          variant="outlined"
+          color="error"
+          startIcon={<StopIcon />}
+          onClick={async () => {
+            await stopAllBridges();
+            fetchHealth();
+          }}
+        >
+          Stop All
+        </Button>
+        <Button
+          variant="outlined"
+          color="warning"
+          startIcon={<RestartAltIcon />}
+          onClick={async () => {
+            await restartAllBridges();
+            fetchHealth();
+          }}
+        >
+          Restart All
+        </Button>
       </Stack>
 
       {health?.bridgeDetails && health.bridgeDetails.length > 0 ? (
@@ -570,6 +619,13 @@ export const DashboardPage = () => {
             title="Filter Reference"
             icon={<LabelIcon sx={{ fontSize: 20 }} />}
             onClick={() => navigate(navigation.labels)}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <NavCard
+            title="Settings"
+            icon={<SettingsIcon sx={{ fontSize: 20 }} />}
+            onClick={() => navigate(navigation.settings)}
           />
         </Grid>
       </Grid>
