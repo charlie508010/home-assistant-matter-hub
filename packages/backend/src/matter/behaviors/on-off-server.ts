@@ -55,15 +55,14 @@ class OnOffServerBase extends Base {
     logger.info(`[${homeAssistant.entityId}] Turning ON -> ${action.action}`);
     // Notify LevelControlServer about turn-on for Alexa brightness workaround
     notifyLightTurnedOn(homeAssistant.entityId);
+    // Set onOff immediately so the controller gets instant feedback in the
+    // command response. Without this, Apple Home shows "Turning on..." until
+    // the async HA WebSocket state update arrives.
+    applyPatchState(this.state, { onOff: true });
     homeAssistant.callAction(action);
     // Auto-reset for momentary actions (scenes, automations) so controllers
     // don't show a permanently "on" state after activation.
-    // We must explicitly set onOff: true first because we override on() without
-    // calling super.on(). Without this, onOff stays false, the auto-reset is a
-    // no-op (deepEqual skips it), and controllers like Alexa that cache optimistic
-    // state never receive the true→false transition notification.
     if (turnOff === null) {
-      applyPatchState(this.state, { onOff: true });
       setTimeout(this.callback(this.autoReset), 1000);
     }
   }
@@ -79,6 +78,10 @@ class OnOffServerBase extends Base {
       action: "homeassistant.turn_off",
     };
     logger.info(`[${homeAssistant.entityId}] Turning OFF -> ${action.action}`);
+    // Set onOff immediately so the controller gets instant feedback in the
+    // command response. Without this, Apple Home shows "Turning off..." until
+    // the async HA WebSocket state update arrives (#219).
+    applyPatchState(this.state, { onOff: false });
     homeAssistant.callAction(action);
   }
 
