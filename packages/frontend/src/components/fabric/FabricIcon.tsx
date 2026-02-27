@@ -14,7 +14,6 @@ import GoogleIcon from "../../assets/brands/Google.svg?react";
 import IKEAIcon from "../../assets/brands/IKEA.svg?react";
 import iRobotIcon from "../../assets/brands/iRobot.svg?react";
 import LGElectronicsIcon from "../../assets/brands/LG Electronics.svg?react";
-import LGThinQIcon from "../../assets/brands/LG ThinQ.svg?react";
 import LidlIcon from "../../assets/brands/Lidl.svg?react";
 import MerossIcon from "../../assets/brands/Meross.svg?react";
 import NukiIcon from "../../assets/brands/Nuki.svg?react";
@@ -24,6 +23,7 @@ import RoborockIcon from "../../assets/brands/Roborock.svg?react";
 import SamsungIcon from "../../assets/brands/Samsung.svg?react";
 import SamsungSmartThingsIcon from "../../assets/brands/Samsung SmartThings.svg?react";
 import ShellyIcon from "../../assets/brands/Shelly.svg?react";
+import SignifyIcon from "../../assets/brands/Signify.svg?react";
 import TPLinkIcon from "../../assets/brands/TP-Link.svg?react";
 import TuyaIcon from "../../assets/brands/Tuya.svg?react";
 import XiaomiIcon from "../../assets/brands/Xiaomi.svg?react";
@@ -52,11 +52,11 @@ const iconsPerKeyword: Record<string, FC<SVGProps<SVGSVGElement>>> = {
 const iconPerVendorId: Record<number, FC<SVGProps<SVGSVGElement>> | undefined> =
   {
     1: PanasonicIcon,
+    4107: SignifyIcon,
     4142: LGElectronicsIcon,
     4321: SamsungIcon,
     4362: SamsungSmartThingsIcon,
     4417: TuyaIcon,
-    4442: LGThinQIcon,
     4447: AqaraIcon,
     4448: AmazonIcon,
     4469: DLinkIcon,
