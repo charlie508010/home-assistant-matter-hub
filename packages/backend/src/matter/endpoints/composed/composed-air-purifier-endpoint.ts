@@ -25,7 +25,6 @@ import {
   TemperatureSensorDevice,
   ThermostatDevice,
 } from "@matter/main/devices";
-import { BridgedNodeEndpoint } from "@matter/main/endpoints";
 import debounce from "debounce";
 import type { BridgeRegistry } from "../../../services/bridges/bridge-registry.js";
 import { EntityStateProvider } from "../../../services/bridges/entity-state-provider.js";
@@ -133,62 +132,12 @@ function buildEntityPayload(
   };
 }
 
-// --- Air Purifier sub-endpoint type builder ---
+// --- Air Purifier attributes ---
 
 interface AirPurifierAttributes extends FanDeviceAttributes {
   filter_life?: number;
   filter_life_remaining?: number;
   filter_life_level?: number;
-}
-
-function buildAirPurifierSubType(
-  attributes: AirPurifierAttributes,
-  mapping?: EntityMappingConfig,
-) {
-  const supportedFeatures = attributes.supported_features ?? 0;
-  const features: FeatureSelection<FanControl.Cluster> = new Set();
-
-  if (testBit(supportedFeatures, FanDeviceFeature.SET_SPEED)) {
-    features.add("MultiSpeed");
-    features.add("Step");
-  }
-  if (testBit(supportedFeatures, FanDeviceFeature.PRESET_MODE)) {
-    features.add("Auto");
-  }
-  if (testBit(supportedFeatures, FanDeviceFeature.DIRECTION)) {
-    features.add("AirflowDirection");
-  }
-  if (testBit(supportedFeatures, FanDeviceFeature.OSCILLATE)) {
-    features.add("Rocking");
-  }
-  const presetModes = attributes.preset_modes ?? [];
-  const hasWindModes = presetModes.some(
-    (m) =>
-      m.toLowerCase() === "natural" ||
-      m.toLowerCase() === "nature" ||
-      m.toLowerCase() === "sleep",
-  );
-  if (hasWindModes) {
-    features.add("Wind");
-  }
-
-  let device = AirPurifierDevice.with(
-    IdentifyServer,
-    HomeAssistantEntityBehavior,
-    FanOnOffServer,
-    FanFanControlServer.with(...features),
-  );
-
-  const hasFilterLife =
-    attributes.filter_life != null ||
-    attributes.filter_life_remaining != null ||
-    attributes.filter_life_level != null ||
-    !!mapping?.filterLifeEntity;
-  if (hasFilterLife) {
-    device = device.with(AirPurifierHepaFilterMonitoringServer);
-  }
-
-  return device;
 }
 
 // --- Thermostat sub-endpoint type builder ---
@@ -348,14 +297,13 @@ export interface ComposedAirPurifierConfig {
 // --- Main class ---
 
 /**
- * A composed air purifier endpoint that uses BridgedNodeEndpoint as the parent
- * with separate sub-endpoints for each device type. This follows the Matter spec
- * section 9.4.4 which defines an Air Purifier as a composable device with optional
- * Thermostat, Temperature Sensor, Humidity Sensor, and Air Quality Sensor sub-endpoints.
+ * A composed air purifier endpoint where the parent IS the AirPurifierDevice
+ * (device type 0x002D) per Matter spec §9.4.4. Sensors and thermostat are
+ * sub-endpoints. This ensures Apple Home shows a single Air Purifier tile
+ * instead of separate tiles for each sub-device.
  *
  * Structure:
- *   BridgedNodeEndpoint (parent - basic info + optional battery)
- *     ├── AirPurifierDevice (sub-endpoint - fan control)
+ *   AirPurifierDevice (parent - fan control + basic info + optional battery)
  *     ├── TemperatureSensorDevice (sub-endpoint, if mapped)
  *     ├── HumiditySensorDevice (sub-endpoint, if mapped)
  *     └── ThermostatDevice (sub-endpoint, if mapped)
@@ -379,12 +327,56 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
     const primaryPayload = buildEntityPayload(registry, primaryEntityId);
     if (!primaryPayload) return undefined;
 
-    // Build parent type (BridgedNodeEndpoint with BasicInfo + optional battery)
-    let parentType = BridgedNodeEndpoint.with(
+    // Compute Air Purifier features from entity attributes
+    const airPurifierAttributes = primaryPayload.state
+      .attributes as AirPurifierAttributes;
+    const supportedFeatures = airPurifierAttributes.supported_features ?? 0;
+    const features: FeatureSelection<FanControl.Cluster> = new Set();
+
+    if (testBit(supportedFeatures, FanDeviceFeature.SET_SPEED)) {
+      features.add("MultiSpeed");
+      features.add("Step");
+    }
+    if (testBit(supportedFeatures, FanDeviceFeature.PRESET_MODE)) {
+      features.add("Auto");
+    }
+    if (testBit(supportedFeatures, FanDeviceFeature.DIRECTION)) {
+      features.add("AirflowDirection");
+    }
+    if (testBit(supportedFeatures, FanDeviceFeature.OSCILLATE)) {
+      features.add("Rocking");
+    }
+    const presetModes = airPurifierAttributes.preset_modes ?? [];
+    const hasWindModes = presetModes.some(
+      (m) =>
+        m.toLowerCase() === "natural" ||
+        m.toLowerCase() === "nature" ||
+        m.toLowerCase() === "sleep",
+    );
+    if (hasWindModes) {
+      features.add("Wind");
+    }
+
+    // Build parent type: AirPurifierDevice IS the parent (Matter spec §9.4.4).
+    // Sensors and thermostat are sub-endpoints, but the air purifier itself
+    // lives on the parent so Apple Home shows a single Air Purifier tile.
+    let parentType = AirPurifierDevice.with(
       BasicInformationServer,
       IdentifyServer,
       HomeAssistantEntityBehavior,
+      FanOnOffServer,
+      FanFanControlServer.with(...features),
     );
+
+    // Add HEPA filter monitoring if available
+    const hasFilterLife =
+      airPurifierAttributes.filter_life != null ||
+      airPurifierAttributes.filter_life_remaining != null ||
+      airPurifierAttributes.filter_life_level != null ||
+      !!config.mapping?.filterLifeEntity;
+    if (hasFilterLife) {
+      parentType = parentType.with(AirPurifierHepaFilterMonitoringServer);
+    }
 
     const mapping: EntityMappingConfig = {
       entityId: primaryEntityId,
@@ -412,29 +404,10 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
       );
     }
 
-    // Build sub-endpoints
+    // Build sub-endpoints (sensors + thermostat only — air purifier is the parent)
     const endpointId = createEndpointId(primaryEntityId, config.customName);
     const parts: Endpoint[] = [];
     const subEndpointMap = new Map<string, Endpoint>();
-
-    // Air Purifier sub-endpoint (always present)
-    const airPurifierAttributes = primaryPayload.state
-      .attributes as AirPurifierAttributes;
-    const airPurifierSubType = buildAirPurifierSubType(
-      airPurifierAttributes,
-      config.mapping,
-    );
-    const airPurifierSub = new Endpoint(
-      airPurifierSubType.set({
-        homeAssistantEntity: {
-          entity: primaryPayload,
-          mapping: mapping as EntityMappingConfig,
-        },
-      }),
-      { id: `${endpointId}_purifier` },
-    );
-    parts.push(airPurifierSub);
-    subEndpointMap.set(primaryEntityId, airPurifierSub);
 
     // Temperature sub-endpoint (if mapped)
     let tempSub: Endpoint | undefined;
@@ -512,7 +485,7 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
     }
 
     const subLabels = [
-      "AirPurifier",
+      "AirPurifier(parent)",
       tempSub ? "+Temp" : "",
       humSub ? "+Hum" : "",
       climateSub ? "+Therm" : "",
@@ -539,7 +512,7 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
   }
 
   async updateStates(states: HomeAssistantStates): Promise<void> {
-    // Update parent (BasicInformationServer reachable state, battery, etc.)
+    // Update parent (AirPurifier fan control + BasicInfo reachable state, battery, etc.)
     this.scheduleUpdate(this, this.entityId, states);
 
     // Update sub-endpoints with their own entity states
