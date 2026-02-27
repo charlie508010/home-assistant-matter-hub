@@ -1,16 +1,11 @@
 import type {
-  ClimateDeviceAttributes,
   EntityMappingConfig,
   FanDeviceAttributes,
   HomeAssistantEntityInformation,
   HomeAssistantEntityState,
   SensorDeviceAttributes,
 } from "@home-assistant-matter-hub/common";
-import {
-  ClimateDeviceFeature,
-  ClimateHvacMode,
-  FanDeviceFeature,
-} from "@home-assistant-matter-hub/common";
+import { FanDeviceFeature } from "@home-assistant-matter-hub/common";
 import {
   DestroyedDependencyError,
   Logger,
@@ -23,9 +18,7 @@ import {
   AirPurifierDevice,
   HumiditySensorDevice,
   TemperatureSensorDevice,
-  ThermostatDevice,
 } from "@matter/main/devices";
-import { DeviceTypeId } from "@matter/main/types";
 import debounce from "debounce";
 import type { BridgeRegistry } from "../../../services/bridges/bridge-registry.js";
 import { EntityStateProvider } from "../../../services/bridges/entity-state-provider.js";
@@ -46,11 +39,7 @@ import {
   type TemperatureMeasurementConfig,
   TemperatureMeasurementServer,
 } from "../../behaviors/temperature-measurement-server.js";
-import { ThermostatUiConfigServer } from "../../behaviors/thermostat-ui-config-server.js";
 import { AirPurifierHepaFilterMonitoringServer } from "../legacy/air-purifier/behaviors/air-purifier-hepa-filter-monitoring-server.js";
-import { ClimateHumidityMeasurementServer } from "../legacy/climate/behaviors/climate-humidity-measurement-server.js";
-import { ClimateOnOffServer } from "../legacy/climate/behaviors/climate-on-off-server.js";
-import { ClimateThermostatServer } from "../legacy/climate/behaviors/climate-thermostat-server.js";
 import { FanFanControlServer } from "../legacy/fan/behaviors/fan-fan-control-server.js";
 import { FanOnOffServer } from "../legacy/fan/behaviors/fan-on-off-server.js";
 
@@ -141,146 +130,6 @@ interface AirPurifierAttributes extends FanDeviceAttributes {
   filter_life_level?: number;
 }
 
-// --- Thermostat sub-endpoint type builder ---
-
-const coolingModes: ClimateHvacMode[] = [
-  ClimateHvacMode.heat_cool,
-  ClimateHvacMode.cool,
-];
-const heatingModes: ClimateHvacMode[] = [
-  ClimateHvacMode.heat_cool,
-  ClimateHvacMode.heat,
-];
-const autoOnlyMode: ClimateHvacMode[] = [ClimateHvacMode.auto];
-const ventilationOnlyModes: ClimateHvacMode[] = [
-  ClimateHvacMode.fan_only,
-  ClimateHvacMode.dry,
-];
-
-function toMatterTemp(
-  value: string | number | null | undefined,
-): number | undefined {
-  if (value == null) return undefined;
-  const num = typeof value === "string" ? parseFloat(value) : value;
-  if (Number.isNaN(num)) return undefined;
-  return Math.round(num * 100);
-}
-
-function buildThermostatSubType(
-  payload: HomeAssistantEntityInformation,
-): EndpointType | undefined {
-  const state = payload.state;
-  const attributes = state.attributes as ClimateDeviceAttributes & {
-    battery?: number;
-    battery_level?: number;
-  };
-  const supportedFeatures = attributes.supported_features ?? 0;
-
-  const heatCoolOnly =
-    attributes.hvac_modes.includes(ClimateHvacMode.heat_cool) &&
-    !attributes.hvac_modes.includes(ClimateHvacMode.heat) &&
-    !attributes.hvac_modes.includes(ClimateHvacMode.cool);
-
-  const supportsCooling = heatCoolOnly
-    ? false
-    : coolingModes.some((mode) => attributes.hvac_modes.includes(mode));
-  const hasExplicitHeating = heatingModes.some((mode) =>
-    attributes.hvac_modes.includes(mode),
-  );
-  const isAutoOnly =
-    !hasExplicitHeating &&
-    !supportsCooling &&
-    autoOnlyMode.some((mode) => attributes.hvac_modes.includes(mode));
-  const isVentilationOnly =
-    !hasExplicitHeating &&
-    !supportsCooling &&
-    !isAutoOnly &&
-    ventilationOnlyModes.some((mode) => attributes.hvac_modes.includes(mode));
-  const supportsHeating = hasExplicitHeating || isAutoOnly || isVentilationOnly;
-
-  if (!supportsCooling && !supportsHeating) {
-    return undefined;
-  }
-
-  const supportsHumidity =
-    attributes.current_humidity != null ||
-    testBit(supportedFeatures, ClimateDeviceFeature.TARGET_HUMIDITY);
-  const supportsOnOff =
-    testBit(supportedFeatures, ClimateDeviceFeature.TURN_ON) &&
-    testBit(supportedFeatures, ClimateDeviceFeature.TURN_OFF);
-
-  const autoMode =
-    supportsHeating &&
-    supportsCooling &&
-    attributes.hvac_modes.includes(ClimateHvacMode.heat_cool) &&
-    (attributes.hvac_modes.includes(ClimateHvacMode.heat) ||
-      attributes.hvac_modes.includes(ClimateHvacMode.cool));
-
-  const initialState = {
-    localTemperature: toMatterTemp(attributes.current_temperature),
-    occupiedHeatingSetpoint:
-      toMatterTemp(attributes.target_temp_low) ??
-      toMatterTemp(attributes.temperature) ??
-      2000,
-    occupiedCoolingSetpoint:
-      toMatterTemp(attributes.target_temp_high) ??
-      toMatterTemp(attributes.temperature) ??
-      2400,
-    minHeatSetpointLimit: toMatterTemp(attributes.min_temp) ?? 0,
-    maxHeatSetpointLimit: toMatterTemp(attributes.max_temp) ?? 5000,
-    minCoolSetpointLimit: toMatterTemp(attributes.min_temp) ?? 0,
-    maxCoolSetpointLimit: toMatterTemp(attributes.max_temp) ?? 5000,
-  };
-
-  const thermostatServer = ClimateThermostatServer(initialState, {
-    heating: supportsHeating,
-    cooling: supportsCooling,
-    autoMode,
-  });
-
-  let device = ThermostatDevice.with(
-    IdentifyServer,
-    HomeAssistantEntityBehavior,
-    thermostatServer,
-    ThermostatUiConfigServer,
-  );
-
-  if (supportsOnOff) {
-    device = device.with(ClimateOnOffServer);
-  }
-  if (supportsHumidity) {
-    device = device.with(ClimateHumidityMeasurementServer);
-  }
-
-  return device.set({
-    homeAssistantEntity: { entity: payload },
-    thermostat: {
-      ...(supportsHeating
-        ? {
-            absMinHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
-            absMaxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
-            minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
-            maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
-            occupiedHeatingSetpoint:
-              initialState.occupiedHeatingSetpoint ?? 2000,
-          }
-        : {}),
-      ...(supportsCooling
-        ? {
-            absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
-            absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
-            minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
-            maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
-            occupiedCoolingSetpoint:
-              initialState.occupiedCoolingSetpoint ?? 2400,
-          }
-        : {}),
-      localTemperature: initialState.localTemperature ?? null,
-      ...(autoMode ? { minSetpointDeadBand: 0 } : {}),
-    },
-  });
-}
-
 // --- Config interface ---
 
 export interface ComposedAirPurifierConfig {
@@ -288,7 +137,6 @@ export interface ComposedAirPurifierConfig {
   primaryEntityId: string;
   temperatureEntityId?: string;
   humidityEntityId?: string;
-  climateEntityId?: string;
   batteryEntityId?: string;
   mapping?: EntityMappingConfig;
   customName?: string;
@@ -299,17 +147,16 @@ export interface ComposedAirPurifierConfig {
 
 /**
  * A composed air purifier endpoint. The parent IS the AirPurifierDevice
- * (0x002D) with BridgedNode (0x0013) also in its deviceTypeList so that
- * controllers can identify the root of the bridged composed device.
- * Using AirPurifierDevice as the base (Application device class) is
- * critical — BridgedNodeEndpoint (Utility class) causes Apple Home to
- * ignore all application-level clusters on the parent.
+ * (0x002D). Only sensor sub-endpoints are included because Apple Home
+ * folds sensors into the parent tile. ThermostatDevice is deliberately
+ * excluded — as a "full" device type it competes with the parent for
+ * Apple Home’s primary tile selection, causing inconsistent display.
+ * The climate entity stays standalone as a separate thermostat tile.
  *
  * Structure:
  *   AirPurifierDevice (parent - fan control + basic info + optional battery)
  *     ├── TemperatureSensorDevice (sub-endpoint, if mapped)
- *     ├── HumiditySensorDevice (sub-endpoint, if mapped)
- *     └── ThermostatDevice (sub-endpoint, if mapped)
+ *     └── HumiditySensorDevice (sub-endpoint, if mapped)
  */
 export class ComposedAirPurifierEndpoint extends Endpoint {
   readonly entityId: string;
@@ -361,10 +208,6 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
     }
 
     // Build parent type: AirPurifierDevice IS the parent (Application class).
-    // We also add BridgedNode (0x0013) to the deviceTypeList so controllers
-    // can identify this as the root of a bridged composed device.
-    // IMPORTANT: BridgedNodeEndpoint (Utility class) must NOT be used here —
-    // Apple Home ignores application clusters on Utility-class endpoints.
     let parentType = AirPurifierDevice.with(
       BasicInformationServer,
       IdentifyServer,
@@ -449,35 +292,8 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
       }
     }
 
-    // Thermostat sub-endpoint (if mapped)
-    let climateSub: Endpoint | undefined;
-    if (config.climateEntityId) {
-      const climatePayload = buildEntityPayload(
-        registry,
-        config.climateEntityId,
-      );
-      if (climatePayload) {
-        const thermostatType = buildThermostatSubType(climatePayload);
-        if (thermostatType) {
-          climateSub = new Endpoint(thermostatType, {
-            id: `${endpointId}_climate`,
-          });
-          parts.push(climateSub);
-          subEndpointMap.set(config.climateEntityId, climateSub);
-        }
-      }
-    }
-
     // Create parent endpoint with sub-endpoints as parts.
-    // Pre-set deviceTypeList with AirPurifier (primary) + BridgedNode so
-    // Apple Home renders air purifier controls AND identifies the root.
     const parentTypeWithState = parentType.set({
-      descriptor: {
-        deviceTypeList: [
-          { deviceType: DeviceTypeId(0x002d), revision: 2 },
-          { deviceType: DeviceTypeId(0x0013), revision: 3 },
-        ],
-      },
       homeAssistantEntity: {
         entity: primaryPayload,
         customName: config.customName,
@@ -501,7 +317,6 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
       "AirPurifier(parent)",
       tempSub ? "+Temp" : "",
       humSub ? "+Hum" : "",
-      climateSub ? "+Therm" : "",
       config.batteryEntityId ? "+Bat" : "",
     ]
       .filter(Boolean)
