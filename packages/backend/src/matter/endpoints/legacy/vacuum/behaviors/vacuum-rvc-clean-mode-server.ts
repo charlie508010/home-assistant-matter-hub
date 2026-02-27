@@ -857,7 +857,16 @@ export function createDefaultRvcCleanModeServer(): ReturnType<
     setCleanMode: () => undefined,
   };
 
-  return RvcCleanModeServer(defaultConfig);
+  return RvcCleanModeServer(defaultConfig, {
+    supportedModes: [
+      {
+        label: "Vacuum",
+        mode: MODE_VACUUM,
+        modeTags: [{ value: RvcCleanMode.ModeTag.Vacuum }],
+      },
+    ],
+    currentMode: MODE_VACUUM,
+  });
 }
 
 /**
