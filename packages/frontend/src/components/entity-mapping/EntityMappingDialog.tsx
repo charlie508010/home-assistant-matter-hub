@@ -77,6 +77,7 @@ export function EntityMappingDialog({
   const [loadingButtons, setLoadingButtons] = useState(false);
 
   const isNewMapping = !entityId;
+  const [customFanSpeedTagsList, setCustomFanSpeedTagsList] = useState<{option: string, tag: string}[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -97,6 +98,9 @@ export function EntityMappingDialog({
       setMopIntensityEntity(currentMapping?.mopIntensityEntity || "");
       setCustomServiceAreas(currentMapping?.customServiceAreas || []);
       setAvailableButtons([]);
+      setCustomFanSpeedTagsList(
+        Object.entries(currentMapping?.customFanSpeedTags || {}).map(([option, tag]) => ({ option, tag }))
+      );
     }
   }, [open, entityId, currentMapping]);
 
@@ -130,6 +134,12 @@ export function EntityMappingDialog({
 
   const handleSave = useCallback(() => {
     if (!editEntityId.trim()) return;
+    const customFanSpeedTags = customFanSpeedTagsList.reduce((acc, curr) => {
+      if (curr.option.trim()) {
+        acc[curr.option.trim()] = curr.tag;
+      }
+      return acc;
+    }, {} as Record<string, string>);
     onSave({
       entityId: editEntityId.trim(),
       matterDeviceType: matterDeviceType || undefined,
@@ -148,6 +158,7 @@ export function EntityMappingDialog({
       energyEntity: energyEntity.trim() || undefined,
       suctionLevelEntity: suctionLevelEntity.trim() || undefined,
       mopIntensityEntity: mopIntensityEntity.trim() || undefined,
+      customFanSpeedTags: Object.keys(customFanSpeedTags).length > 0 ? customFanSpeedTags : undefined,
     });
   }, [
     editEntityId,
@@ -166,6 +177,7 @@ export function EntityMappingDialog({
     suctionLevelEntity,
     mopIntensityEntity,
     customServiceAreas,
+    customFanSpeedTagsList,
     onSave,
   ]);
 
@@ -304,6 +316,52 @@ export function EntityMappingDialog({
               helperText="Select entity that controls mop water level / intensity. Adds intensity options when mopping in Apple Home."
               domain="select"
             />
+            {customFanSpeedTagsList.map((mapping, index) => (
+              <Box sx={{ mt: 2, mb: 1 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Custom Tag Mapping
+                </Typography>
+                <TextField
+                  size="small"
+                  label="HA Option (e.g. Max+)"
+                  value={mapping.option}
+                  onChange={(e) => {
+                    const updated = [...customFanSpeedTagsList];
+                    updated[index] = { ...mapping, option: e.target.value };
+                    setCustomFanSpeedTagsList(updated);
+                  }}
+                />
+                <FormControl size="small">
+                  <InputLabel>Matter Tag</InputLabel>
+                  <Select
+                    value={mapping.tag}
+                    label="Matter Tag"
+                    onChange={(e) => {
+                      const updated = [...customFanSpeedTagsList];
+                      updated[index] = { ...mapping, tag: e.target.value };
+                      setCustomFanSpeedTagsList(updated);
+                    }}
+                  >
+                    <MenuItem value="quiet">Quiet</MenuItem>
+                    <MenuItem value="auto">Auto</MenuItem>
+                    <MenuItem value="max">Max</MenuItem>
+                    <MenuItem value="deep_clean">Deep Clean</MenuItem>
+                  </Select>
+                </FormControl>
+                <IconButton size="small" color="error" onClick={() => {
+                    setCustomFanSpeedTagsList(customFanSpeedTagsList.filter((_, i) => i !== index));
+                  }}>
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            ))}
+            <Button
+              size="small"
+              startIcon={<AddCircleOutlineIcon />}
+              onClick={() => setCustomFanSpeedTagsList([...customFanSpeedTagsList, { option: "", tag: "auto" }])}
+            >
+              Add Tag MApping
+            </Button>
           </>
         )}
 

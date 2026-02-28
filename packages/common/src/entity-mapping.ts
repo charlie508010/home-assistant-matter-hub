@@ -125,6 +125,12 @@ export interface EntityMappingConfig {
    * Example: [{ name: "Front Yard", service: "script.mow_front_yard", data: { zone: 1 } }]
    */
   readonly customServiceAreas?: CustomServiceArea[];
+  /**
+   * Optional: Map custom fan speed / suction level options to Matter intensity tags.
+   * Key is the Home Assistant option string ("low", "medium" etc.).
+   * Value is the string representation of the Matter ModeTag ("quiet", "auto", "max").
+   */
+  readonly customFanSpeedTags?: Record<string, string>;
 }
 
 export interface CustomServiceArea {
@@ -156,6 +162,7 @@ export interface EntityMappingRequest {
   readonly suctionLevelEntity?: string;
   readonly mopIntensityEntity?: string;
   readonly customServiceAreas?: CustomServiceArea[];
+  readonly customFanSpeedTags?: Record<string, string>;
 }
 
 export interface EntityMappingResponse {
