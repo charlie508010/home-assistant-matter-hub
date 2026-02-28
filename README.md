@@ -37,7 +37,7 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v2.0.26 | Production-ready, recommended for most users |
+| **Stable** | `main` | v2.0.27 | Production-ready, recommended for most users |
 | **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
@@ -52,44 +52,51 @@ of port forwarding etc.
 ## 🎉 What's New
 
 <details>
-<summary><strong>📦 Stable Features (v2.0.26)</strong> - Click to expand</summary>
+<summary><strong>📦 Stable Features (v2.0.27)</strong> - Click to expand</summary>
 
-**New in v2.0.26:**
+**New in v2.0.27:**
+
+| Feature | Description |
+|---------|-------------|
+| **🤖 Native Valetudo Support** | Auto-detect Valetudo select entities, map segments, use `segment_cleanup` via MQTT for room cleaning ([#205](https://github.com/RiDDiX/home-assistant-matter-hub/issues/205)) |
+| **🤖 Custom Service Areas** | Define custom room/zone names for generic zone-based robots without native room support ([#177](https://github.com/RiDDiX/home-assistant-matter-hub/issues/177)) |
+| **🤖 ServiceArea Maps** | Multi-floor vacuum support — rooms grouped by floor map in Apple Home |
+| **🤖 Vacuum Identify → Locate** | "Play Sound" in Apple Home triggers `vacuum.locate` to find your robot ([#189](https://github.com/RiDDiX/home-assistant-matter-hub/issues/189)) |
+| **🤖 Vacuum Charging State** | Reports `IsCharging` when docked — Apple Home shows correct charging indicator ([#206](https://github.com/RiDDiX/home-assistant-matter-hub/issues/206)) |
+| **🤖 Vacuum Minimal Clusters** | `vacuumMinimalClusters` feature flag strips non-essential clusters for Alexa compatibility ([#183](https://github.com/RiDDiX/home-assistant-matter-hub/issues/183)) |
+| **🌡️ Composed Air Purifier** | Air purifiers with thermostat/humidity sensors create real Matter Composed Devices (spec 9.4.4) |
+| **🚨 Alarm Control Panel** | `alarm_control_panel` entities exposed as Matter ModeSelect — arm/disarm modes available in controllers ([#209](https://github.com/RiDDiX/home-assistant-matter-hub/issues/209)) |
+| **🖥️ Dashboard Controls** | Bridge Start/Stop/Restart All buttons in header, Settings nav entry |
+| **🖥️ Process Memory Display** | RSS + heap usage shown in System Information page |
+| **🖥️ Compact Include/Exclude Editor** | Collapsible entity filter editor with search |
+| **🖥️ Improved Bridge Config UI** | Better layout and usability for bridge settings editor |
+| **🏢 Vendor Brand Icons** | 20+ new manufacturer icons (Razer, Roborock, iRobot, Signify, and more) |
+| **🐳 linux/arm/v7 Docker** | Added ARM v7 platform for standalone Docker image |
+| **📦 npm Package** | Published as `@riddix/hamh` on npm for standalone installations |
+| **🌡️ Thermostat #207 Fix** | heat_cool-only HVAC zones now dynamically report CoolingOnly/HeatingOnly based on hvac_action |
+| **🌡️ Thermostat #28 Fix** | Devices with auto+cool but no explicit heat (e.g. SmartIR ACs) no longer crash with conformance error |
+| **🤖 Vacuum Alexa Fixes** | Multiple fixes for OnOff, PowerSource, mode IDs, room sorting ([#183](https://github.com/RiDDiX/home-assistant-matter-hub/issues/183), [#185](https://github.com/RiDDiX/home-assistant-matter-hub/issues/185)) |
+| **🔧 Air Purifier Fix** | Added Rocking (oscillation) and Wind feature support, removed incorrect Lighting feature |
+| **🔧 Composed Sensor Fix** | Temperature not updating in composed sensors, missing device types in flat endpoints ([#214](https://github.com/RiDDiX/home-assistant-matter-hub/issues/214)) |
+| **⚡ Performance** | Fingerprint-based registry change detection, reduced refresh overhead |
+
+**Previously in v2.0.26:**
 
 | Feature | Description |
 |---------|-------------|
 | **🔐 Authentication UI** | Configure authentication credentials directly from the web UI Settings page ([#197](https://github.com/RiDDiX/home-assistant-matter-hub/issues/197)) |
-| **� Select Entity Support** | `select` and `input_select` entities now mapped to Matter ModeSelectDevice — each option becomes a selectable mode in your controller |
-| **🔗 Webhook Event Bridge** | HAMH fires `hamh_action` events on the HA event bus when controllers interact with exposed devices — enables HA automations from controller commands |
-| **🔍 Cluster Diagnostics** | Expandable per-cluster state inspection on device cards — see all cluster attribute values without parsing logs |
-| **⚠️ Compatibility Warnings** | Bridge editor shows dynamic warnings for conflicting feature flags (e.g., Server Mode + Vacuum OnOff) |
-| **🤖 Vacuum Cleaning Mode Fallback** | "Vacuum Then Mop" (mode 7) now falls back to "Vacuum & Mop" when the cleaning mode entity doesn't have a dedicated option ([#189](https://github.com/RiDDiX/home-assistant-matter-hub/issues/189)) |
-| **🤖 Vacuum Entity Filter Fix** | Changing the entity filter on an existing server-mode bridge now correctly updates the endpoint ([#202](https://github.com/RiDDiX/home-assistant-matter-hub/issues/202)) |
-| **🤖 Vacuum PowerSource Fix** | Restored PowerSource device type on vacuum endpoints for Alexa compatibility ([#183](https://github.com/RiDDiX/home-assistant-matter-hub/issues/183)) |
-| **🤖 RVC Spec Compliance** | Mode validation in `changeToMode` overrides prevents silent failures with Alexa |
-| **� Matter.js 0.16.10** | Updated from 0.16.8 to 0.16.10 for stability and spec compliance improvements |
-| **� Docker Node 22** | Pinned Docker runtime to Node 22 to fix `ERR_INVALID_PACKAGE_CONFIG` on some platforms ([#200](https://github.com/RiDDiX/home-assistant-matter-hub/issues/200)) |
-| **� Cover Inversion Fix** | `coverSwapOpenClose` now also inverts position reporting |
-| **� Media Player Keypad** | Implemented KeypadInputServer for BasicVideoPlayer media endpoints |
-| **🤖 Vacuum OnOff Fix** | `turnOff` now sends `return_to_base` instead of `stop` |
-| **🏥 Session Logging** | Non-destructive session lifecycle logging for diagnostic visibility ([#105](https://github.com/RiDDiX/home-assistant-matter-hub/issues/105)) |
-
-**Previously in v2.0.25:**
-
-| Feature | Description |
-|---------|-------------|
-| **🤖 Vacuum Mop Intensity** | `mopIntensityEntity` mapping adds mop intensity modes to Apple Home's extra features panel |
-| **🤖 Vacuum Auto-Detection** | Cleaning mode, suction level, and mop intensity entities auto-detected for Dreame, Roborock, Ecovacs |
-| **🤖 Roborock Room Auto-Detect** | Rooms resolved via `roborock.get_maps` — no manual button mapping needed |
-| **� Live Entity Mapping** | Device type changes take effect automatically without bridge restart ([#192](https://github.com/RiDDiX/home-assistant-matter-hub/issues/192)) |
-| **💾 Dynamic Heap Sizing** | Node.js heap calculated from system RAM (25%, 256–1024 MB) ([#190](https://github.com/RiDDiX/home-assistant-matter-hub/issues/190)) |
+| **🔌 Select Entity Support** | `select` and `input_select` entities now mapped to Matter ModeSelectDevice |
+| **🔗 Webhook Event Bridge** | HAMH fires `hamh_action` events on the HA event bus for controller command automations |
+| **🔍 Cluster Diagnostics** | Expandable per-cluster state inspection on device cards |
+| **⚙ Matter.js 0.16.10** | Updated from 0.16.8 to 0.16.10 for stability and spec compliance |
+| **� Docker Node 22** | Pinned Docker runtime to Node 22 ([#200](https://github.com/RiDDiX/home-assistant-matter-hub/issues/200)) |
 
 </details>
 
 <details>
 <summary><strong>🧪 Alpha Features (v2.1.0-alpha.x)</strong> - Click to expand</summary>
 
-**Alpha is currently in sync with Stable (v2.0.26).** All alpha features have been promoted to stable. New alpha features will appear here as development continues.
+**Alpha is currently in sync with Stable (v2.0.27).** All alpha features have been promoted to stable. New alpha features will appear here as development continues.
 
 </details>
 
@@ -114,6 +121,9 @@ of port forwarding etc.
 
 <details>
 <summary><strong>📜 Previous Stable Versions</strong> - Click to expand</summary>
+
+### v2.0.26
+Authentication UI, Select entity support, Webhook event bridge, Cluster diagnostics, Matter.js 0.16.10, Docker Node 22, vacuum cleaning mode fallback, vacuum entity filter fix
 
 ### v2.0.25
 Vacuum mop intensity, vacuum auto-detection, Roborock room auto-detect, live entity mapping, dynamic heap sizing, multi-fabric commissioning, fan speed label fix
@@ -158,7 +168,8 @@ Matter Bridge, Multi-Fabric support, Health Monitoring, Bridge Wizard, AirQualit
 | `lock` | Door Lock | PIN Credentials, Unlatch/Unbolt |
 | `cover` | Window Covering | `coverSwapOpenClose` |
 | `climate` | Thermostat | Battery via `batteryEntity` |
-| `fan` | Fan, Air Purifier | Oscillation, Wind Modes |
+| `fan` | Fan, Air Purifier | Oscillation, Wind Modes, `filterLifeEntity` |
+| `alarm_control_panel` | Mode Select | Arm/Disarm modes |
 | `binary_sensor` | Contact, OnOff, Occupancy, Smoke/CO, Water Leak, Water Freeze | |
 | `sensor` | Temperature, Humidity, Pressure, Flow, Light, AirQuality | `batteryEntity`, `humidityEntity`, `pressureEntity` |
 | `event` | Generic Switch (Doorbell, Button Events) | |
@@ -166,7 +177,7 @@ Matter Bridge, Multi-Fabric support, Health Monitoring, Bridge Wizard, AirQualit
 | `media_player` | Speaker, Basic Video Player (TV) | |
 | `valve` | Water Valve, Pump | |
 | `select`, `input_select` | Mode Select | |
-| `vacuum` | Robot Vacuum Cleaner | `serverMode`, `roomEntities`, `batteryEntity`, `cleaningModeEntity`, `suctionLevelEntity`, `mopIntensityEntity` |
+| `vacuum` | Robot Vacuum Cleaner | `serverMode`, `roomEntities`, `batteryEntity`, `cleaningModeEntity`, `suctionLevelEntity`, `mopIntensityEntity`, `customServiceAreas`, `vacuumMinimalClusters` |
 | `humidifier` | Humidifier/Dehumidifier | |
 | `water_heater` | Thermostat (Heating) | |
 | `automation`, `script`, `scene` | On/Off Switch | |

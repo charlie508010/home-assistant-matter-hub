@@ -180,9 +180,32 @@ Also ensure you've set the **Mop Intensity Entity** in the Entity Mapping for yo
 
 Since v2.0.26, `select` and `input_select` entities are automatically mapped to Matter **ModeSelectDevice**. Each option becomes a selectable mode in your controller. Use cases include washing machine programs, HVAC modes, irrigation zones, or scene selectors.
 
+## How do I expose my alarm control panel to Matter?
+
+Since v2.0.27, `alarm_control_panel` entities are automatically exposed as Matter **ModeSelectDevice**. Each alarm state (Disarmed, Armed Home, Armed Away, etc.) becomes a selectable mode. An OnOff fallback is also included for Apple Home compatibility — turning "on" arms the alarm, turning "off" disarms it. See [#209](https://github.com/RiDDiX/home-assistant-matter-hub/issues/209).
+
+## My Valetudo vacuum rooms aren't working
+
+Since v2.0.27, HAMH has native Valetudo support. Room cleaning uses `mqtt.publish` with `segment_cleanup` instead of `vacuum.send_command`. Requirements:
+
+1. Valetudo firmware with MQTT autodiscovery enabled
+2. Home Assistant MQTT integration configured
+3. Vacuum entity exposes `segments` attribute with room data
+4. Server Mode bridge for Apple Home / Alexa
+
+If rooms still don't appear, check the HAMH logs for segment detection messages. See [#205](https://github.com/RiDDiX/home-assistant-matter-hub/issues/205).
+
+## My thermostat crashes with "CoolingAndHeating" conformance error
+
+Fixed in v2.0.27. Devices with `auto` + `cool` but no explicit `heat` mode (e.g. SmartIR ACs) were reporting `CoolingAndHeating` as the control sequence, which Matter.js rejected for non-AutoMode devices. HAMH now dynamically sets `CoolingOnly` or `HeatingOnly` based on the device's actual capabilities. See [#28](https://github.com/RiDDiX/home-assistant-matter-hub/issues/28).
+
+## My zoned AC (heat_cool only) doesn't show the correct mode in Apple Home
+
+Fixed in v2.0.27. Devices with only `heat_cool` mode (no explicit `heat` or `cool`) now dynamically report `CoolingOnly` or `HeatingOnly` based on `hvac_action`, and the `systemMode` switches between Heat and Cool accordingly. See [#207](https://github.com/RiDDiX/home-assistant-matter-hub/issues/207).
+
 ## What's the difference between Stable and Alpha?
 
-- **Stable** (v2.0.26): Production-ready, recommended for daily use
+- **Stable** (v2.0.27): Production-ready, recommended for daily use
 - **Alpha**: New features for testing, may contain bugs
 
 See the [Alpha Features Guide](./Guides/Alpha%20Features.md) for details on alpha features.
@@ -200,7 +223,7 @@ When reporting Alpha issues, include:
 Since v2.0.24, thermostats support **auto-resume** — when off and you set a temperature (even the same one), it automatically turns on. This works with all voice assistants.
 
 If not working:
-- Update to v2.0.26+
+- Update to v2.0.27+
 - Only works for single-temp mode (not range/auto)
 - Thermostat must be in "Off" state
 

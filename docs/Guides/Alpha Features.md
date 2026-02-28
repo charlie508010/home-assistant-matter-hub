@@ -3,7 +3,7 @@
 This guide covers features available in the Alpha version of Home-Assistant-Matter-Hub.
 
 > [!NOTE]
-> Alpha is currently in sync with Stable (v2.0.26). All alpha features have been promoted to stable. New alpha features will appear here as development continues.
+> Alpha is currently in sync with Stable (v2.0.27). All alpha features have been promoted to stable. New alpha features will appear here as development continues.
 
 > [!WARNING]
 > Alpha versions are for testing only and may contain bugs. Use at your own risk!
@@ -34,15 +34,38 @@ docker run -d \
 
 ## Current Alpha Features
 
-Alpha is currently in sync with Stable (v2.0.26). No new alpha-only features at this time.
+Alpha is currently in sync with Stable (v2.0.27). No new alpha-only features at this time.
 
 ---
 
-## Features Now in Stable (v2.0.26)
+## Features Now in Stable (v2.0.27)
 
 The following features have graduated from Alpha to Stable:
 
-**New in v2.0.26:**
+**New in v2.0.27:**
+- **Native Valetudo Support** - Auto-detect Valetudo select entities, map segments, `segment_cleanup` via MQTT (#205)
+- **Custom Service Areas** - Define custom room/zone names for generic zone-based robots (#177)
+- **ServiceArea Maps** - Multi-floor vacuum support with rooms grouped by floor map
+- **Vacuum Identify → Locate** - "Play Sound" in Apple Home triggers `vacuum.locate` (#189)
+- **Vacuum Charging State** - Reports `IsCharging` when docked, `IsAtFullCharge` at 100% (#206)
+- **Vacuum Minimal Clusters** - `vacuumMinimalClusters` feature flag for Alexa compatibility (#183)
+- **Composed Air Purifier** - Air purifiers with thermostat/humidity sensors create real Matter Composed Devices (spec 9.4.4)
+- **Alarm Control Panel** - `alarm_control_panel` entities exposed as Matter ModeSelect with OnOff fallback (#209)
+- **Dashboard Controls** - Bridge Start/Stop/Restart All buttons in header, Settings nav entry
+- **Process Memory Display** - RSS + heap usage shown in System Information page
+- **Compact Include/Exclude Editor** - Collapsible entity filter editor with search
+- **Improved Bridge Config UI** - Better layout and usability for bridge settings editor
+- **Vendor Brand Icons** - 20+ new manufacturer icons (Razer, Roborock, iRobot, Signify, etc.)
+- **linux/arm/v7 Docker** - Added ARM v7 platform for standalone Docker image
+- **npm Package** - Published as `@riddix/hamh` on npm
+- **Thermostat #207 Fix** - heat_cool-only zones dynamic controlSequenceOfOperation
+- **Thermostat #28 Fix** - SmartIR ACs (auto+cool, no heat) no longer crash with conformance error
+- **Vacuum Alexa Fixes** - Multiple fixes for OnOff, PowerSource, mode IDs, room sorting (#183, #185)
+- **Air Purifier Fix** - Added Rocking (oscillation) and Wind feature support, removed Lighting feature
+- **Composed Sensor Fix** - Temperature not updating, missing device types in flat endpoints (#214)
+- **Performance** - Fingerprint-based registry change detection, reduced refresh overhead
+
+**Previously in v2.0.26:**
 - **Authentication UI** - Configure credentials from the web UI Settings page (#197)
 - **Select Entity Support** - `select` and `input_select` entities mapped to Matter ModeSelectDevice
 - **Webhook Event Bridge** - `hamh_action` events on the HA event bus for controller command automations
