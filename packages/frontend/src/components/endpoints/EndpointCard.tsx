@@ -2,7 +2,9 @@ import type { EndpointData } from "@home-assistant-matter-hub/common";
 import BatteryAlertIcon from "@mui/icons-material/BatteryAlert";
 import BatteryChargingFullIcon from "@mui/icons-material/BatteryChargingFull";
 import BatteryFullIcon from "@mui/icons-material/BatteryFull";
+import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -18,7 +20,13 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import type { DeviceImageInfo } from "../../api/device-images";
+import {
+  deleteDeviceImage,
+  getDeviceImageUrl,
+  uploadDeviceImage,
+} from "../../api/device-images";
 import { getEndpointName } from "./EndpointName";
 
 interface BasicInfo {
@@ -156,6 +164,8 @@ export interface EndpointCardProps {
   bridgeId?: string;
   onClick?: () => void;
   onEditMapping?: (entityId: string, bridgeId: string) => void;
+  imageInfo?: DeviceImageInfo;
+  onImageChanged?: () => void;
 }
 
 export const EndpointCard = ({
@@ -164,6 +174,8 @@ export const EndpointCard = ({
   bridgeId,
   onClick,
   onEditMapping,
+  imageInfo,
+  onImageChanged,
 }: EndpointCardProps) => {
   const name = getEndpointName(endpoint.state) ?? endpoint.id.local;
   const deviceType = endpoint.type.name;
@@ -224,6 +236,59 @@ export const EndpointCard = ({
     powerSource?.batChargeState === 1 || powerSource?.batChargeState === 2;
 
   const [expanded, setExpanded] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const [imgVersion, setImgVersion] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const hasImage = imageInfo && imageInfo.source !== "none" && !imgError;
+  const imageUrl = useMemo(() => {
+    if (!imageInfo || imageInfo.source === "none") return undefined;
+    if (imageInfo.source === "custom" && entityId) {
+      return `${getDeviceImageUrl(entityId)}?v=${imgVersion}`;
+    }
+    if (imageInfo.source === "z2m" && imageInfo.z2mUrl) {
+      return imageInfo.z2mUrl;
+    }
+    return undefined;
+  }, [imageInfo, entityId, imgVersion]);
+
+  const handleUploadClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !entityId) return;
+      try {
+        await uploadDeviceImage(entityId, file);
+        setImgError(false);
+        setImgVersion((v) => v + 1);
+        onImageChanged?.();
+      } catch (err) {
+        console.error("Failed to upload device image:", err);
+      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    },
+    [entityId, onImageChanged],
+  );
+
+  const handleDeleteImage = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!entityId) return;
+      try {
+        await deleteDeviceImage(entityId);
+        setImgError(false);
+        setImgVersion((v) => v + 1);
+        onImageChanged?.();
+      } catch (err) {
+        console.error("Failed to delete device image:", err);
+      }
+    },
+    [entityId, onImageChanged],
+  );
 
   const clusters = useMemo(() => {
     return Object.keys(endpoint.state).filter(
@@ -407,15 +472,62 @@ export const EndpointCard = ({
               height: 56,
               borderRadius: 2,
               backgroundColor: `${getDeviceColor(deviceType)}20`,
+              overflow: "hidden",
+              flexShrink: 0,
             }}
           >
-            {getDeviceIcon(deviceType)}
+            {hasImage && imageUrl ? (
+              <Box
+                component="img"
+                src={imageUrl}
+                alt={name}
+                onError={() => setImgError(true)}
+                sx={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+            ) : (
+              getDeviceIcon(deviceType)
+            )}
           </Box>
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
                 {name}
               </Typography>
+              {entityId && (
+                <>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+                    style={{ display: "none" }}
+                  />
+                  <Tooltip title="Upload device image">
+                    <IconButton
+                      size="small"
+                      onClick={handleUploadClick}
+                      sx={{ ml: 0.5 }}
+                    >
+                      <CameraAltIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  {imageInfo?.source === "custom" && (
+                    <Tooltip title="Remove custom image">
+                      <IconButton
+                        size="small"
+                        onClick={handleDeleteImage}
+                        sx={{ ml: -0.5 }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </>
+              )}
               {onEditMapping && entityId && bridgeId && (
                 <Tooltip title="Edit Entity Mapping">
                   <IconButton

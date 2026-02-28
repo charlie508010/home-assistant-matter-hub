@@ -25,8 +25,10 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
+import type { DeviceImageInfo } from "../../api/device-images";
+import { resolveDeviceImages } from "../../api/device-images";
 import {
   fetchEntityMappings,
   updateEntityMapping,
@@ -73,6 +75,39 @@ export const EndpointList = (props: EndpointListProps) => {
     message: string;
     severity: "success" | "error";
   }>({ open: false, message: "", severity: "success" });
+
+  // Device image state
+  const [imageInfoMap, setImageInfoMap] = useState<
+    Record<string, DeviceImageInfo>
+  >({});
+
+  const allEntityIds = useMemo(() => {
+    const leaves = collectLeafEndpoints(props.endpoint);
+    const ids: string[] = [];
+    for (const ep of leaves) {
+      const state = ep.state as {
+        homeAssistantEntity?: { entity?: { entity_id?: string } };
+      };
+      const eid = state.homeAssistantEntity?.entity?.entity_id;
+      if (eid) ids.push(eid);
+    }
+    return ids;
+  }, [props.endpoint]);
+
+  const refreshImages = useCallback(() => {
+    if (allEntityIds.length === 0) return;
+    resolveDeviceImages(allEntityIds)
+      .then(setImageInfoMap)
+      .catch(() => {});
+  }, [allEntityIds]);
+
+  useEffect(() => {
+    refreshImages();
+  }, [refreshImages]);
+
+  const handleImageChanged = useCallback(() => {
+    refreshImages();
+  }, [refreshImages]);
 
   const handleEditMapping = useCallback(
     async (entityId: string, bridgeId: string) => {
@@ -276,6 +311,18 @@ export const EndpointList = (props: EndpointListProps) => {
                 bridgeId={props.bridgeId}
                 onClick={() => handleCardClick(ep)}
                 onEditMapping={props.bridgeId ? handleEditMapping : undefined}
+                imageInfo={
+                  imageInfoMap[
+                    (
+                      ep.state as {
+                        homeAssistantEntity?: {
+                          entity?: { entity_id?: string };
+                        };
+                      }
+                    ).homeAssistantEntity?.entity?.entity_id ?? ""
+                  ]
+                }
+                onImageChanged={handleImageChanged}
               />
             </Grid>
           ))}
