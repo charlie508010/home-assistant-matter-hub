@@ -83,6 +83,11 @@ const testEntities: Record<
   ],
   [HomeAssistantDomain.fan]: [
     createEntity<FanDeviceAttributes>("fan.f1", "on"),
+    createEntity<FanDeviceAttributes>("fan.f2", "on", {
+      supported_features: 1, // SET_SPEED
+      percentage: 50,
+      percentage_step: 33.33,
+    }),
   ],
   [HomeAssistantDomain.light]: [
     createEntity<LightDeviceAttributes>("light.l1", "on"),
