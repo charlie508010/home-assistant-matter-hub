@@ -121,7 +121,7 @@ export function VacuumDevice(
         fanSpeedList,
         mopIntensityList,
         cleaningModeOptions,
-        homeAssistantEntity.mapping?.customFanSpeedTags
+        homeAssistantEntity.mapping?.customFanSpeedTags,
       ),
     );
   } else {

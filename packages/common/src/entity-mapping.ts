@@ -164,6 +164,7 @@ export interface EntityMappingRequest {
   readonly customServiceAreas?: CustomServiceArea[];
   readonly customFanSpeedTags?: Record<string, number>;
 }
+
 export interface EntityMappingResponse {
   readonly bridgeId: string;
   readonly mappings: EntityMappingConfig[];
@@ -207,6 +208,28 @@ export const matterDeviceTypeLabels: Record<MatterDeviceType, string> = {
   water_valve: "Water Valve",
   window_covering: "Window Covering",
 };
+
+/**
+ * RVC Clean Mode ModeTag values from the Matter spec (v1.4.2 § 7.3.7.2).
+ * Mirrors @matter/types RvcCleanMode.ModeTag so the frontend doesn't need
+ * the full Matter.js dependency.
+ */
+export const RvcCleanModeModeTag = {
+  Auto: 0,
+  Quick: 1,
+  Quiet: 2,
+  LowNoise: 3,
+  LowEnergy: 4,
+  Vacation: 5,
+  Min: 6,
+  Max: 7,
+  Night: 8,
+  Day: 9,
+  DeepClean: 16384,
+  Vacuum: 16385,
+  Mop: 16386,
+  VacuumThenMop: 16387,
+} as const;
 
 export const domainToDefaultMatterTypes: Partial<
   Record<HomeAssistantDomain, MatterDeviceType[]>

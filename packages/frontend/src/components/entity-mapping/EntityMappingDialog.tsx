@@ -1,11 +1,11 @@
 import {
-  CustomServiceArea,
+  type CustomServiceArea,
   domainToDefaultMatterTypes,
-  EntityMappingConfig,
-  MatterDeviceType,
+  type EntityMappingConfig,
+  type MatterDeviceType,
   matterDeviceTypeLabels,
+  RvcCleanModeModeTag,
 } from "@home-assistant-matter-hub/common";
-import { RvcCleanMode } from "@matter/main/clusters";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Autocomplete from "@mui/material/Autocomplete";
@@ -81,13 +81,13 @@ export function EntityMappingDialog({
   >([]);
 
   const availableModeTags = useMemo(() => {
-    return Object.entries(RvcCleanMode.ModeTag)
+    return Object.entries(RvcCleanModeModeTag)
       .filter(
         ([_, value]) =>
           typeof value === "number" &&
-          value !== RvcCleanMode.ModeTag.Vacuum &&
-          value !== RvcCleanMode.ModeTag.Mop &&
-          value !== RvcCleanMode.ModeTag.VacuumThenMop,
+          value !== RvcCleanModeModeTag.Vacuum &&
+          value !== RvcCleanModeModeTag.Mop &&
+          value !== RvcCleanModeModeTag.VacuumThenMop,
       )
       .map(([key, value]) => ({ label: key, value: value as number }));
   }, []);
@@ -406,7 +406,7 @@ export function EntityMappingDialog({
                 onClick={() =>
                   setCustomFanSpeedTagsList([
                     ...customFanSpeedTagsList,
-                    { option: "", tag: RvcCleanMode.ModeTag.Auto },
+                    { option: "", tag: RvcCleanModeModeTag.Auto },
                   ])
                 }
               >

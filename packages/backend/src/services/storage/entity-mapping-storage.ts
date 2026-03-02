@@ -123,10 +123,11 @@ export class EntityMappingStorage extends Service {
         request.customServiceAreas?.filter(
           (a) => a.name?.trim() && a.service?.trim(),
         ) ?? undefined,
-        customFanSpeedTags: 
-          request.customFanSpeedTags && Object.keys(request.customFanSpeedTags).length > 0 
-            ? request.customFanSpeedTags 
-            : undefined,
+      customFanSpeedTags:
+        request.customFanSpeedTags &&
+        Object.keys(request.customFanSpeedTags).length > 0
+          ? request.customFanSpeedTags
+          : undefined,
     };
 
     if (
@@ -145,7 +146,8 @@ export class EntityMappingStorage extends Service {
       !config.suctionLevelEntity &&
       !config.mopIntensityEntity &&
       (!config.customServiceAreas || config.customServiceAreas.length === 0) &&
-      (!config.customFanSpeedTags || Object.keys(config.customFanSpeedTags).length === 0)
+      (!config.customFanSpeedTags ||
+        Object.keys(config.customFanSpeedTags).length === 0)
     ) {
       bridgeMap.delete(request.entityId);
     } else {
