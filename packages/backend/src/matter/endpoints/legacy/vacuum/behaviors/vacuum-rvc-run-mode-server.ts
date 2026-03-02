@@ -239,10 +239,14 @@ const vacuumRvcRunModeConfig = {
         // Convert area IDs back to room IDs
         // Use originalId if available (Dreame multi-floor: id is deduplicated, originalId is per-floor)
         const roomIds: (string | number)[] = [];
+        let targetMapName: string | undefined;
         for (const areaId of selectedAreas) {
           const room = rooms.find((r) => toAreaId(r.id) === areaId);
           if (room) {
             roomIds.push(room.originalId ?? room.id);
+            if (room.mapName && !targetMapName) {
+              targetMapName = room.mapName;
+            }
           }
         }
 
@@ -278,6 +282,19 @@ const vacuumRvcRunModeConfig = {
 
           // Dreame vacuums use their own service
           if (isDreameVacuum(attributes)) {
+            // Switch to correct floor before cleaning (multi-floor Dreame)
+            if (targetMapName) {
+              const vacName = vacuumEntityId.replace("vacuum.", "");
+              const selectedMapEntity = `select.${vacName}_selected_map`;
+              logger.info(
+                `Dreame multi-floor: switching to map "${targetMapName}" via ${selectedMapEntity}`,
+              );
+              homeAssistant.callAction({
+                action: "select.select_option",
+                target: selectedMapEntity,
+                data: { option: targetMapName },
+              });
+            }
             return {
               action: "dreame_vacuum.vacuum_clean_segment",
               data: {
@@ -425,6 +442,19 @@ const vacuumRvcRunModeConfig = {
 
       // Dreame vacuums use their own service: dreame_vacuum.vacuum_clean_segment
       if (isDreameVacuum(attributes)) {
+        // Switch to correct floor before cleaning (multi-floor Dreame)
+        if (room.mapName) {
+          const vacuumName = vacuumEntityId.replace("vacuum.", "");
+          const selectedMapEntity = `select.${vacuumName}_selected_map`;
+          logger.info(
+            `Dreame multi-floor: switching to map "${room.mapName}" via ${selectedMapEntity}`,
+          );
+          homeAssistant.callAction({
+            action: "select.select_option",
+            target: selectedMapEntity,
+            data: { option: room.mapName },
+          });
+        }
         logger.debug(
           `Dreame vacuum detected, using dreame_vacuum.vacuum_clean_segment for room ${room.name} (commandId: ${commandId}, id: ${room.id})`,
         );
