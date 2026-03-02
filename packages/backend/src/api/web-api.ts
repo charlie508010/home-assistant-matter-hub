@@ -38,6 +38,7 @@ export interface WebApiProps {
   readonly webUiDist?: string;
   readonly version: string;
   readonly storageLocation: string;
+  readonly basePath: string;
   readonly auth?: {
     username: string;
     password: string;
@@ -162,10 +163,19 @@ export class WebApi extends Service {
       );
     }
 
-    this.app = express()
+    const appRouter = express.Router();
+    appRouter
       .use(...middlewares)
       .use("/api", api)
       .use(webUi(this.props.webUiDist));
+
+    this.app = express();
+    const basePath = this.props.basePath;
+    if (basePath !== "/") {
+      this.log.info(`Base path configured: ${basePath}`);
+      this.app.get("/", (_req, res) => res.redirect(basePath));
+    }
+    this.app.use(basePath, appRouter);
   }
 
   override async dispose() {
@@ -207,6 +217,6 @@ export class WebApi extends Service {
         resolve(server);
       });
     });
-    this.wsApi.attach(this.server);
+    this.wsApi.attach(this.server, this.props.basePath);
   }
 }

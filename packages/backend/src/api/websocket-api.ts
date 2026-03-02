@@ -23,8 +23,9 @@ export class WebSocketApi {
     this.diagnosticService = service;
   }
 
-  attach(server: http.Server) {
-    this.wss = new WebSocketServer({ server, path: "/api/ws" });
+  attach(server: http.Server, basePath = "/") {
+    const wsPath = `${basePath === "/" ? "" : basePath}/api/ws`;
+    this.wss = new WebSocketServer({ server, path: wsPath });
 
     this.wss.on("connection", (ws) => {
       this.clients.add(ws);
@@ -73,7 +74,7 @@ export class WebSocketApi {
       this.broadcast({ type: "ping" });
     }, 30000);
 
-    this.log.info("WebSocket server attached at /api/ws");
+    this.log.info(`WebSocket server attached at ${wsPath}`);
   }
 
   private handleMessage(ws: WebSocket, message: WebSocketMessage) {
