@@ -1,13 +1,11 @@
 import {
   CustomServiceArea,
+  domainToDefaultMatterTypes,
   EntityMappingConfig,
   MatterDeviceType,
-  RvcCleanModeTag,
-} from "@home-assistant-matter-hub/common";
-import {
-  domainToDefaultMatterTypes,
   matterDeviceTypeLabels,
 } from "@home-assistant-matter-hub/common";
+import { RvcCleanMode } from "@matter/main/clusters";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Autocomplete from "@mui/material/Autocomplete";
@@ -78,15 +76,18 @@ export function EntityMappingDialog({
   const [loadingButtons, setLoadingButtons] = useState(false);
 
   const isNewMapping = !entityId;
-  const [customFanSpeedTagsList, setCustomFanSpeedTagsList] = useState<{option: string, tag: number}[]>([]);
+  const [customFanSpeedTagsList, setCustomFanSpeedTagsList] = useState<
+    { option: string; tag: number }[]
+  >([]);
 
   const availableModeTags = useMemo(() => {
-    return Object.entries(RvcCleanModeTag)
-      .filter(([key, value]) => 
-        typeof value === "number" &&
-        value !== RvcCleanModeTag.Vacuum &&
-        value !== RvcCleanModeTag.Mop &&
-        value !== RvcCleanModeTag.VacuumThenMop
+    return Object.entries(RvcCleanMode.ModeTag)
+      .filter(
+        ([_, value]) =>
+          typeof value === "number" &&
+          value !== RvcCleanMode.ModeTag.Vacuum &&
+          value !== RvcCleanMode.ModeTag.Mop &&
+          value !== RvcCleanMode.ModeTag.VacuumThenMop,
       )
       .map(([key, value]) => ({ label: key, value: value as number }));
   }, []);
@@ -111,7 +112,9 @@ export function EntityMappingDialog({
       setCustomServiceAreas(currentMapping?.customServiceAreas || []);
       setAvailableButtons([]);
       setCustomFanSpeedTagsList(
-        Object.entries(currentMapping?.customFanSpeedTags || {}).map(([option, tag]) => ({ option, tag: tag as number }))
+        Object.entries(currentMapping?.customFanSpeedTags || {}).map(
+          ([option, tag]) => ({ option, tag: tag as number }),
+        ),
       );
     }
   }, [open, entityId, currentMapping]);
@@ -146,12 +149,15 @@ export function EntityMappingDialog({
 
   const handleSave = useCallback(() => {
     if (!editEntityId.trim()) return;
-    const customFanSpeedTags = customFanSpeedTagsList.reduce((acc, curr) => {
-      if (curr.option.trim()) {
-        acc[curr.option.trim()] = curr.tag;
-      }
-      return acc;
-    }, {} as Record<string, number>);
+    const customFanSpeedTags = customFanSpeedTagsList.reduce(
+      (acc, curr) => {
+        if (curr.option.trim()) {
+          acc[curr.option.trim()] = curr.tag;
+        }
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
     onSave({
       entityId: editEntityId.trim(),
       matterDeviceType: matterDeviceType || undefined,
@@ -170,7 +176,10 @@ export function EntityMappingDialog({
       energyEntity: energyEntity.trim() || undefined,
       suctionLevelEntity: suctionLevelEntity.trim() || undefined,
       mopIntensityEntity: mopIntensityEntity.trim() || undefined,
-      customFanSpeedTags: Object.keys(customFanSpeedTags).length > 0 ? customFanSpeedTags : undefined,
+      customFanSpeedTags:
+        Object.keys(customFanSpeedTags).length > 0
+          ? customFanSpeedTags
+          : undefined,
     });
   }, [
     editEntityId,
@@ -328,53 +337,82 @@ export function EntityMappingDialog({
               helperText="Select entity that controls mop water level / intensity. Adds intensity options when mopping in Apple Home."
               domain="select"
             />
-            {customFanSpeedTagsList.map((mapping, index) => (
-              <Box sx={{ mt: 2, mb: 1 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Custom Tag Mapping
-                </Typography>
-                <TextField
-                  size="small"
-                  label="HA Option (e.g. Max+)"
-                  value={mapping.option}
-                  onChange={(e) => {
-                    const updated = [...customFanSpeedTagsList];
-                    updated[index] = { ...mapping, option: e.target.value };
-                    setCustomFanSpeedTagsList(updated);
+            <Box sx={{ mt: 2, mb: 1 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Custom Tag Mapping
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mb: 1, display: "block" }}
+              >
+                Map home assistant speeds to matter tags. When configured these
+                will override default speeds.
+              </Typography>
+              {customFanSpeedTagsList.map((mapping, index) => (
+                <Box
+                  key={`${mapping.option}-${mapping.tag}`}
+                  sx={{
+                    display: "flex",
+                    gap: 1,
+                    mb: 1,
+                    alignItems: "flex-start",
                   }}
-                />
-                <FormControl size="small">
-                  <InputLabel>Matter Tag</InputLabel>
-                  <Select
-                    value={mapping.tag}
-                    label="Matter Tag"
+                >
+                  <TextField
+                    size="small"
+                    label="HA Option (e.g. Max+)"
+                    value={mapping.option}
                     onChange={(e) => {
                       const updated = [...customFanSpeedTagsList];
-                      updated[index] = { ...mapping, tag: e.target.value };
+                      updated[index] = { ...mapping, option: e.target.value };
                       setCustomFanSpeedTagsList(updated);
                     }}
+                  />
+                  <FormControl size="small" sx={{ flex: 1 }}>
+                    <InputLabel>Matter Tag</InputLabel>
+                    <Select
+                      value={mapping.tag}
+                      label="Matter Tag"
+                      onChange={(e) => {
+                        const updated = [...customFanSpeedTagsList];
+                        updated[index] = { ...mapping, tag: e.target.value };
+                        setCustomFanSpeedTagsList(updated);
+                      }}
+                    >
+                      {availableModeTags.map((tag) => (
+                        <MenuItem key={tag.value} value={tag.value}>
+                          {tag.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => {
+                      setCustomFanSpeedTagsList(
+                        customFanSpeedTagsList.filter((_, i) => i !== index),
+                      );
+                    }}
                   >
-                    {availableModeTags.map((tag) => (
-                      <MenuItem key={tag.value} value={tag.value}>
-                        {tag.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <IconButton size="small" color="error" onClick={() => {
-                    setCustomFanSpeedTagsList(customFanSpeedTagsList.filter((_, i) => i !== index));
-                  }}>
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            ))}
-            <Button
-              size="small"
-              startIcon={<AddCircleOutlineIcon />}
-              onClick={() => setCustomFanSpeedTagsList([...customFanSpeedTagsList, { option: "", tag: RvcCleanModeTag.Auto }])}
-            >
-              Add Tag MApping
-            </Button>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))}
+              <Button
+                size="small"
+                startIcon={<AddCircleOutlineIcon />}
+                onClick={() =>
+                  setCustomFanSpeedTagsList([
+                    ...customFanSpeedTagsList,
+                    { option: "", tag: RvcCleanMode.ModeTag.Auto },
+                  ])
+                }
+              >
+                Add Tag Mapping
+              </Button>
+            </Box>
           </>
         )}
 

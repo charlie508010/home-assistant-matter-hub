@@ -164,24 +164,6 @@ export interface EntityMappingRequest {
   readonly customServiceAreas?: CustomServiceArea[];
   readonly customFanSpeedTags?: Record<string, number>;
 }
-
-export enum RvcCleanModeTag {
-  Auto = 0,
-  Quick = 1,
-  Quiet = 2,
-  LowNoise = 3,
-  LowEnergy = 4,
-  Vacation = 5,
-  Min = 6,
-  Max = 7,
-  Night = 8,
-  Day = 9,
-  DeepClean = 16384,
-  Vacuum = 16385,
-  Mop = 16386,
-  VacuumThenMop = 16387,
-}
-
 export interface EntityMappingResponse {
   readonly bridgeId: string;
   readonly mappings: EntityMappingConfig[];
