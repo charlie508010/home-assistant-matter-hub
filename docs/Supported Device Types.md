@@ -21,6 +21,7 @@ This document provides comprehensive information about all device types supporte
 | `vacuum` | Robotic Vacuum | | | |
 | `water_heater` | Thermostat (Heating) | | | |
 | `select`, `input_select` | Mode Select | | | |
+| `alarm_control_panel` | Mode Select | | | |
 | `event` | Generic Switch | | | |
 | `humidifier` | On/Off Plug-in Unit | | | |
 
@@ -171,8 +172,11 @@ Mapped to **Thermostat** with heating, cooling, and auto modes.
 - **Cooling Only**: Cool-only ACs — exposes only `Cooling` feature
 - **Heating + Cooling**: Devices with `heat` and `cool` but no `heat_cool` — exposes `Heating` + `Cooling` without AutoMode. Apple Home won't show Auto button, preventing mode flipping.
 - **Full HVAC (AutoMode)**: Devices with `heat_cool` in hvac_modes — exposes `Heating` + `Cooling` + `AutoMode` with dual setpoints
+- **heat_cool-only zones** *(new in v2.0.27)*: Devices with `heat_cool` but no explicit `heat` or `cool` mode (e.g. zoned ACs) — exposes `Heating` + `Cooling` without AutoMode. The `controlSequenceOfOperation` dynamically switches between `CoolingOnly` and `HeatingOnly` based on `hvac_action`. ([#207](https://github.com/RiDDiX/home-assistant-matter-hub/issues/207))
 
 > **New in v2.0.20:** AutoMode is now only exposed when the device supports `heat_cool` (dual setpoint) in Home Assistant. Devices with only `auto` mode (single setpoint, device decides) no longer get AutoMode, which previously caused Apple Home to send conflicting commands and mode flipping.
+
+> **New in v2.0.27:** Devices with `auto` + `cool` but no explicit `heat` mode (e.g. SmartIR ACs) no longer crash with a Matter conformance error. The `controlSequenceOfOperation` is now dynamically set to `CoolingOnly` or `HeatingOnly` instead of `CoolingAndHeating` for devices without AutoMode capability. ([#28](https://github.com/RiDDiX/home-assistant-matter-hub/issues/28))
 
 This prevents Alexa from rejecting commands on single-capability thermostats ([#136](https://github.com/RiDDiX/home-assistant-matter-hub/issues/136)).
 
@@ -412,6 +416,7 @@ Mapped to **RoboticVacuumCleaner**.
 |------|-------------|
 | `serverMode` | Expose as standalone device (required for Apple Home/Alexa) |
 | `vacuumIncludeUnnamedRooms` | Include rooms without names in room selection |
+| `vacuumMinimalClusters` | Strip non-essential clusters for Alexa compatibility ([#183](https://github.com/RiDDiX/home-assistant-matter-hub/issues/183)) |
 
 **Important Limitations:**
 - **Server Mode recommended** - For full voice command support (Siri, Alexa)
@@ -420,6 +425,29 @@ Mapped to **RoboticVacuumCleaner**.
 - **Google Home** has limited RVC support — basic start/stop works, room selection and cleaning modes may vary
 
 See [Robot Vacuum Guide](./Devices/Robot%20Vacuum.md) for detailed setup instructions.
+
+---
+
+### Alarm Control Panel (`alarm_control_panel`)
+
+Mapped to **ModeSelectDevice** (0x0027). Each alarm state becomes a selectable mode.
+
+**Supported Modes:**
+- Disarmed
+- Armed Home
+- Armed Away
+- Armed Night
+- Armed Vacation
+- Armed Custom Bypass
+
+**Behavior:**
+- Changing mode from a controller calls the corresponding `alarm_control_panel.alarm_*` action in HA
+- Current mode reflects the entity's current alarm state
+- For Apple Home compatibility, an OnOff fallback is included: turning "on" arms the alarm, turning "off" disarms it
+
+**Controller Notes:**
+- Matter does not have a native alarm panel device type, so ModeSelect is used as the closest match
+- Voice commands like "Hey Siri, set alarm to Armed Away" may not work — use the controller app to switch modes
 
 ---
 

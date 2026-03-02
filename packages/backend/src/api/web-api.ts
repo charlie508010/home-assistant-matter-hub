@@ -17,6 +17,7 @@ import { accessLogger } from "./access-log.js";
 import { backupApi } from "./backup-api.js";
 import { bridgeExportApi } from "./bridge-export-api.js";
 import { bridgeIconApi } from "./bridge-icon-api.js";
+import { deviceImageApi } from "./device-image-api.js";
 import { diagnosticApi } from "./diagnostic-api.js";
 import { entityMappingApi } from "./entity-mapping-api.js";
 import { healthApi } from "./health-api.js";
@@ -97,6 +98,10 @@ export class WebApi extends Service {
       )
       .use("/bridges", bridgeExportApi(this.bridgeStorage))
       .use("/bridge-icons", bridgeIconApi(this.props.storageLocation))
+      .use(
+        "/device-images",
+        deviceImageApi(this.props.storageLocation, this.haRegistry),
+      )
       .use("/entity-mappings", entityMappingApi(this.mappingStorage))
       .use("/lock-credentials", lockCredentialApi(this.lockCredentialStorage))
       .use("/settings", settingsApi(this.settingsStorage, this.props.auth))

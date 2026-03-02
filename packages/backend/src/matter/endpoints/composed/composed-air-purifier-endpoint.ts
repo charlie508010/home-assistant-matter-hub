@@ -1,16 +1,11 @@
 import type {
-  ClimateDeviceAttributes,
   EntityMappingConfig,
   FanDeviceAttributes,
   HomeAssistantEntityInformation,
   HomeAssistantEntityState,
   SensorDeviceAttributes,
 } from "@home-assistant-matter-hub/common";
-import {
-  ClimateDeviceFeature,
-  ClimateHvacMode,
-  FanDeviceFeature,
-} from "@home-assistant-matter-hub/common";
+import { FanDeviceFeature } from "@home-assistant-matter-hub/common";
 import {
   DestroyedDependencyError,
   Logger,
@@ -19,12 +14,7 @@ import {
 import { Endpoint, type EndpointType } from "@matter/main";
 import { FixedLabelServer } from "@matter/main/behaviors";
 import type { FanControl } from "@matter/main/clusters";
-import {
-  AirPurifierDevice,
-  HumiditySensorDevice,
-  TemperatureSensorDevice,
-  ThermostatDevice,
-} from "@matter/main/devices";
+import { AirPurifierDevice } from "@matter/main/devices";
 import debounce from "debounce";
 import type { BridgeRegistry } from "../../../services/bridges/bridge-registry.js";
 import { EntityStateProvider } from "../../../services/bridges/entity-state-provider.js";
@@ -45,39 +35,49 @@ import {
   type TemperatureMeasurementConfig,
   TemperatureMeasurementServer,
 } from "../../behaviors/temperature-measurement-server.js";
-import { ThermostatUiConfigServer } from "../../behaviors/thermostat-ui-config-server.js";
 import { AirPurifierHepaFilterMonitoringServer } from "../legacy/air-purifier/behaviors/air-purifier-hepa-filter-monitoring-server.js";
-import { ClimateHumidityMeasurementServer } from "../legacy/climate/behaviors/climate-humidity-measurement-server.js";
-import { ClimateOnOffServer } from "../legacy/climate/behaviors/climate-on-off-server.js";
-import { ClimateThermostatServer } from "../legacy/climate/behaviors/climate-thermostat-server.js";
 import { FanFanControlServer } from "../legacy/fan/behaviors/fan-fan-control-server.js";
 import { FanOnOffServer } from "../legacy/fan/behaviors/fan-on-off-server.js";
 
 const logger = Logger.get("ComposedAirPurifierEndpoint");
 
-// --- Direct configs for sub-endpoints (read from own entity state) ---
+// --- Measurement configs (read sensor data from separate HA entities via EntityStateProvider) ---
 
-const temperatureConfig: TemperatureMeasurementConfig = {
-  getValue(entity, agent) {
-    const fallbackUnit =
-      agent.env.get(HomeAssistantConfig).unitSystem.temperature;
-    const state = entity.state;
-    const attributes = entity.attributes as SensorDeviceAttributes;
-    const temperature = state == null || Number.isNaN(+state) ? null : +state;
-    if (temperature == null) return undefined;
-    return Temperature.withUnit(
-      temperature,
-      attributes.unit_of_measurement ?? fallbackUnit,
-    );
-  },
-};
+function createTemperatureConfig(
+  temperatureEntityId: string,
+): TemperatureMeasurementConfig {
+  return {
+    getValue(_entity, agent) {
+      const stateProvider = agent.env.get(EntityStateProvider);
+      const tempState = stateProvider.getState(temperatureEntityId);
+      if (!tempState) return undefined;
+      const temperature = Number.parseFloat(tempState.state);
+      if (Number.isNaN(temperature)) return undefined;
+      const fallbackUnit =
+        agent.env.get(HomeAssistantConfig).unitSystem.temperature;
+      const attrs = tempState.attributes as SensorDeviceAttributes;
+      return Temperature.withUnit(
+        temperature,
+        attrs.unit_of_measurement ?? fallbackUnit,
+      );
+    },
+  };
+}
 
-const humidityConfig: HumidityMeasurementConfig = {
-  getValue({ state }: HomeAssistantEntityState) {
-    if (state == null || Number.isNaN(+state)) return null;
-    return +state;
-  },
-};
+function createHumidityConfig(
+  humidityEntityId: string,
+): HumidityMeasurementConfig {
+  return {
+    getValue(_entity, agent) {
+      const stateProvider = agent.env.get(EntityStateProvider);
+      const humState = stateProvider.getState(humidityEntityId);
+      if (!humState) return null;
+      const humidity = Number.parseFloat(humState.state);
+      if (Number.isNaN(humidity)) return null;
+      return humidity;
+    },
+  };
+}
 
 const batteryConfig = {
   getBatteryPercent: (
@@ -94,20 +94,6 @@ const batteryConfig = {
     return null;
   },
 };
-
-// --- Sub-endpoint types (without BasicInformationServer) ---
-
-const TemperatureSubType = TemperatureSensorDevice.with(
-  IdentifyServer,
-  HomeAssistantEntityBehavior,
-  TemperatureMeasurementServer(temperatureConfig),
-);
-
-const HumiditySubType = HumiditySensorDevice.with(
-  IdentifyServer,
-  HomeAssistantEntityBehavior,
-  HumidityMeasurementServer(humidityConfig),
-);
 
 // --- Helper ---
 
@@ -140,146 +126,6 @@ interface AirPurifierAttributes extends FanDeviceAttributes {
   filter_life_level?: number;
 }
 
-// --- Thermostat sub-endpoint type builder ---
-
-const coolingModes: ClimateHvacMode[] = [
-  ClimateHvacMode.heat_cool,
-  ClimateHvacMode.cool,
-];
-const heatingModes: ClimateHvacMode[] = [
-  ClimateHvacMode.heat_cool,
-  ClimateHvacMode.heat,
-];
-const autoOnlyMode: ClimateHvacMode[] = [ClimateHvacMode.auto];
-const ventilationOnlyModes: ClimateHvacMode[] = [
-  ClimateHvacMode.fan_only,
-  ClimateHvacMode.dry,
-];
-
-function toMatterTemp(
-  value: string | number | null | undefined,
-): number | undefined {
-  if (value == null) return undefined;
-  const num = typeof value === "string" ? parseFloat(value) : value;
-  if (Number.isNaN(num)) return undefined;
-  return Math.round(num * 100);
-}
-
-function buildThermostatSubType(
-  payload: HomeAssistantEntityInformation,
-): EndpointType | undefined {
-  const state = payload.state;
-  const attributes = state.attributes as ClimateDeviceAttributes & {
-    battery?: number;
-    battery_level?: number;
-  };
-  const supportedFeatures = attributes.supported_features ?? 0;
-
-  const heatCoolOnly =
-    attributes.hvac_modes.includes(ClimateHvacMode.heat_cool) &&
-    !attributes.hvac_modes.includes(ClimateHvacMode.heat) &&
-    !attributes.hvac_modes.includes(ClimateHvacMode.cool);
-
-  const supportsCooling = heatCoolOnly
-    ? false
-    : coolingModes.some((mode) => attributes.hvac_modes.includes(mode));
-  const hasExplicitHeating = heatingModes.some((mode) =>
-    attributes.hvac_modes.includes(mode),
-  );
-  const isAutoOnly =
-    !hasExplicitHeating &&
-    !supportsCooling &&
-    autoOnlyMode.some((mode) => attributes.hvac_modes.includes(mode));
-  const isVentilationOnly =
-    !hasExplicitHeating &&
-    !supportsCooling &&
-    !isAutoOnly &&
-    ventilationOnlyModes.some((mode) => attributes.hvac_modes.includes(mode));
-  const supportsHeating = hasExplicitHeating || isAutoOnly || isVentilationOnly;
-
-  if (!supportsCooling && !supportsHeating) {
-    return undefined;
-  }
-
-  const supportsHumidity =
-    attributes.current_humidity != null ||
-    testBit(supportedFeatures, ClimateDeviceFeature.TARGET_HUMIDITY);
-  const supportsOnOff =
-    testBit(supportedFeatures, ClimateDeviceFeature.TURN_ON) &&
-    testBit(supportedFeatures, ClimateDeviceFeature.TURN_OFF);
-
-  const autoMode =
-    supportsHeating &&
-    supportsCooling &&
-    attributes.hvac_modes.includes(ClimateHvacMode.heat_cool) &&
-    (attributes.hvac_modes.includes(ClimateHvacMode.heat) ||
-      attributes.hvac_modes.includes(ClimateHvacMode.cool));
-
-  const initialState = {
-    localTemperature: toMatterTemp(attributes.current_temperature),
-    occupiedHeatingSetpoint:
-      toMatterTemp(attributes.target_temp_low) ??
-      toMatterTemp(attributes.temperature) ??
-      2000,
-    occupiedCoolingSetpoint:
-      toMatterTemp(attributes.target_temp_high) ??
-      toMatterTemp(attributes.temperature) ??
-      2400,
-    minHeatSetpointLimit: toMatterTemp(attributes.min_temp) ?? 0,
-    maxHeatSetpointLimit: toMatterTemp(attributes.max_temp) ?? 5000,
-    minCoolSetpointLimit: toMatterTemp(attributes.min_temp) ?? 0,
-    maxCoolSetpointLimit: toMatterTemp(attributes.max_temp) ?? 5000,
-  };
-
-  const thermostatServer = ClimateThermostatServer(initialState, {
-    heating: supportsHeating,
-    cooling: supportsCooling,
-    autoMode,
-  });
-
-  let device = ThermostatDevice.with(
-    IdentifyServer,
-    HomeAssistantEntityBehavior,
-    thermostatServer,
-    ThermostatUiConfigServer,
-  );
-
-  if (supportsOnOff) {
-    device = device.with(ClimateOnOffServer);
-  }
-  if (supportsHumidity) {
-    device = device.with(ClimateHumidityMeasurementServer);
-  }
-
-  return device.set({
-    homeAssistantEntity: { entity: payload },
-    thermostat: {
-      ...(supportsHeating
-        ? {
-            absMinHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
-            absMaxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
-            minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
-            maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
-            occupiedHeatingSetpoint:
-              initialState.occupiedHeatingSetpoint ?? 2000,
-          }
-        : {}),
-      ...(supportsCooling
-        ? {
-            absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
-            absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
-            minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
-            maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
-            occupiedCoolingSetpoint:
-              initialState.occupiedCoolingSetpoint ?? 2400,
-          }
-        : {}),
-      localTemperature: initialState.localTemperature ?? null,
-      ...(autoMode ? { minSetpointDeadBand: 0 } : {}),
-    },
-  });
-}
-
 // --- Config interface ---
 
 export interface ComposedAirPurifierConfig {
@@ -287,7 +133,6 @@ export interface ComposedAirPurifierConfig {
   primaryEntityId: string;
   temperatureEntityId?: string;
   humidityEntityId?: string;
-  climateEntityId?: string;
   batteryEntityId?: string;
   mapping?: EntityMappingConfig;
   customName?: string;
@@ -297,27 +142,24 @@ export interface ComposedAirPurifierConfig {
 // --- Main class ---
 
 /**
- * A composed air purifier endpoint where the parent IS the AirPurifierDevice
- * (device type 0x002D) per Matter spec §9.4.4. Sensors and thermostat are
- * sub-endpoints. This ensures Apple Home shows a single Air Purifier tile
- * instead of separate tiles for each sub-device.
+ * An air purifier endpoint with optional temperature and humidity measurement
+ * clusters directly on the parent endpoint. Sub-endpoints are NOT used because
+ * Apple Home unpredictably picks sub-endpoint device types as the primary tile,
+ * causing the air purifier to show as a sensor instead.
+ *
+ * Sensor data is read from separate HA entities via EntityStateProvider,
+ * following the same pattern as battery and filter life.
  *
  * Structure:
- *   AirPurifierDevice (parent - fan control + basic info + optional battery)
- *     ├── TemperatureSensorDevice (sub-endpoint, if mapped)
- *     ├── HumiditySensorDevice (sub-endpoint, if mapped)
- *     └── ThermostatDevice (sub-endpoint, if mapped)
+ *   AirPurifierDevice (flat endpoint: fan control + optional temp/hum + optional battery)
  */
 export class ComposedAirPurifierEndpoint extends Endpoint {
   readonly entityId: string;
-  private subEndpoints = new Map<string, Endpoint>();
+  private trackedEntityIds: string[];
   private lastStates = new Map<string, string>();
-  private debouncedUpdates = new Map<
-    string,
-    ReturnType<
-      typeof debounce<(ep: Endpoint, s: HomeAssistantEntityState) => void>
-    >
-  >();
+  private debouncedFlush?: ReturnType<
+    typeof debounce<(s: HomeAssistantEntityState) => void>
+  >;
 
   static async create(
     config: ComposedAirPurifierConfig,
@@ -357,9 +199,7 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
       features.add("Wind");
     }
 
-    // Build parent type: AirPurifierDevice IS the parent (Matter spec §9.4.4).
-    // Sensors and thermostat are sub-endpoints, but the air purifier itself
-    // lives on the parent so Apple Home shows a single Air Purifier tile.
+    // Build parent type: AirPurifierDevice as a flat endpoint (no sub-endpoints).
     let parentType = AirPurifierDevice.with(
       BasicInformationServer,
       IdentifyServer,
@@ -376,6 +216,24 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
       !!config.mapping?.filterLifeEntity;
     if (hasFilterLife) {
       parentType = parentType.with(AirPurifierHepaFilterMonitoringServer);
+    }
+
+    // Add TemperatureMeasurement directly on parent (reads from separate entity)
+    if (config.temperatureEntityId) {
+      parentType = parentType.with(
+        TemperatureMeasurementServer(
+          createTemperatureConfig(config.temperatureEntityId),
+        ),
+      );
+    }
+
+    // Add RelativeHumidityMeasurement directly on parent (reads from separate entity)
+    if (config.humidityEntityId) {
+      parentType = parentType.with(
+        HumidityMeasurementServer(
+          createHumidityConfig(config.humidityEntityId),
+        ),
+      );
     }
 
     const mapping: EntityMappingConfig = {
@@ -404,66 +262,8 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
       );
     }
 
-    // Build sub-endpoints (sensors + thermostat only — air purifier is the parent)
     const endpointId = createEndpointId(primaryEntityId, config.customName);
-    const parts: Endpoint[] = [];
-    const subEndpointMap = new Map<string, Endpoint>();
 
-    // Temperature sub-endpoint (if mapped)
-    let tempSub: Endpoint | undefined;
-    if (config.temperatureEntityId) {
-      const tempPayload = buildEntityPayload(
-        registry,
-        config.temperatureEntityId,
-      );
-      if (tempPayload) {
-        tempSub = new Endpoint(
-          TemperatureSubType.set({
-            homeAssistantEntity: { entity: tempPayload },
-          }),
-          { id: `${endpointId}_temp` },
-        );
-        parts.push(tempSub);
-        subEndpointMap.set(config.temperatureEntityId, tempSub);
-      }
-    }
-
-    // Humidity sub-endpoint (if mapped)
-    let humSub: Endpoint | undefined;
-    if (config.humidityEntityId) {
-      const humPayload = buildEntityPayload(registry, config.humidityEntityId);
-      if (humPayload) {
-        humSub = new Endpoint(
-          HumiditySubType.set({
-            homeAssistantEntity: { entity: humPayload },
-          }),
-          { id: `${endpointId}_humidity` },
-        );
-        parts.push(humSub);
-        subEndpointMap.set(config.humidityEntityId, humSub);
-      }
-    }
-
-    // Thermostat sub-endpoint (if mapped)
-    let climateSub: Endpoint | undefined;
-    if (config.climateEntityId) {
-      const climatePayload = buildEntityPayload(
-        registry,
-        config.climateEntityId,
-      );
-      if (climatePayload) {
-        const thermostatType = buildThermostatSubType(climatePayload);
-        if (thermostatType) {
-          climateSub = new Endpoint(thermostatType, {
-            id: `${endpointId}_climate`,
-          });
-          parts.push(climateSub);
-          subEndpointMap.set(config.climateEntityId, climateSub);
-        }
-      }
-    }
-
-    // Create parent endpoint with sub-endpoints as parts
     const parentTypeWithState = parentType.set({
       homeAssistantEntity: {
         entity: primaryPayload,
@@ -472,31 +272,29 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
       },
     });
 
+    // Track all entity IDs for change detection
+    const trackedEntityIds = [primaryEntityId];
+    if (config.temperatureEntityId)
+      trackedEntityIds.push(config.temperatureEntityId);
+    if (config.humidityEntityId) trackedEntityIds.push(config.humidityEntityId);
+
     const endpoint = new ComposedAirPurifierEndpoint(
       parentTypeWithState,
       primaryEntityId,
       endpointId,
-      parts,
+      trackedEntityIds,
     );
 
-    // Register sub-endpoints for state updates
-    for (const [entityId, sub] of subEndpointMap) {
-      endpoint.subEndpoints.set(entityId, sub);
-    }
-
-    const subLabels = [
-      "AirPurifier(parent)",
-      tempSub ? "+Temp" : "",
-      humSub ? "+Hum" : "",
-      climateSub ? "+Therm" : "",
+    const clusterLabels = [
+      "AirPurifier",
+      config.temperatureEntityId ? "+Temp" : "",
+      config.humidityEntityId ? "+Hum" : "",
       config.batteryEntityId ? "+Bat" : "",
     ]
       .filter(Boolean)
       .join("");
 
-    logger.info(
-      `Created composed air purifier ${primaryEntityId} with ${parts.length} sub-endpoint(s): ${subLabels}`,
-    );
+    logger.info(`Created air purifier ${primaryEntityId}: ${clusterLabels}`);
 
     return endpoint;
   }
@@ -505,64 +303,55 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
     type: EndpointType,
     entityId: string,
     id: string,
-    parts: Endpoint[],
+    trackedEntityIds: string[],
   ) {
-    super(type, { id, parts });
+    super(type, { id });
     this.entityId = entityId;
+    this.trackedEntityIds = trackedEntityIds;
   }
 
   async updateStates(states: HomeAssistantStates): Promise<void> {
-    // Update parent (AirPurifier fan control + BasicInfo reachable state, battery, etc.)
-    this.scheduleUpdate(this, this.entityId, states);
-
-    // Update sub-endpoints with their own entity states
-    for (const [entityId, sub] of this.subEndpoints) {
-      this.scheduleUpdate(sub, entityId, states);
+    // Check if any tracked entity (fan, temp sensor, hum sensor) changed
+    let anyChanged = false;
+    for (const entityId of this.trackedEntityIds) {
+      const state = states[entityId];
+      if (!state) continue;
+      const stateJson = JSON.stringify({
+        s: state.state,
+        a: state.attributes,
+      });
+      if (this.lastStates.get(entityId) !== stateJson) {
+        this.lastStates.set(entityId, stateJson);
+        anyChanged = true;
+      }
     }
-  }
 
-  private scheduleUpdate(
-    endpoint: Endpoint,
-    entityId: string,
-    states: HomeAssistantStates,
-  ) {
-    const state = states[entityId];
-    if (!state) return;
+    if (!anyChanged) return;
 
-    const key = endpoint === this ? `_parent_:${entityId}` : entityId;
+    // Flush parent with fan state — measurement servers re-read from EntityStateProvider
+    const primaryState = states[this.entityId];
+    if (!primaryState) return;
 
-    const stateJson = JSON.stringify({
-      s: state.state,
-      a: state.attributes,
-    });
-    if (this.lastStates.get(key) === stateJson) return;
-    this.lastStates.set(key, stateJson);
-
-    let debouncedFn = this.debouncedUpdates.get(key);
-    if (!debouncedFn) {
-      debouncedFn = debounce(
-        (ep: Endpoint, s: HomeAssistantEntityState) => this.flushUpdate(ep, s),
+    if (!this.debouncedFlush) {
+      this.debouncedFlush = debounce(
+        (s: HomeAssistantEntityState) => this.flushUpdate(s),
         50,
       );
-      this.debouncedUpdates.set(key, debouncedFn);
     }
-    debouncedFn(endpoint, state);
+    this.debouncedFlush(primaryState);
   }
 
-  private async flushUpdate(
-    endpoint: Endpoint,
-    state: HomeAssistantEntityState,
-  ) {
+  private async flushUpdate(state: HomeAssistantEntityState) {
     try {
-      await endpoint.construction.ready;
+      await this.construction.ready;
     } catch {
       return;
     }
 
     try {
-      const current = endpoint.stateOf(HomeAssistantEntityBehavior).entity;
-      await endpoint.setStateOf(HomeAssistantEntityBehavior, {
-        entity: { ...current, state },
+      const current = this.stateOf(HomeAssistantEntityBehavior).entity;
+      await this.setStateOf(HomeAssistantEntityBehavior, {
+        entity: { ...current, state: { ...state } },
       });
     } catch (error) {
       if (
@@ -585,9 +374,7 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
   }
 
   override async delete() {
-    for (const fn of this.debouncedUpdates.values()) {
-      fn.clear();
-    }
+    this.debouncedFlush?.clear();
     await super.delete();
   }
 }

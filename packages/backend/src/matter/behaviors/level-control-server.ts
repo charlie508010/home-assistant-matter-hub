@@ -44,6 +44,10 @@ export class LevelControlServerBase extends FeaturedBase {
     if (this.state.maxLevel == null) {
       this.state.maxLevel = 0xfe; // 254
     }
+    // Force onLevel to null so the base class's handleOnOffChange never
+    // overwrites currentLevel when the device turns on. Without this,
+    // Apple Home lights jump to 100% on every turn-on (#225).
+    this.state.onLevel = null;
 
     logger.debug(`initialize: calling super.initialize()`);
     try {

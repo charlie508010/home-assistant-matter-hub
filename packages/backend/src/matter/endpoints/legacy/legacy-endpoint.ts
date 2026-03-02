@@ -325,19 +325,16 @@ export class LegacyEndpoint extends EntityEndpoint {
         const humidityEntityId = registry.findHumidityEntityForDevice(
           entity.device_id,
         );
-        const climateEntityId = registry.findClimateEntityForDevice(
-          entity.device_id,
-        );
-
-        // Only compose if at least one sub-entity is available
-        if (temperatureEntityId || humidityEntityId || climateEntityId) {
+        // Only compose if at least one sensor sub-entity is available.
+        // Climate entities stay standalone — ThermostatDevice competes with
+        // the parent for Apple Home's primary tile selection.
+        if (temperatureEntityId || humidityEntityId) {
           const composedAreaName = registry.getAreaName(entityId);
           const composed = await ComposedAirPurifierEndpoint.create({
             registry,
             primaryEntityId: entityId,
             temperatureEntityId,
             humidityEntityId,
-            climateEntityId,
             batteryEntityId: effectiveMapping?.batteryEntity,
             mapping: effectiveMapping,
             customName: effectiveMapping?.customName,

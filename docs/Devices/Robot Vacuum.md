@@ -5,9 +5,10 @@ Robot vacuums are exposed as Matter **Robotic Vacuum Cleaner** devices with the 
 - **On/Off** - Start and stop cleaning
 - **RVC Operational State** - Current state (idle, running, docked, error)
 - **RVC Run Mode** - Cleaning modes including room-specific cleaning
-- **Service Area** - Room selection for Apple Home (Matter 1.4)
+- **Service Area** - Room selection for Apple Home (Matter 1.4), with multi-floor map support
 - **RVC Clean Mode** - Cleaning type selection (Sweeping, Mopping, etc.) with fan speed and mop intensity
-- **Power Source** - Battery level (if available)
+- **Power Source** - Battery level and charging state (if available)
+- **Identify** - "Play Sound" in Apple Home triggers `vacuum.locate` to find your robot (v2.0.27+)
 
 ## Server Mode (Required for Apple Home & Alexa)
 
@@ -302,6 +303,7 @@ rooms:
 | **Roborock (Xiaomi Miot)** | `rooms` or `segments` attribute | — | — | Native room support |
 | **Dreame** | `rooms` attribute | Auto-detected | Auto-detected | Full auto-detection |
 | **Ecovacs** | `rooms` attribute | Via `cleaningModeEntity` | Auto-detected | Set cleaning mode in Entity Mapping |
+| **Valetudo** | `segments` attribute | Auto-detected | — | Native support since v2.0.27 via `mqtt.publish` segment_cleanup ([#205](https://github.com/RiDDiX/home-assistant-matter-hub/issues/205)) |
 | **Xiaomi** | `rooms` attribute | — | — | May require custom integration |
 | **iRobot Roomba** | — | — | — | Basic start/stop, use `batteryEntity` mapping |
 
@@ -336,6 +338,50 @@ You can also create **multi-room scenes** in the Roborock app and map those butt
 | `mopIntensityEntity` | Select entity for mop intensity / water level | When mop control is desired |
 | `batteryEntity` | Sensor entity for battery level | Auto-detected; override if auto-detection fails |
 | `roomEntities` | Array of button entity IDs for room cleaning | Only if `roborock.get_maps` and room attributes fail |
+| `customServiceAreas` | Custom room/zone definitions for generic robots | When your vacuum has no native room support ([#177](https://github.com/RiDDiX/home-assistant-matter-hub/issues/177)) |
+
+---
+
+## Valetudo Support
+
+Since v2.0.27, HAMH has **native Valetudo support**. Valetudo-based vacuums (Dreame, Roborock via Valetudo) are auto-detected and room cleaning uses `mqtt.publish` with `segment_cleanup` instead of `vacuum.send_command`.
+
+### How It Works
+
+1. HAMH detects Valetudo select entities (e.g., `select.*_fan_speed`, `select.*_water_grade`) automatically
+2. Room segments are read from the vacuum entity's `segments` attribute
+3. Room cleaning commands are sent via `mqtt.publish` to avoid HA entity targeting issues
+4. No manual configuration needed — just add your Valetudo vacuum to a Server Mode bridge
+
+### Requirements
+
+- Valetudo firmware with MQTT autodiscovery enabled
+- Home Assistant MQTT integration configured
+- Vacuum entity exposes `segments` attribute with room data
+
+---
+
+## Custom Service Areas
+
+Since v2.0.27, you can define **custom room/zone names** for generic zone-based robots that don't expose native room data. This is useful for vacuums controlled via IR remotes, generic Tuya integrations, or any robot where HAMH can't auto-detect rooms.
+
+Configure `customServiceAreas` in the Entity Mapping for your vacuum. Each entry defines a room name and the service call to trigger cleaning for that zone.
+
+See [#177](https://github.com/RiDDiX/home-assistant-matter-hub/issues/177) for details.
+
+---
+
+## Identify / Locate
+
+Since v2.0.27, the **Identify** cluster is mapped to `vacuum.locate`. When you use "Play Sound" or "Find My" in Apple Home, the vacuum will play its locate sound.
+
+This works regardless of the `vacuumMinimalClusters` feature flag.
+
+---
+
+## Charging State
+
+Since v2.0.27, HAMH reports the `IsCharging` state when the vacuum is docked and charging. Apple Home shows the correct charging indicator. When the battery reaches 100% while docked, `IsAtFullCharge` is also reported.
 
 ---
 

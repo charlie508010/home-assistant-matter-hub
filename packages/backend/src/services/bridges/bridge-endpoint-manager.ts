@@ -137,10 +137,8 @@ export class BridgeEndpointManager extends Service {
           ent.device_id,
         );
         const humId = this.registry.findHumidityEntityForDevice(ent.device_id);
-        const climId = this.registry.findClimateEntityForDevice(ent.device_id);
         if (tempId) this.registry.markComposedSubEntityUsed(tempId);
         if (humId) this.registry.markComposedSubEntityUsed(humId);
-        if (climId) this.registry.markComposedSubEntityUsed(climId);
       }
     }
 
