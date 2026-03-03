@@ -172,6 +172,11 @@ export class LevelControlServerBase extends FeaturedBase {
         transition: transitionTimeTenths / 10,
       };
     }
+    // Update currentLevel immediately so controllers get instant feedback
+    // in the command response. Without this, Apple Home reads the stale
+    // currentLevel before the HA state update arrives and reverts the UI.
+    // Matches the optimistic update pattern already used in OnOffServer.
+    this.state.currentLevel = level;
     homeAssistant.callAction(action);
   }
 }

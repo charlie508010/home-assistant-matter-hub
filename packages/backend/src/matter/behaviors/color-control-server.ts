@@ -212,6 +212,12 @@ export class ColorControlServerBase extends FeaturedBase {
 
     const action = this.state.config.setTemperature(targetKelvin, this.agent);
     this.applyTransition(action);
+    // Update state immediately so controllers get instant feedback
+    // in the command response, matching the OnOffServer pattern.
+    applyPatchState(this.state, {
+      colorTemperatureMireds: targetMireds,
+      colorMode: ColorControl.ColorMode.ColorTemperatureMireds,
+    });
     homeAssistant.callAction(action);
   }
 
@@ -248,6 +254,13 @@ export class ColorControlServerBase extends FeaturedBase {
     const color = ColorConverter.fromMatterHS(targetHue, targetSaturation);
     const action = this.state.config.setColor(color, this.agent);
     this.applyTransition(action);
+    // Update state immediately so controllers get instant feedback
+    // in the command response, matching the OnOffServer pattern.
+    applyPatchState(this.state, {
+      currentHue: targetHue,
+      currentSaturation: targetSaturation,
+      colorMode: ColorControl.ColorMode.CurrentHueAndCurrentSaturation,
+    });
     homeAssistant.callAction(action);
   }
 

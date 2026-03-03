@@ -141,6 +141,8 @@ export class SpeakerLevelControlServerBase extends FeaturedBase {
     if (levelPercent === current) {
       return;
     }
+    // Update currentLevel immediately so controllers get instant feedback.
+    this.state.currentLevel = level;
     homeAssistant.callAction(
       config.moveToLevelPercent(levelPercent, this.agent),
     );
