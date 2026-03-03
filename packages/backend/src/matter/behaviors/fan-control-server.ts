@@ -15,7 +15,7 @@ import Wind = FanControl.Wind;
 
 const defaultStepSize = 33.33;
 const minSpeedMax = 3;
-const maxSpeedMax = 10;
+const maxSpeedMax = 100;
 
 const FeaturedBase = Base.with(
   "Step",
