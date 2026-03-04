@@ -15,10 +15,23 @@ import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
+import { useTheme } from "@mui/material/styles";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useMemo, useState } from "react";
 import { useDiagnostics } from "../../hooks/useDiagnostics.ts";
+
+function contrastText(hex: string): string {
+  const c = hex.replace("#", "");
+  const r = Number.parseInt(c.substring(0, 2), 16) / 255;
+  const g = Number.parseInt(c.substring(2, 4), 16) / 255;
+  const b = Number.parseInt(c.substring(4, 6), 16) / 255;
+  const luminance =
+    0.2126 * (r <= 0.03928 ? r / 12.92 : ((r + 0.055) / 1.055) ** 2.4) +
+    0.7152 * (g <= 0.03928 ? g / 12.92 : ((g + 0.055) / 1.055) ** 2.4) +
+    0.0722 * (b <= 0.03928 ? b / 12.92 : ((b + 0.055) / 1.055) ** 2.4);
+  return luminance > 0.4 ? "#000" : "#fff";
+}
 
 const eventTypeConfig: Record<string, { color: string; label: string }> = {
   state_update: { color: "#4caf50", label: "State Update" },
@@ -51,6 +64,7 @@ export function LiveEventLog({
   sortField,
   sortDirection,
 }: LiveEventLogProps = {}) {
+  const theme = useTheme();
   const { events, snapshot, connected, clearEvents } = useDiagnostics();
   const [enabledTypes, setEnabledTypes] = useState<Set<string>>(
     new Set(allEventTypes),
@@ -107,7 +121,9 @@ export function LiveEventLog({
                 <FiberManualRecordIcon
                   sx={{
                     fontSize: 10,
-                    color: connected ? "#4caf50" : "#f44336",
+                    color: connected
+                      ? theme.palette.success.main
+                      : theme.palette.error.main,
                   }}
                 />
               }
@@ -154,7 +170,9 @@ export function LiveEventLog({
                   bgcolor: enabledTypes.has(type)
                     ? cfg.color
                     : "action.disabledBackground",
-                  color: enabledTypes.has(type) ? "#fff" : "text.disabled",
+                  color: enabledTypes.has(type)
+                    ? contrastText(cfg.color)
+                    : "text.disabled",
                   fontSize: "0.7rem",
                   height: 22,
                   cursor: "pointer",
@@ -335,7 +353,7 @@ export function LiveEventLog({
                     size="small"
                     sx={{
                       bgcolor: cfg?.color ?? "#757575",
-                      color: "#fff",
+                      color: contrastText(cfg?.color ?? "#757575"),
                       fontSize: "0.62rem",
                       fontWeight: 600,
                       height: 18,

@@ -90,7 +90,7 @@ See [#190](https://github.com/RiDDiX/home-assistant-matter-hub/issues/190) and [
 
 ## Alexa loses connection after a few hours
 
-This was caused by "dead sessions" — Alexa goes offline but the bridge keeps the old session alive, blocking new subscriptions. Since v2.0.17, the bridge detects and force-closes dead sessions automatically. If you still experience this:
+This is typically caused by stale sessions — Alexa goes offline but the bridge keeps the old session alive, blocking new subscriptions. The bridge includes an automatic force-sync mechanism that periodically pushes state updates to all connected controllers. If you still experience this:
 
 1. Update to the latest version
 2. Remove and re-pair the bridge in the Alexa app

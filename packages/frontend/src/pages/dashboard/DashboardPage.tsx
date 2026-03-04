@@ -26,10 +26,9 @@ import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import Grid from "@mui/material/Grid";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   checkBridgeIconExists,
@@ -285,10 +284,12 @@ export const DashboardPage = () => {
   const [health, setHealth] = useState<HealthSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [bulkAction, setBulkAction] = useState(false);
+  const bulkGuard = useRef(false);
 
   const fetchHealth = useCallback(async () => {
     try {
-      const res = await fetch("api/health/detailed");
+      const res = await fetch("/api/health/detailed");
       if (res.ok) {
         setHealth(await res.json());
       }
@@ -341,80 +342,6 @@ export const DashboardPage = () => {
           Dashboard
         </Typography>
       </Box>
-
-      {/* Navigation Guide - Icon Legend */}
-      <Paper
-        variant="outlined"
-        sx={{ mb: 3, p: 2, bgcolor: "background.default" }}
-      >
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ mb: 1, display: "block" }}
-        >
-          Navigation
-        </Typography>
-        <Grid container spacing={1}>
-          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-            <Box display="flex" alignItems="center" gap={1}>
-              <HomeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              <Typography variant="body2">Dashboard</Typography>
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-            <Box display="flex" alignItems="center" gap={1}>
-              <HubIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              <Typography variant="body2">Bridges</Typography>
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-            <Box display="flex" alignItems="center" gap={1}>
-              <DevicesIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              <Typography variant="body2">All Devices</Typography>
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-            <Box display="flex" alignItems="center" gap={1}>
-              <AccountTreeIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              <Typography variant="body2">Network Map</Typography>
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-            <Box display="flex" alignItems="center" gap={1}>
-              <RocketLaunchIcon
-                sx={{ fontSize: 18, color: "text.secondary" }}
-              />
-              <Typography variant="body2">Startup Order</Typography>
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-            <Box display="flex" alignItems="center" gap={1}>
-              <LockIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              <Typography variant="body2">Lock Credentials</Typography>
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-            <Box display="flex" alignItems="center" gap={1}>
-              <LabelIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              <Typography variant="body2">Filter Reference</Typography>
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-            <Box display="flex" alignItems="center" gap={1}>
-              <SettingsIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              <Typography variant="body2">Settings</Typography>
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-            <Box display="flex" alignItems="center" gap={1}>
-              <MonitorHeartIcon
-                sx={{ fontSize: 18, color: "text.secondary" }}
-              />
-              <Typography variant="body2">Health Dashboard</Typography>
-            </Box>
-          </Grid>
-        </Grid>
-      </Paper>
 
       {/* Status cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -508,9 +435,18 @@ export const DashboardPage = () => {
           variant="outlined"
           color="success"
           startIcon={<PlayArrowIcon />}
+          disabled={bulkAction}
           onClick={async () => {
-            await startAllBridges();
-            fetchHealth();
+            if (bulkGuard.current) return;
+            bulkGuard.current = true;
+            setBulkAction(true);
+            try {
+              await startAllBridges();
+              await fetchHealth();
+            } finally {
+              setBulkAction(false);
+              bulkGuard.current = false;
+            }
           }}
         >
           Start All
@@ -519,9 +455,18 @@ export const DashboardPage = () => {
           variant="outlined"
           color="error"
           startIcon={<StopIcon />}
+          disabled={bulkAction}
           onClick={async () => {
-            await stopAllBridges();
-            fetchHealth();
+            if (bulkGuard.current) return;
+            bulkGuard.current = true;
+            setBulkAction(true);
+            try {
+              await stopAllBridges();
+              await fetchHealth();
+            } finally {
+              setBulkAction(false);
+              bulkGuard.current = false;
+            }
           }}
         >
           Stop All
@@ -530,9 +475,18 @@ export const DashboardPage = () => {
           variant="outlined"
           color="warning"
           startIcon={<RestartAltIcon />}
+          disabled={bulkAction}
           onClick={async () => {
-            await restartAllBridges();
-            fetchHealth();
+            if (bulkGuard.current) return;
+            bulkGuard.current = true;
+            setBulkAction(true);
+            try {
+              await restartAllBridges();
+              await fetchHealth();
+            } finally {
+              setBulkAction(false);
+              bulkGuard.current = false;
+            }
           }}
         >
           Restart All

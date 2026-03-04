@@ -9,6 +9,7 @@ import { EditBridgePage } from "./pages/edit-bridge/EditBridgePage.tsx";
 import { HealthPage } from "./pages/health/HealthPage.tsx";
 import { LabelsPage } from "./pages/labels/LabelsPage.tsx";
 import { LockCredentialsPage } from "./pages/lock-credentials/LockCredentialsPage.tsx";
+import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { NetworkMapPage } from "./pages/network-map/NetworkMapPage.tsx";
 import { SettingsPage } from "./pages/settings/SettingsPage.tsx";
 import { StartupPage } from "./pages/startup/StartupPage.tsx";
@@ -56,6 +57,7 @@ export const routes: RouteObject[] = [
       { path: navigation.lockCredentials, element: <LockCredentialsPage /> },
       { path: navigation.settings, element: <SettingsPage /> },
       { path: navigation.startup, element: <StartupPage /> },
+      { path: "*", element: <NotFoundPage /> },
     ],
   },
 ];

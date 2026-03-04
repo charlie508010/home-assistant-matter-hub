@@ -259,7 +259,7 @@ HAMH can automatically combine related sensors from the same HA device into a si
 
 | Feature Flag | Description |
 |--------------|-------------|
-| `autoBatteryMapping` | Combines battery sensor with the primary sensor (default: enabled) |
+| `autoBatteryMapping` | Combines battery sensor with the primary sensor (default: disabled) |
 | `autoHumidityMapping` | Combines humidity sensor with temperature sensor (default: enabled) |
 | `autoPressureMapping` | Combines pressure sensor with temperature sensor (default: enabled) |
 

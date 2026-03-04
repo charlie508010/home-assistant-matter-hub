@@ -13,7 +13,7 @@ This application can be installed in different ways:
 > In addition, the matter protocol is relying on mDNS and UDP. If you are using VLANs you need
 > to make sure that UDP (especially mDNS) packages are routed properly.
 >
-> If you are facing issues, make sure to look at the [troubleshooting guide](../Guides/Connect%20Multiple%20Fabrics.md).
+> If you are facing issues, make sure to look at the [troubleshooting guide](../Guides/Connectivity%20Issues.md).
 
 ## 1. Native Home-Assistant AddOn
 

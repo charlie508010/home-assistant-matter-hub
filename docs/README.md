@@ -89,12 +89,12 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 <details>
 <summary><strong>🧪 Alpha (v2.1.0-alpha.x)</strong></summary>
 
-Alpha is currently in sync with Stable (v2.0.27). All alpha features have been promoted to stable. New alpha features will appear here as development continues.
+All previously alpha-only features have been promoted to stable. New alpha features will appear here as development continues. See the [Alpha Features Guide](./Guides/Alpha%20Features.md) for installation instructions.
 
 </details>
 
 <details>
-<summary><strong>� Previous Versions</strong></summary>
+<summary><strong>📋 Previous Versions</strong></summary>
 
 ### v2.0.26
 Authentication UI, Select Entity Support, Webhook Event Bridge, Cluster Diagnostics, Matter.js 0.16.10, Docker Node 22
