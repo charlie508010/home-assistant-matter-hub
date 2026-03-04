@@ -37,7 +37,7 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v2.0.27 | Production-ready, recommended for most users |
+| **Stable** | `main` | v2.0.28 | Production-ready, recommended for most users |
 | **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
@@ -52,51 +52,44 @@ of port forwarding etc.
 ## 🎉 What's New
 
 <details>
-<summary><strong>📦 Stable Features (v2.0.27)</strong> - Click to expand</summary>
+<summary><strong>📦 Stable Features (v2.0.28)</strong> - Click to expand</summary>
 
-**New in v2.0.27:**
+**New in v2.0.28:**
+
+| Feature | Description |
+|---------|-------------|
+| **🖼️ Device Image Support** | Device cards show images from Zigbee2MQTT or custom uploads ([#221](https://github.com/RiDDiX/home-assistant-matter-hub/issues/221)) |
+| **🌀 Custom Fan Speed Mapping** | Define custom fan speed levels with named presets ([#226](https://github.com/RiDDiX/home-assistant-matter-hub/pull/226)) |
+| **📺 TV Source Selection** | MediaInput cluster added to VideoPlayerDevice for input switching ([#231](https://github.com/RiDDiX/home-assistant-matter-hub/issues/231)) |
+| **🔀 Reverse Proxy Base Path** | `--http-base-path` option for subfolder reverse proxy support ([#228](https://github.com/RiDDiX/home-assistant-matter-hub/issues/228)) |
+| **🌀 On/Off-Only Fans** | Fans without speed control correctly use OnOffPlugInUnit ([#229](https://github.com/RiDDiX/home-assistant-matter-hub/issues/229)) |
+| **💡 Light Brightness Fix** | Prevent brightness reset on turn-on by setting onLevel to null ([#225](https://github.com/RiDDiX/home-assistant-matter-hub/issues/225)) |
+| **🌀 Fan Speed Fixes** | speedMax cap raised from 10 to 100 (Matter spec max), retain speed when off ([#225](https://github.com/RiDDiX/home-assistant-matter-hub/issues/225)) |
+| **🌡️ Composed Air Purifier Fix** | Flatten to single endpoint for correct Apple Home primary tile ([#218](https://github.com/RiDDiX/home-assistant-matter-hub/issues/218)) |
+| **🤖 Dreame Multi-Floor Fix** | Switch floor map before vacuum_clean_segment for multi-floor rooms |
+| **🤖 Custom Service Areas Fix** | Register as RvcRunMode room modes for Apple Home zone dispatch |
+| **⚡ Optimistic State Updates** | Level and color control commands respond immediately |
+| **�️ Frontend Improvements** | Error boundary, 404 page, WCAG contrast, theme-aware UI, HA ingress compatibility |
+
+**Previously in v2.0.27:**
 
 | Feature | Description |
 |---------|-------------|
 | **🤖 Native Valetudo Support** | Auto-detect Valetudo select entities, map segments, use `segment_cleanup` via MQTT for room cleaning ([#205](https://github.com/RiDDiX/home-assistant-matter-hub/issues/205)) |
 | **🤖 Custom Service Areas** | Define custom room/zone names for generic zone-based robots without native room support ([#177](https://github.com/RiDDiX/home-assistant-matter-hub/issues/177)) |
-| **🤖 ServiceArea Maps** | Multi-floor vacuum support — rooms grouped by floor map in Apple Home |
-| **🤖 Vacuum Identify → Locate** | "Play Sound" in Apple Home triggers `vacuum.locate` to find your robot ([#189](https://github.com/RiDDiX/home-assistant-matter-hub/issues/189)) |
-| **🤖 Vacuum Charging State** | Reports `IsCharging` when docked — Apple Home shows correct charging indicator ([#206](https://github.com/RiDDiX/home-assistant-matter-hub/issues/206)) |
-| **🤖 Vacuum Minimal Clusters** | `vacuumMinimalClusters` feature flag strips non-essential clusters for Alexa compatibility ([#183](https://github.com/RiDDiX/home-assistant-matter-hub/issues/183)) |
-| **🌡️ Composed Air Purifier** | Air purifiers with thermostat/humidity sensors create real Matter Composed Devices (spec 9.4.4) |
 | **🚨 Alarm Control Panel** | `alarm_control_panel` entities exposed as Matter ModeSelect — arm/disarm modes available in controllers ([#209](https://github.com/RiDDiX/home-assistant-matter-hub/issues/209)) |
-| **🖥️ Dashboard Controls** | Bridge Start/Stop/Restart All buttons in header, Settings nav entry |
-| **🖥️ Process Memory Display** | RSS + heap usage shown in System Information page |
-| **🖥️ Compact Include/Exclude Editor** | Collapsible entity filter editor with search |
-| **🖥️ Improved Bridge Config UI** | Better layout and usability for bridge settings editor |
+| **🌡️ Composed Air Purifier** | Air purifiers with thermostat/humidity sensors create real Matter Composed Devices (spec 9.4.4) |
 | **🏢 Vendor Brand Icons** | 20+ new manufacturer icons (Razer, Roborock, iRobot, Signify, and more) |
-| **🐳 linux/arm/v7 Docker** | Added ARM v7 platform for standalone Docker image |
-| **📦 npm Package** | Published as `@riddix/hamh` on npm for standalone installations |
-| **🌡️ Thermostat #207 Fix** | heat_cool-only HVAC zones now dynamically report CoolingOnly/HeatingOnly based on hvac_action |
-| **🌡️ Thermostat #28 Fix** | Devices with auto+cool but no explicit heat (e.g. SmartIR ACs) no longer crash with conformance error |
-| **🤖 Vacuum Alexa Fixes** | Multiple fixes for OnOff, PowerSource, mode IDs, room sorting ([#183](https://github.com/RiDDiX/home-assistant-matter-hub/issues/183), [#185](https://github.com/RiDDiX/home-assistant-matter-hub/issues/185)) |
+| **� linux/arm/v7 Docker** | Added ARM v7 platform for standalone Docker image |
+| **🌡️ Thermostat Fixes** | heat_cool-only zones, SmartIR AC conformance fix ([#207](https://github.com/RiDDiX/home-assistant-matter-hub/issues/207), [#28](https://github.com/RiDDiX/home-assistant-matter-hub/issues/28)) |
 | **🔧 Air Purifier Fix** | Added Rocking (oscillation) and Wind feature support, removed incorrect Lighting feature |
-| **🔧 Composed Sensor Fix** | Temperature not updating in composed sensors, missing device types in flat endpoints ([#214](https://github.com/RiDDiX/home-assistant-matter-hub/issues/214)) |
-| **⚡ Performance** | Fingerprint-based registry change detection, reduced refresh overhead |
-
-**Previously in v2.0.26:**
-
-| Feature | Description |
-|---------|-------------|
-| **🔐 Authentication UI** | Configure authentication credentials directly from the web UI Settings page ([#197](https://github.com/RiDDiX/home-assistant-matter-hub/issues/197)) |
-| **🔌 Select Entity Support** | `select` and `input_select` entities now mapped to Matter ModeSelectDevice |
-| **🔗 Webhook Event Bridge** | HAMH fires `hamh_action` events on the HA event bus for controller command automations |
-| **🔍 Cluster Diagnostics** | Expandable per-cluster state inspection on device cards |
-| **⚙ Matter.js 0.16.10** | Updated from 0.16.8 to 0.16.10 for stability and spec compliance |
-| **� Docker Node 22** | Pinned Docker runtime to Node 22 ([#200](https://github.com/RiDDiX/home-assistant-matter-hub/issues/200)) |
 
 </details>
 
 <details>
 <summary><strong>🧪 Alpha Features (v2.1.0-alpha.x)</strong> - Click to expand</summary>
 
-**Alpha is currently in sync with Stable (v2.0.27).** All alpha features have been promoted to stable. New alpha features will appear here as development continues.
+**Alpha is currently in sync with Stable (v2.0.28).** All alpha features have been promoted to stable. New alpha features will appear here as development continues.
 
 </details>
 
@@ -121,6 +114,9 @@ of port forwarding etc.
 
 <details>
 <summary><strong>📜 Previous Stable Versions</strong> - Click to expand</summary>
+
+### v2.0.27
+Valetudo support, Custom Service Areas, ServiceArea Maps, Vacuum Identify/Locate/Charging, Alarm Control Panel, Composed Air Purifier, Dashboard Controls, Vendor Brand Icons, Thermostat fixes, Air Purifier oscillation/wind
 
 ### v2.0.26
 Authentication UI, Select entity support, Webhook event bridge, Cluster diagnostics, Matter.js 0.16.10, Docker Node 22, vacuum cleaning mode fallback, vacuum entity filter fix
