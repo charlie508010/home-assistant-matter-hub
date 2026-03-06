@@ -557,6 +557,14 @@ export const DashboardPage = () => {
                   >
                     Create Bridge
                   </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<MapIcon />}
+                    onClick={() => navigate(navigation.areaSetup)}
+                    size="large"
+                  >
+                    Area Setup
+                  </Button>
                   <Divider orientation="vertical" flexItem />
                   <Button
                     variant="outlined"
@@ -663,6 +671,13 @@ export const DashboardPage = () => {
                       title="Bridges"
                       icon={<HubIcon sx={{ fontSize: 20 }} />}
                       onClick={() => navigate(navigation.bridges)}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                    <NavCard
+                      title="Area Setup"
+                      icon={<MapIcon sx={{ fontSize: 20 }} />}
+                      onClick={() => navigate(navigation.areaSetup)}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
