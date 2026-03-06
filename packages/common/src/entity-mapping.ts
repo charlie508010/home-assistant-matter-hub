@@ -5,6 +5,7 @@ export type MatterDeviceType =
   | "air_quality_sensor"
   | "basic_video_player"
   | "battery_storage"
+  | "carbon_monoxide_sensor"
   | "color_dimmer_switch"
   | "color_temperature_light"
   | "contact_sensor"
@@ -12,20 +13,26 @@ export type MatterDeviceType =
   | "dimmable_plugin_unit"
   | "dimmer_switch"
   | "door_lock"
+  | "electrical_sensor"
   | "extended_color_light"
   | "fan"
   | "flow_sensor"
+  | "formaldehyde_sensor"
   | "generic_switch"
   | "humidifier_dehumidifier"
   | "humidity_sensor"
   | "light_sensor"
   | "mode_select"
+  | "nitrogen_dioxide_sensor"
   | "occupancy_sensor"
   | "on_off_light"
   | "on_off_plugin_unit"
   | "on_off_switch"
+  | "ozone_sensor"
+  | "pm1_sensor"
   | "pressure_sensor"
   | "pump"
+  | "radon_sensor"
   | "robot_vacuum_cleaner"
   | "smoke_co_alarm"
   | "speaker"
@@ -175,6 +182,7 @@ export const matterDeviceTypeLabels: Record<MatterDeviceType, string> = {
   air_quality_sensor: "Air Quality Sensor",
   basic_video_player: "Basic Video Player (TV)",
   battery_storage: "Battery Sensor",
+  carbon_monoxide_sensor: "Carbon Monoxide (CO) Sensor",
   color_dimmer_switch: "Color Dimmer Switch",
   color_temperature_light: "Color Temperature Light",
   contact_sensor: "Contact Sensor",
@@ -182,20 +190,26 @@ export const matterDeviceTypeLabels: Record<MatterDeviceType, string> = {
   dimmable_plugin_unit: "Dimmable Plug-in Unit",
   dimmer_switch: "Dimmer Switch",
   door_lock: "Door Lock",
+  electrical_sensor: "Electrical Sensor (Power/Energy/Voltage/Current)",
   extended_color_light: "Extended Color Light",
   fan: "Fan",
   flow_sensor: "Flow Sensor",
+  formaldehyde_sensor: "Formaldehyde (HCHO) Sensor",
   generic_switch: "Generic Switch (Button)",
   humidifier_dehumidifier: "Humidifier/Dehumidifier",
   humidity_sensor: "Humidity Sensor",
   light_sensor: "Light Sensor",
   mode_select: "Mode Select",
+  nitrogen_dioxide_sensor: "Nitrogen Dioxide (NO\u2082) Sensor",
   occupancy_sensor: "Occupancy Sensor",
   on_off_light: "On/Off Light",
   on_off_plugin_unit: "On/Off Plug-in Unit",
   on_off_switch: "On/Off Switch",
+  ozone_sensor: "Ozone (O\u2083) Sensor",
+  pm1_sensor: "PM1 Sensor",
   pressure_sensor: "Pressure Sensor",
   pump: "Pump",
+  radon_sensor: "Radon Sensor",
   robot_vacuum_cleaner: "Robot Vacuum Cleaner",
   smoke_co_alarm: "Smoke/CO Alarm",
   speaker: "Speaker",
@@ -265,9 +279,16 @@ export const domainToDefaultMatterTypes: Partial<
   sensor: [
     "air_quality_sensor",
     "battery_storage",
+    "carbon_monoxide_sensor",
+    "electrical_sensor",
+    "formaldehyde_sensor",
     "humidity_sensor",
     "light_sensor",
+    "nitrogen_dioxide_sensor",
+    "ozone_sensor",
+    "pm1_sensor",
     "pressure_sensor",
+    "radon_sensor",
     "temperature_sensor",
     "tvoc_sensor",
   ],

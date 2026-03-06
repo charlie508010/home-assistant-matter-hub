@@ -7,10 +7,15 @@ import { DeviceTypeId } from "@matter/main/types";
 import type { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { AirQualitySensorType } from "./devices/air-quality-sensor.js";
 import { BatterySensorType } from "./devices/battery-sensor.js";
+import { CarbonMonoxideSensorType } from "./devices/carbon-monoxide-sensor.js";
 import { Co2SensorType } from "./devices/co2-sensor.js";
+import { ElectricalSensorType } from "./devices/electrical-sensor.js";
 import { FlowSensorType } from "./devices/flow-sensor.js";
 import { HumiditySensorType } from "./devices/humidity-sensor.js";
 import { IlluminanceSensorType } from "./devices/illuminance-sensor.js";
+import { NitrogenDioxideSensorType } from "./devices/nitrogen-dioxide-sensor.js";
+import { OzoneSensorType } from "./devices/ozone-sensor.js";
+import { Pm1SensorType } from "./devices/pm1-sensor.js";
 import { Pm10SensorType } from "./devices/pm10-sensor.js";
 import { Pm25SensorType } from "./devices/pm25-sensor.js";
 import { PressureSensorType } from "./devices/pressure-sensor.js";
@@ -123,6 +128,26 @@ export function SensorDevice(
   }
   if (deviceClass === SensorDeviceClass.aqi) {
     return AirQualitySensorType.set({ homeAssistantEntity });
+  }
+  if (deviceClass === SensorDeviceClass.carbon_monoxide) {
+    return CarbonMonoxideSensorType.set({ homeAssistantEntity });
+  }
+  if (deviceClass === SensorDeviceClass.nitrogen_dioxide) {
+    return NitrogenDioxideSensorType.set({ homeAssistantEntity });
+  }
+  if (deviceClass === SensorDeviceClass.ozone) {
+    return OzoneSensorType.set({ homeAssistantEntity });
+  }
+  if (deviceClass === SensorDeviceClass.pm1) {
+    return Pm1SensorType.set({ homeAssistantEntity });
+  }
+  if (
+    deviceClass === SensorDeviceClass.power ||
+    deviceClass === SensorDeviceClass.energy ||
+    deviceClass === SensorDeviceClass.voltage ||
+    deviceClass === SensorDeviceClass.current
+  ) {
+    return ElectricalSensorType.set({ homeAssistantEntity });
   }
   if (deviceClass === SensorDeviceClass.battery) {
     return BatterySensorType.set({ homeAssistantEntity });

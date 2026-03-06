@@ -39,10 +39,17 @@ import { ScriptDevice } from "./script/index.js";
 import { InputSelectDevice, SelectDevice } from "./select/index.js";
 import { AirQualitySensorType } from "./sensor/devices/air-quality-sensor.js";
 import { BatterySensorType } from "./sensor/devices/battery-sensor.js";
+import { CarbonMonoxideSensorType } from "./sensor/devices/carbon-monoxide-sensor.js";
+import { ElectricalSensorType } from "./sensor/devices/electrical-sensor.js";
 import { FlowSensorType } from "./sensor/devices/flow-sensor.js";
+import { FormaldehydeSensorType } from "./sensor/devices/formaldehyde-sensor.js";
 import { HumiditySensorType } from "./sensor/devices/humidity-sensor.js";
 import { IlluminanceSensorType } from "./sensor/devices/illuminance-sensor.js";
+import { NitrogenDioxideSensorType } from "./sensor/devices/nitrogen-dioxide-sensor.js";
+import { OzoneSensorType } from "./sensor/devices/ozone-sensor.js";
+import { Pm1SensorType } from "./sensor/devices/pm1-sensor.js";
 import { PressureSensorType } from "./sensor/devices/pressure-sensor.js";
+import { RadonSensorType } from "./sensor/devices/radon-sensor.js";
 import { TemperatureSensorType } from "./sensor/devices/temperature-sensor.js";
 import { TvocSensorType } from "./sensor/devices/tvoc-sensor.js";
 import { SensorDevice } from "./sensor/index.js";
@@ -245,6 +252,34 @@ const matterDeviceTypeFactories: Partial<
     }),
   tvoc_sensor: (ha) =>
     TvocSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  carbon_monoxide_sensor: (ha) =>
+    CarbonMonoxideSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  nitrogen_dioxide_sensor: (ha) =>
+    NitrogenDioxideSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  ozone_sensor: (ha) =>
+    OzoneSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  formaldehyde_sensor: (ha) =>
+    FormaldehydeSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  radon_sensor: (ha) =>
+    RadonSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  pm1_sensor: (ha) =>
+    Pm1SensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  electrical_sensor: (ha) =>
+    ElectricalSensorType.set({
       homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
     }),
   mode_select: SelectDevice,
