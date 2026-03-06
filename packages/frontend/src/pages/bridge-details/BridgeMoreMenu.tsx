@@ -11,6 +11,7 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import * as React from "react";
 import { Link as RouterLink, useNavigate } from "react-router";
+import { ConfirmDialog } from "../../components/misc/ConfirmDialog.tsx";
 import { useNotifications } from "../../components/notifications/use-notifications.ts";
 import {
   useDeleteBridge,
@@ -34,6 +35,10 @@ export const BridgeMoreMenu = ({ bridge }: BridgeMoreMenuProps) => {
   const deleteBridge = useDeleteBridge();
   const forceSync = useForceSyncBridge();
 
+  const [confirmAction, setConfirmAction] = React.useState<
+    "delete" | "reset" | null
+  >(null);
+
   const handleOpen = (event: React.MouseEvent<HTMLElement>) =>
     setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
@@ -56,7 +61,7 @@ export const BridgeMoreMenu = ({ bridge }: BridgeMoreMenuProps) => {
   };
 
   const handleFactoryReset = async () => {
-    handleClose();
+    setConfirmAction(null);
     await factoryReset(bridge)
       .then(() =>
         notification.show({
@@ -72,7 +77,7 @@ export const BridgeMoreMenu = ({ bridge }: BridgeMoreMenuProps) => {
       );
   };
   const handleDelete = async () => {
-    handleClose();
+    setConfirmAction(null);
     await deleteBridge(bridge)
       .then(() =>
         notification.show({
@@ -108,19 +113,48 @@ export const BridgeMoreMenu = ({ bridge }: BridgeMoreMenuProps) => {
           </ListItemIcon>
           <ListItemText>Force Sync</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleFactoryReset}>
+        <MenuItem
+          onClick={() => {
+            handleClose();
+            setConfirmAction("reset");
+          }}
+        >
           <ListItemIcon>
             <ResetIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Factory Reset</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleDelete}>
+        <MenuItem
+          onClick={() => {
+            handleClose();
+            setConfirmAction("delete");
+          }}
+        >
           <ListItemIcon>
             <DeleteIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Delete</ListItemText>
         </MenuItem>
       </Menu>
+
+      <ConfirmDialog
+        open={confirmAction === "reset"}
+        title="Factory Reset Bridge"
+        message="This will remove all pairing information and reset the bridge to its initial state. Connected controllers will lose access. This cannot be undone."
+        confirmLabel="Reset"
+        confirmColor="warning"
+        onConfirm={handleFactoryReset}
+        onCancel={() => setConfirmAction(null)}
+      />
+      <ConfirmDialog
+        open={confirmAction === "delete"}
+        title="Delete Bridge"
+        message="This will permanently delete the bridge, all its pairings, and entity mappings. Connected controllers will lose access. This cannot be undone."
+        confirmLabel="Delete"
+        confirmColor="error"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmAction(null)}
+      />
     </>
   );
 };

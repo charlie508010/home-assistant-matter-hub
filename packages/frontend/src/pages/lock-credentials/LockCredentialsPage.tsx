@@ -23,6 +23,7 @@ import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useState } from "react";
+import { ConfirmDialog } from "../../components/misc/ConfirmDialog.tsx";
 import {
   deleteLockCredential,
   fetchLockCredentials,
@@ -185,10 +186,12 @@ export const LockCredentialsPage = () => {
     await loadCredentials();
   };
 
+  const [pendingDeleteEntity, setPendingDeleteEntity] = useState<string | null>(
+    null,
+  );
+
   const handleDelete = async (entityId: string) => {
-    if (!confirm("Are you sure you want to delete this credential?")) {
-      return;
-    }
+    setPendingDeleteEntity(null);
     try {
       await deleteLockCredential(entityId);
       await loadCredentials();
@@ -331,7 +334,7 @@ export const LockCredentialsPage = () => {
                       edge="end"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDelete(credential.entityId);
+                        setPendingDeleteEntity(credential.entityId);
                       }}
                       sx={{ ml: 1 }}
                     >
@@ -352,6 +355,17 @@ export const LockCredentialsPage = () => {
         initialEntityId={editCredential?.entityId}
         initialName={editCredential?.name}
         isEdit={!!editCredential}
+      />
+      <ConfirmDialog
+        open={pendingDeleteEntity !== null}
+        title="Delete Credential"
+        message={`This will permanently delete the PIN credential for ${pendingDeleteEntity ?? "this entity"}. This cannot be undone.`}
+        confirmLabel="Delete"
+        confirmColor="error"
+        onConfirm={() => {
+          if (pendingDeleteEntity) handleDelete(pendingDeleteEntity);
+        }}
+        onCancel={() => setPendingDeleteEntity(null)}
       />
     </Box>
   );

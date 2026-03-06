@@ -8,9 +8,13 @@ import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import CircularProgress from "@mui/material/CircularProgress";
+import Divider from "@mui/material/Divider";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useState } from "react";
+import { BackupRestore } from "../../components/backup/BackupRestore.tsx";
+import { ConfirmDialog } from "../../components/misc/ConfirmDialog.tsx";
+import { UpdateChecker } from "../../components/system/UpdateChecker.tsx";
 import {
   deleteAuthSettings,
   fetchAuthSettings,
@@ -74,10 +78,10 @@ export const SettingsPage = () => {
     }
   };
 
+  const [confirmDisableAuth, setConfirmDisableAuth] = useState(false);
+
   const handleRemove = async () => {
-    if (!confirm("Are you sure you want to disable authentication?")) {
-      return;
-    }
+    setConfirmDisableAuth(false);
     setSaving(true);
     setError(null);
     setSuccess(null);
@@ -104,6 +108,14 @@ export const SettingsPage = () => {
         <SettingsIcon sx={{ mr: 1, verticalAlign: "middle" }} />
         Settings
       </Typography>
+
+      <BackupRestore />
+
+      <Divider sx={{ my: 3 }} />
+
+      <UpdateChecker />
+
+      <Divider sx={{ my: 3 }} />
 
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
@@ -200,7 +212,7 @@ export const SettingsPage = () => {
                   <Button
                     variant="outlined"
                     color="error"
-                    onClick={handleRemove}
+                    onClick={() => setConfirmDisableAuth(true)}
                     disabled={saving}
                     startIcon={<DeleteIcon />}
                   >
@@ -219,6 +231,15 @@ export const SettingsPage = () => {
           </CardContent>
         </Card>
       )}
+      <ConfirmDialog
+        open={confirmDisableAuth}
+        title="Disable Authentication"
+        message="This will remove password protection from the web UI. Anyone on your network will be able to access and modify your bridge configuration."
+        confirmLabel="Disable Auth"
+        confirmColor="error"
+        onConfirm={handleRemove}
+        onCancel={() => setConfirmDisableAuth(false)}
+      />
     </Box>
   );
 };
