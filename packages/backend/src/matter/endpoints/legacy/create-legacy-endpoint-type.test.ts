@@ -138,6 +138,45 @@ const testEntities: Record<
     createEntity<SensorDeviceAttributes>("sensor.s6", "50", {
       device_class: SensorDeviceClass.aqi,
     }),
+    createEntity<SensorDeviceAttributes>("sensor.s7", "400", {
+      device_class: SensorDeviceClass.carbon_dioxide,
+    }),
+    createEntity<SensorDeviceAttributes>("sensor.s8", "5", {
+      device_class: SensorDeviceClass.carbon_monoxide,
+    }),
+    createEntity<SensorDeviceAttributes>("sensor.s9", "40", {
+      device_class: SensorDeviceClass.nitrogen_dioxide,
+    }),
+    createEntity<SensorDeviceAttributes>("sensor.s10", "60", {
+      device_class: SensorDeviceClass.ozone,
+    }),
+    createEntity<SensorDeviceAttributes>("sensor.s11", "15", {
+      device_class: SensorDeviceClass.pm1,
+    }),
+    createEntity<SensorDeviceAttributes>("sensor.s12", "25", {
+      device_class: SensorDeviceClass.pm25,
+    }),
+    createEntity<SensorDeviceAttributes>("sensor.s13", "50", {
+      device_class: SensorDeviceClass.pm10,
+    }),
+    createEntity<SensorDeviceAttributes>("sensor.s14", "100", {
+      device_class: SensorDeviceClass.volatile_organic_compounds,
+    }),
+    createEntity<SensorDeviceAttributes>("sensor.s15", "1500", {
+      device_class: SensorDeviceClass.power,
+    }),
+    createEntity<SensorDeviceAttributes>("sensor.s16", "12.5", {
+      device_class: SensorDeviceClass.energy,
+    }),
+    createEntity<SensorDeviceAttributes>("sensor.s17", "230", {
+      device_class: SensorDeviceClass.voltage,
+    }),
+    createEntity<SensorDeviceAttributes>("sensor.s18", "6.5", {
+      device_class: SensorDeviceClass.current,
+    }),
+    createEntity<SensorDeviceAttributes>("sensor.s19", "75", {
+      device_class: SensorDeviceClass.battery,
+    }),
   ],
   [HomeAssistantDomain.switch]: [createEntity("switch.sw1", "on")],
   [HomeAssistantDomain.automation]: [
