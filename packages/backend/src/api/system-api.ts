@@ -81,7 +81,7 @@ export function systemApi(version: string): express.Router {
   router.get("/update-check", async (_req, res) => {
     try {
       const response = await fetch(
-        "https://api.github.com/repos/t0bst4r/home-assistant-matter-hub/releases/latest",
+        "https://api.github.com/repos/riddix/home-assistant-matter-hub/releases/latest",
         {
           headers: { Accept: "application/vnd.github.v3+json" },
           signal: AbortSignal.timeout(10000),
