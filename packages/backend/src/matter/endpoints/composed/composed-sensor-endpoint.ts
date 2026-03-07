@@ -165,6 +165,7 @@ export interface ComposedSensorConfig {
  */
 export class ComposedSensorEndpoint extends Endpoint {
   readonly entityId: string;
+  readonly mappedEntityIds: string[];
   private subEndpoints = new Map<string, Endpoint>();
   private lastStates = new Map<string, string>();
   private debouncedUpdates = new Map<
@@ -267,11 +268,18 @@ export class ComposedSensorEndpoint extends Endpoint {
       },
     });
 
+    // Expose non-primary sub-entity IDs so bridge-endpoint-manager subscribes
+    // to their state changes via WebSocket.
+    const mappedIds: string[] = [];
+    if (config.humidityEntityId) mappedIds.push(config.humidityEntityId);
+    if (config.pressureEntityId) mappedIds.push(config.pressureEntityId);
+
     const endpoint = new ComposedSensorEndpoint(
       parentTypeWithState,
       primaryEntityId,
       endpointId,
       parts,
+      mappedIds,
     );
 
     // Register sub-endpoints for state updates
@@ -296,9 +304,11 @@ export class ComposedSensorEndpoint extends Endpoint {
     entityId: string,
     id: string,
     parts: Endpoint[],
+    mappedEntityIds: string[],
   ) {
     super(type, { id, parts });
     this.entityId = entityId;
+    this.mappedEntityIds = mappedEntityIds;
   }
 
   async updateStates(states: HomeAssistantStates): Promise<void> {
