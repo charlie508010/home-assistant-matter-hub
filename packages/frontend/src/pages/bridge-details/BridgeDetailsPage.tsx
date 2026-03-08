@@ -3,6 +3,7 @@ import type {
   EndpointData,
   FailedEntity,
 } from "@home-assistant-matter-hub/common";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import WarningIcon from "@mui/icons-material/Warning";
 import Alert from "@mui/material/Alert";
@@ -149,6 +150,21 @@ export const BridgeDetailsPage = () => {
       </Box>
 
       <BridgeStatusHint status={bridge.status} reason={bridge.statusReason} />
+
+      {bridge.status === "running" &&
+        bridge.commissioning &&
+        !bridge.commissioning.isCommissioned &&
+        bridge.commissioning.fabrics.length === 0 && (
+          <Alert severity="info" icon={<InfoOutlinedIcon />}>
+            <AlertTitle>Pair this bridge with your controller</AlertTitle>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              Open your controller app (Apple Home, Google Home, or Amazon
+              Alexa), add a new accessory, and scan the QR code below or enter
+              the manual pairing code. Make sure your controller is on the same
+              network as Home Assistant.
+            </Typography>
+          </Alert>
+        )}
 
       {bridge.failedEntities && bridge.failedEntities.length > 0 && (
         <FailedEntitiesAlert failedEntities={bridge.failedEntities} />

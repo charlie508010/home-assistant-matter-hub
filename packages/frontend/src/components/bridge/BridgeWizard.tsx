@@ -593,7 +593,10 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
   const renderFeatureFlagsStep = () => (
     <Box sx={{ mt: 2 }}>
       <Typography variant="body1" gutterBottom>
-        Configure optional feature flags for this bridge.
+        Feature flags control how devices are exposed to Matter controllers.
+        {selectedController
+          ? ` Recommended flags for ${selectedController.name} are pre-selected.`
+          : " Select the flags that match your setup."}
       </Typography>
       {wizardFlags.map((flag) => (
         <Box key={flag.key} sx={{ mt: 1 }}>

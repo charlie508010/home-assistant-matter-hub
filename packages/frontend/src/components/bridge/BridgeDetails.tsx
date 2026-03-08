@@ -6,6 +6,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import InfoIcon from "@mui/icons-material/Info";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import QrCode2Icon from "@mui/icons-material/QrCode2";
 import RemoveIcon from "@mui/icons-material/Remove";
 import SyncIcon from "@mui/icons-material/Sync";
@@ -332,6 +333,13 @@ const FabricsCard = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
           <Typography variant="h6">
             Connected Fabrics ({fabrics.length})
           </Typography>
+          <Tooltip title="A fabric represents a connection to a Matter controller (e.g., Apple Home, Google Home, Alexa). Each controller creates one fabric when paired.">
+            <InfoOutlinedIcon
+              fontSize="small"
+              color="action"
+              sx={{ cursor: "help" }}
+            />
+          </Tooltip>
         </Box>
 
         {fabrics.length === 0 ? (

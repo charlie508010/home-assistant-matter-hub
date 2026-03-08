@@ -25,7 +25,7 @@ import Toolbar from "@mui/material/Toolbar";
 import Tooltip from "@mui/material/Tooltip";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { type ReactNode, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { LogViewer } from "../components/logs/LogViewer.tsx";
 import { StatusIndicator } from "../components/status/StatusIndicator.tsx";
 import { navigation } from "../routes.tsx";
@@ -44,6 +44,13 @@ export const AppTopBar = () => {
   const [logViewerOpen, setLogViewerOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isActive = (path?: string) => {
+    if (!path) return false;
+    if (path === "/") return location.pathname === "/";
+    return location.pathname.startsWith(path);
+  };
 
   const toggleColorMode = () => {
     setMode(mode === "dark" ? "light" : "dark");
@@ -120,7 +127,13 @@ export const AppTopBar = () => {
                       <IconButton
                         component={Link}
                         to={item.to}
-                        sx={{ color: "inherit" }}
+                        sx={{
+                          color: "inherit",
+                          bgcolor: isActive(item.to)
+                            ? "rgba(255,255,255,0.15)"
+                            : "transparent",
+                          borderRadius: 1,
+                        }}
                       >
                         {item.icon}
                       </IconButton>
@@ -161,6 +174,7 @@ export const AppTopBar = () => {
           {navItems.map((item) => (
             <ListItemButton
               key={item.label}
+              selected={isActive(item.to)}
               onClick={() => handleDrawerItemClick(item)}
             >
               <ListItemIcon>{item.icon}</ListItemIcon>
