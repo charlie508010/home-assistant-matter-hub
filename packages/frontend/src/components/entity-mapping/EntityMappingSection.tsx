@@ -29,6 +29,7 @@ import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -65,6 +66,9 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
   );
   const [importSelected, setImportSelected] = useState<Set<string>>(new Set());
   const [importing, setImporting] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportSelected, setExportSelected] = useState<Set<string>>(new Set());
+  const [exportProfileName, setExportProfileName] = useState("Bridge Mappings");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadMappings = useCallback(async () => {
@@ -129,9 +133,24 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
     setEditingEntity(null);
   }, []);
 
-  const handleExport = useCallback(async () => {
+  // mappings.mappings is an array of EntityMappingConfig, not an object
+  const mappingsList = mappings?.mappings ?? [];
+
+  const handleExportClick = useCallback(() => {
+    const allIds = new Set(mappingsList.map((m) => m.entityId));
+    setExportSelected(allIds);
+    setExportProfileName("Bridge Mappings");
+    setExportDialogOpen(true);
+  }, [mappingsList]);
+
+  const handleExportConfirm = useCallback(async () => {
     try {
-      const profile = await exportMappingProfile(bridgeId, `Bridge Mappings`);
+      const entityIds = [...exportSelected];
+      const profile = await exportMappingProfile(
+        bridgeId,
+        exportProfileName,
+        entityIds,
+      );
       const blob = new Blob([JSON.stringify(profile, null, 2)], {
         type: "application/json",
       });
@@ -141,10 +160,36 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
       a.download = `mapping-profile-${bridgeId.slice(0, 8)}.json`;
       a.click();
       URL.revokeObjectURL(url);
+      setExportDialogOpen(false);
     } catch {
       setError("Failed to export mapping profile");
     }
-  }, [bridgeId]);
+  }, [bridgeId, exportSelected, exportProfileName]);
+
+  const handleExportCancel = useCallback(() => {
+    setExportDialogOpen(false);
+  }, []);
+
+  const toggleExportEntity = useCallback((entityId: string) => {
+    setExportSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(entityId)) {
+        next.delete(entityId);
+      } else {
+        next.add(entityId);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleExportAll = useCallback(() => {
+    setExportSelected((prev) => {
+      if (prev.size === mappingsList.length) {
+        return new Set();
+      }
+      return new Set(mappingsList.map((m) => m.entityId));
+    });
+  }, [mappingsList]);
 
   const handleImportClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -223,9 +268,6 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
     });
   }, []);
 
-  // mappings.mappings is an array of EntityMappingConfig, not an object
-  const mappingsList = mappings?.mappings ?? [];
-
   return (
     <Card>
       <CardContent>
@@ -245,7 +287,7 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
                 variant="outlined"
                 size="small"
                 startIcon={<DownloadIcon />}
-                onClick={handleExport}
+                onClick={handleExportClick}
               >
                 Export
               </Button>
@@ -372,6 +414,93 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
           onClose={handleClose}
         />
       )}
+
+      <Dialog
+        open={exportDialogOpen}
+        onClose={handleExportCancel}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Export Mapping Profile</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="Profile Name"
+              size="small"
+              fullWidth
+              value={exportProfileName}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setExportProfileName(e.target.value)
+              }
+            />
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        size="small"
+                        checked={exportSelected.size === mappingsList.length}
+                        indeterminate={
+                          exportSelected.size > 0 &&
+                          exportSelected.size < mappingsList.length
+                        }
+                        onChange={toggleExportAll}
+                      />
+                    </TableCell>
+                    <TableCell>Entity ID</TableCell>
+                    <TableCell>Device Type</TableCell>
+                    <TableCell>Custom Name</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {mappingsList.map((config) => (
+                    <TableRow key={config.entityId}>
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          size="small"
+                          checked={exportSelected.has(config.entityId)}
+                          onChange={() => toggleExportEntity(config.entityId)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontFamily="monospace">
+                          {config.entityId}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {config.matterDeviceType || (
+                          <Typography color="text.secondary" variant="body2">
+                            Auto
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {config.customName || (
+                          <Typography color="text.secondary" variant="body2">
+                            —
+                          </Typography>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleExportCancel}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleExportConfirm}
+            disabled={exportSelected.size === 0}
+            startIcon={<DownloadIcon />}
+          >
+            Export {exportSelected.size} Mapping(s)
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={!!importPreview}

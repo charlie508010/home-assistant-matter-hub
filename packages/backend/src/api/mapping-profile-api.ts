@@ -44,7 +44,13 @@ export function mappingProfileApi(
   router.get("/export/:bridgeId", (req, res) => {
     const { bridgeId } = req.params;
     const profileName = (req.query.name as string) || "Unnamed Profile";
-    const mappings = mappingStorage.getMappingsForBridge(bridgeId);
+    const entityIdsParam = req.query.entityIds as string | undefined;
+    let mappings = mappingStorage.getMappingsForBridge(bridgeId);
+
+    if (entityIdsParam) {
+      const selectedIds = new Set(entityIdsParam.split(","));
+      mappings = mappings.filter((m) => selectedIds.has(m.entityId));
+    }
 
     if (mappings.length === 0) {
       res.status(404).json({ error: "No mappings found for this bridge" });

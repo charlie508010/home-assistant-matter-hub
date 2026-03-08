@@ -8,9 +8,14 @@ import { assertOk, parseJsonResponse } from "./fetch-utils.js";
 export async function exportMappingProfile(
   bridgeId: string,
   profileName: string,
+  entityIds?: string[],
 ): Promise<MappingProfile> {
+  const params = new URLSearchParams({ name: profileName });
+  if (entityIds?.length) {
+    params.set("entityIds", entityIds.join(","));
+  }
   const response = await fetch(
-    `api/mapping-profiles/export/${bridgeId}?name=${encodeURIComponent(profileName)}`,
+    `api/mapping-profiles/export/${bridgeId}?${params.toString()}`,
   );
   await assertOk(response, "Failed to export mapping profile");
   return parseJsonResponse(response);
