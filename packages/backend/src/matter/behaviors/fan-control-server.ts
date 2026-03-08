@@ -1,12 +1,16 @@
 import type { HomeAssistantEntityInformation } from "@home-assistant-matter-hub/common";
 import type { ActionContext } from "@matter/main";
-import { FanControlServer as Base } from "@matter/main/behaviors";
+import {
+  FanControlServer as Base,
+  OnOffBehavior,
+} from "@matter/main/behaviors";
 import { FanControl } from "@matter/main/clusters";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { FanMode } from "../../utils/converters/fan-mode.js";
 import { FanSpeed } from "../../utils/converters/fan-speed.js";
 import { transactionIsOffline } from "../../utils/transaction-is-offline.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
+import { setOptimisticOnOff } from "./on-off-server.js";
 import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
 
 import AirflowDirection = FanControl.AirflowDirection;
@@ -241,6 +245,7 @@ export class FanControlServerBase extends FeaturedBase {
     if (!homeAssistant.isAvailable) {
       return;
     }
+    this.syncOnOff(percentSetting !== 0);
     if (percentSetting === 0) {
       homeAssistant.callAction(this.state.config.turnOff(void 0, this.agent));
     } else {
@@ -294,6 +299,7 @@ export class FanControlServerBase extends FeaturedBase {
       }
       const targetFanMode = FanMode.create(fanMode, this.state.fanModeSequence);
       if (targetFanMode.mode === FanControl.FanMode.Auto) {
+        this.syncOnOff(true);
         homeAssistant.callAction(
           this.state.config.setAutoMode(void 0, this.agent),
         );
@@ -330,6 +336,7 @@ export class FanControlServerBase extends FeaturedBase {
       this.agent,
     );
 
+    this.syncOnOff(percentage !== 0);
     if (percentage === 0) {
       homeAssistant.callAction(config.turnOff(void 0, this.agent));
     } else if (supportsPercentage) {
@@ -450,6 +457,21 @@ export class FanControlServerBase extends FeaturedBase {
       }
       homeAssistant.callAction(this.state.config.setWindMode(mode, this.agent));
     });
+  }
+
+  // Cross-cluster sync: keep OnOff in sync with FanControl per Matter spec
+  // §4.4.6.6.1. matter.js does not implement this automatically.
+  private syncOnOff(on: boolean) {
+    try {
+      if (!this.agent.has(OnOffBehavior)) return;
+      const onOffState = this.agent.get(OnOffBehavior).state;
+      applyPatchState(onOffState, { onOff: on });
+      const entityId = this.agent.get(HomeAssistantEntityBehavior).entity
+        .entity_id;
+      setOptimisticOnOff(entityId, on);
+    } catch {
+      // OnOff not present or transaction conflict — not critical
+    }
   }
 
   private mapWindModeToSetting(mode: "natural" | "sleep" | undefined): {

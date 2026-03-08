@@ -131,3 +131,10 @@ namespace OnOffServerBase {
 export function OnOffServer(config: OnOffConfig = {}) {
   return OnOffServerBase.set({ config });
 }
+
+export function setOptimisticOnOff(entityId: string, expectedOnOff: boolean) {
+  optimisticOnOffState.set(entityId, {
+    expectedOnOff,
+    timestamp: Date.now(),
+  });
+}
