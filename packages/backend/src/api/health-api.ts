@@ -14,6 +14,7 @@ export interface BridgeHealthInfo {
   status: string;
   statusReason?: string;
   port: number;
+  priority: number;
   deviceCount: number;
   fabricCount: number;
   fabrics: Array<{
@@ -117,6 +118,7 @@ export function healthApi(
         status: data.status,
         statusReason: data.statusReason,
         port: data.port,
+        priority: data.priority ?? 100,
         deviceCount: data.deviceCount,
         fabricCount: fabrics.length,
         fabrics: fabrics.map((f) => ({

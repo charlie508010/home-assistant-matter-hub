@@ -78,6 +78,7 @@ interface HealthSummary {
     deviceCount: number;
     fabricCount: number;
     failedEntityCount: number;
+    priority: number;
   }>;
 }
 
@@ -164,9 +165,11 @@ function StatCard({
 
 function BridgeMiniCard({
   bridge,
+  order,
   onClick,
 }: {
   bridge: HealthSummary["bridgeDetails"][0];
+  order: number;
   onClick: () => void;
 }) {
   const { content: bridges } = useBridges();
@@ -189,6 +192,19 @@ function BridgeMiniCard({
       <CardActionArea onClick={onClick}>
         <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
           <Box display="flex" alignItems="center" gap={1.5}>
+            <Chip
+              label={`#${order}`}
+              size="small"
+              color="primary"
+              variant="outlined"
+              sx={{
+                minWidth: 28,
+                height: 22,
+                fontSize: "0.65rem",
+                fontWeight: "bold",
+                flexShrink: 0,
+              }}
+            />
             {hasCustomIcon ? (
               <Box
                 component="img"
@@ -631,15 +647,12 @@ export const DashboardPage = () => {
                 {health?.bridgeDetails && health.bridgeDetails.length > 0 ? (
                   <Grid container spacing={1.5}>
                     {[...health.bridgeDetails]
-                      .sort((a, b) =>
-                        a.name.localeCompare(b.name, undefined, {
-                          sensitivity: "base",
-                        }),
-                      )
-                      .map((bridge) => (
+                      .sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100))
+                      .map((bridge, idx) => (
                         <Grid key={bridge.id} size={{ xs: 12, sm: 6, md: 4 }}>
                           <BridgeMiniCard
                             bridge={bridge}
+                            order={idx + 1}
                             onClick={() =>
                               navigate(navigation.bridge(bridge.id))
                             }
