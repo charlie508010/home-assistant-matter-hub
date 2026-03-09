@@ -1,3 +1,5 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { Logger } from "@matter/general";
 import { getSupportedPluginDeviceTypes } from "./plugin-device-factory.js";
 import { FilePluginStorage } from "./plugin-storage.js";
@@ -46,6 +48,7 @@ interface PluginInstance {
   context: PluginContext;
   metadata: PluginMetadata;
   devices: Map<string, PluginDevice>;
+  started: boolean;
 }
 
 /**
@@ -107,8 +110,26 @@ export class PluginManager {
     config: Record<string, unknown>,
   ): Promise<void> {
     try {
+      // Validate manifest before executing any plugin code
+      const pkgJsonPath = path.join(packagePath, "package.json");
+      if (!fs.existsSync(pkgJsonPath)) {
+        throw new Error(`Plugin at ${packagePath} has no package.json`);
+      }
+      let manifest: { name?: string; version?: string; main?: string };
+      try {
+        manifest = JSON.parse(fs.readFileSync(pkgJsonPath, "utf-8"));
+      } catch {
+        throw new Error(`Plugin at ${packagePath} has invalid package.json`);
+      }
+      if (!manifest.name || typeof manifest.name !== "string") {
+        throw new Error(`Plugin at ${packagePath} package.json missing "name"`);
+      }
+      if (!manifest.main || typeof manifest.main !== "string") {
+        throw new Error(`Plugin at ${packagePath} package.json missing "main"`);
+      }
+
       const module = await this.runner.run(
-        packagePath,
+        manifest.name,
         "import",
         () => import(packagePath),
         15_000,
@@ -206,7 +227,13 @@ export class PluginManager {
       },
     };
 
-    this.instances.set(plugin.name, { plugin, context, metadata, devices });
+    this.instances.set(plugin.name, {
+      plugin,
+      context,
+      metadata,
+      devices,
+      started: false,
+    });
     logger.info(
       `Registered plugin: ${plugin.name} v${plugin.version} (${metadata.source})`,
     );
@@ -231,6 +258,8 @@ export class PluginManager {
       );
       if (this.runner.isDisabled(name)) {
         instance.metadata.enabled = false;
+      } else if (this.runner.getState(name).failures === 0) {
+        instance.started = true;
       }
     }
   }
@@ -257,11 +286,12 @@ export class PluginManager {
    */
   async shutdownAll(reason?: string): Promise<void> {
     for (const [name, instance] of this.instances) {
-      if (instance.plugin.onShutdown) {
+      if (instance.started && instance.plugin.onShutdown) {
         await this.runner.run(name, "onShutdown", () =>
           instance.plugin.onShutdown!(reason),
         );
       }
+      instance.started = false;
       logger.info(`Plugin "${name}" shut down`);
     }
     this.instances.clear();

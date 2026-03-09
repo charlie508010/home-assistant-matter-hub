@@ -1,4 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { PLUGIN_API_VERSION, PluginManager } from "./plugin-manager.js";
 import type { MatterHubPlugin, PluginContext, PluginDevice } from "./types.js";
 
@@ -260,5 +263,112 @@ describe("PluginManager", () => {
 
   it("should export PLUGIN_API_VERSION", () => {
     expect(PLUGIN_API_VERSION).toBe(1);
+  });
+
+  describe("loadExternal", () => {
+    const tempDirs: string[] = [];
+
+    afterEach(() => {
+      for (const dir of tempDirs) {
+        try {
+          fs.rmSync(dir, { recursive: true, force: true });
+        } catch {
+          // best-effort cleanup
+        }
+      }
+      tempDirs.length = 0;
+    });
+
+    function createTempPlugin(code: string, name = "temp-plugin"): string {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hamh-test-plugin-"));
+      tempDirs.push(dir);
+      fs.writeFileSync(
+        path.join(dir, "package.json"),
+        JSON.stringify({
+          name,
+          version: "0.1.0",
+          main: "index.js",
+          type: "module",
+        }),
+      );
+      fs.writeFileSync(path.join(dir, "index.js"), code);
+      return dir;
+    }
+
+    it("should load and start an external JS plugin", async () => {
+      const pluginDir = createTempPlugin(`
+export default class TestPlugin {
+  name = "temp-plugin";
+  version = "0.1.0";
+  async onStart(ctx) {
+    await ctx.registerDevice({
+      id: "ext-dev-1",
+      name: "External Device",
+      deviceType: "on_off_light",
+      clusters: [{ clusterId: "onOff", attributes: { onOff: false } }],
+    });
+  }
+}
+`);
+
+      const pm = new PluginManager("bridge-1", storageDir);
+      const registered: PluginDevice[] = [];
+      pm.onDeviceRegistered = async (_name, device) => {
+        registered.push(device);
+      };
+
+      await pm.loadExternal(pluginDir, {});
+      await pm.startAll();
+
+      expect(registered).toHaveLength(1);
+      expect(registered[0].id).toBe("ext-dev-1");
+      expect(pm.getMetadata()[0].source).toBe(pluginDir);
+    });
+
+    it("should reject plugin without package.json", async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hamh-test-nopkg-"));
+      tempDirs.push(dir);
+      fs.writeFileSync(
+        path.join(dir, "index.js"),
+        "export default class X { name='x'; version='1'; async onStart(){} }",
+      );
+
+      const pm = new PluginManager("bridge-1", storageDir);
+      await expect(pm.loadExternal(dir, {})).rejects.toThrow("no package.json");
+    });
+
+    it("should reject plugin with missing main field", async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hamh-test-nomain-"));
+      tempDirs.push(dir);
+      fs.writeFileSync(
+        path.join(dir, "package.json"),
+        JSON.stringify({ name: "bad", version: "1.0.0" }),
+      );
+      fs.writeFileSync(path.join(dir, "index.js"), "export default class X {}");
+
+      const pm = new PluginManager("bridge-1", storageDir);
+      await expect(pm.loadExternal(dir, {})).rejects.toThrow('missing "main"');
+    });
+  });
+
+  describe("shutdown safety", () => {
+    it("should not call onShutdown on plugins that failed to start", async () => {
+      const pm = new PluginManager("bridge-1", storageDir);
+      const onShutdown = vi.fn(async () => {});
+
+      await pm.registerBuiltIn(
+        createMockPlugin({
+          onStart: async () => {
+            throw new Error("startup crash");
+          },
+          onShutdown,
+        }),
+      );
+
+      await pm.startAll();
+      await pm.shutdownAll("test");
+
+      expect(onShutdown).not.toHaveBeenCalled();
+    });
   });
 });
