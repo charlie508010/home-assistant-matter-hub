@@ -24,6 +24,11 @@ export interface CircuitBreakerState {
  * Plugins run in-process because they need direct access to matter.js
  * Endpoint objects (structured clone cannot serialize them). Isolation
  * is achieved via defensive wrappers, not OS-level sandboxing.
+ *
+ * Limitation: fire-and-forget promises created by plugins (e.g. inside
+ * setTimeout callbacks) escape this runner's scope. The caller should
+ * ensure a process-level unhandledRejection handler exists to prevent
+ * crashes from such cases.
  */
 export class SafePluginRunner {
   private readonly states = new Map<string, CircuitBreakerState>();
