@@ -19,6 +19,9 @@ export interface BridgeHealthInfo {
   fabricCount: number;
   fabrics: Array<{
     fabricIndex: number;
+    fabricId: number;
+    nodeId: number;
+    rootNodeId: number;
     label: string;
     rootVendorId: number;
   }>;
@@ -123,6 +126,9 @@ export function healthApi(
         fabricCount: fabrics.length,
         fabrics: fabrics.map((f) => ({
           fabricIndex: f.fabricIndex,
+          fabricId: f.fabricId,
+          nodeId: f.nodeId,
+          rootNodeId: f.rootNodeId,
           label: f.label,
           rootVendorId: f.rootVendorId,
         })),

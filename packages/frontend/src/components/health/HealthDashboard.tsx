@@ -45,6 +45,9 @@ interface BridgeHealthInfo {
   fabricCount: number;
   fabrics: Array<{
     fabricIndex: number;
+    fabricId: number;
+    nodeId: number;
+    rootNodeId: number;
     label: string;
     rootVendorId: number;
   }>;
@@ -477,19 +480,40 @@ export function HealthDashboard(props: HealthDashboardProps = {}) {
                       </Typography>
                       <Box display="flex" gap={0.5} flexWrap="wrap" mt={0.5}>
                         {bridge.fabrics.map((fabric) => (
-                          <Chip
+                          <Tooltip
                             key={fabric.fabricIndex}
-                            icon={
-                              <FabricIcon
-                                fabric={fabric as unknown as BridgeFabric}
-                              />
+                            title={
+                              <Box sx={{ fontSize: "0.75rem" }}>
+                                <div>Fabric #{fabric.fabricIndex}</div>
+                                <div>
+                                  Vendor: {getVendorName(fabric.rootVendorId)}{" "}
+                                  (0x
+                                  {fabric.rootVendorId
+                                    .toString(16)
+                                    .toUpperCase()
+                                    .padStart(4, "0")}
+                                  )
+                                </div>
+                                <div>Fabric ID: {fabric.fabricId}</div>
+                                <div>Node ID: {fabric.nodeId}</div>
+                                <div>Root Node ID: {fabric.rootNodeId}</div>
+                              </Box>
                             }
-                            label={
-                              fabric.label || getVendorName(fabric.rootVendorId)
-                            }
-                            size="small"
-                            variant="outlined"
-                          />
+                          >
+                            <Chip
+                              icon={
+                                <FabricIcon
+                                  fabric={fabric as unknown as BridgeFabric}
+                                />
+                              }
+                              label={
+                                fabric.label ||
+                                getVendorName(fabric.rootVendorId)
+                              }
+                              size="small"
+                              variant="outlined"
+                            />
+                          </Tooltip>
                         ))}
                       </Box>
                     </Box>
