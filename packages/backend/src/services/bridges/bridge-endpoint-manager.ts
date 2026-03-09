@@ -9,9 +9,9 @@ import { AggregatorEndpoint } from "../../matter/endpoints/aggregator-endpoint.j
 import type { EntityEndpoint } from "../../matter/endpoints/entity-endpoint.js";
 import { LegacyEndpoint } from "../../matter/endpoints/legacy/legacy-endpoint.js";
 import { createPluginEndpointType } from "../../plugins/plugin-device-factory.js";
-import { PluginInstaller } from "../../plugins/plugin-installer.js";
+import type { PluginInstaller } from "../../plugins/plugin-installer.js";
 import type { PluginManager } from "../../plugins/plugin-manager.js";
-import { PluginRegistry } from "../../plugins/plugin-registry.js";
+import type { PluginRegistry } from "../../plugins/plugin-registry.js";
 import type { PluginDevice, PluginMetadata } from "../../plugins/types.js";
 import { isHeapUnderPressure } from "../../utils/log-memory.js";
 import { subscribeEntities } from "../home-assistant/api/subscribe-entities.js";
@@ -45,7 +45,8 @@ export class BridgeEndpointManager extends Service {
     private readonly bridgeId: string,
     private readonly log: Logger,
     private readonly pluginManager?: PluginManager,
-    private readonly storageLocation?: string,
+    private readonly pluginRegistry?: PluginRegistry,
+    private readonly pluginInstaller?: PluginInstaller,
   ) {
     super("BridgeEndpointManager");
     this.root = new AggregatorEndpoint("aggregator");
@@ -189,13 +190,12 @@ export class BridgeEndpointManager extends Service {
   }
 
   private async loadRegisteredPlugins(): Promise<void> {
-    if (!this.pluginManager || !this.storageLocation) return;
-    const pluginRegistry = new PluginRegistry(this.storageLocation);
-    const installer = new PluginInstaller(this.storageLocation);
-    const registered = pluginRegistry.getAll();
+    if (!this.pluginManager || !this.pluginRegistry || !this.pluginInstaller)
+      return;
+    const registered = this.pluginRegistry.getAll();
     for (const entry of registered) {
       if (!entry.autoLoad) continue;
-      const packagePath = installer.getPluginPath(entry.packageName);
+      const packagePath = this.pluginInstaller.getPluginPath(entry.packageName);
       try {
         await this.pluginManager.loadExternal(packagePath, entry.config);
         this.log.info(

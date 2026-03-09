@@ -1,7 +1,9 @@
 import type { BridgeData } from "@home-assistant-matter-hub/common";
 import type { Environment, Logger } from "@matter/general";
 import { ServerModeServerNode } from "../../matter/endpoints/server-mode-server-node.js";
+import { PluginInstaller } from "../../plugins/plugin-installer.js";
 import { PluginManager } from "../../plugins/plugin-manager.js";
+import { PluginRegistry } from "../../plugins/plugin-registry.js";
 import { Bridge } from "../../services/bridges/bridge.js";
 import { BridgeDataProvider } from "../../services/bridges/bridge-data-provider.js";
 import { BridgeEndpointManager } from "../../services/bridges/bridge-endpoint-manager.js";
@@ -60,8 +62,12 @@ export class BridgeEnvironment extends EnvironmentBase {
 
     const bridgeId = this.get(BridgeDataProvider).id;
     let pluginManager: PluginManager | undefined;
+    let pluginRegistry: PluginRegistry | undefined;
+    let pluginInstaller: PluginInstaller | undefined;
     if (this.storageLocation) {
       pluginManager = new PluginManager(bridgeId, this.storageLocation);
+      pluginRegistry = new PluginRegistry(this.storageLocation);
+      pluginInstaller = new PluginInstaller(this.storageLocation);
     }
 
     this.set(
@@ -73,7 +79,8 @@ export class BridgeEnvironment extends EnvironmentBase {
         bridgeId,
         this.endpointManagerLogger,
         pluginManager,
-        this.storageLocation,
+        pluginRegistry,
+        pluginInstaller,
       ),
     );
   }
