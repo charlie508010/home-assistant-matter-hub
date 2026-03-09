@@ -195,5 +195,22 @@
   "languageSwitcher": {
     "disclaimer": "Übersetzungen können unvollständig sein.",
     "contribute": "Hilf sie zu verbessern!"
+  },
+  "translationEditor": {
+    "title": "Übersetzungseditor",
+    "editLanguage": "Sprache bearbeiten",
+    "info": "Bearbeite Übersetzungen direkt im Browser. Änderungen werden lokal gespeichert und sofort angewendet. Exportiere deine Übersetzungen, um sie dem Projekt einzureichen.",
+    "progress": "{{translated}} / {{total}} Schlüssel übersetzt",
+    "localEdits": "{{count}} lokale Bearbeitung(en)",
+    "searchPlaceholder": "Schlüssel oder Werte suchen...",
+    "filterAll": "Alle Schlüssel",
+    "filterMissing": "Fehlend",
+    "filterEdited": "Bearbeitet",
+    "exportJson": "JSON exportieren",
+    "copyJson": "JSON kopieren",
+    "copied": "Kopiert!",
+    "resetAll": "Alle Bearbeitungen zurücksetzen",
+    "resetKey": "Auf Standard zurücksetzen",
+    "noResults": "Keine passenden Übersetzungsschlüssel gefunden."
   }
 }

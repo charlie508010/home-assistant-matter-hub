@@ -26,6 +26,7 @@ const languages: LanguageOption[] = [
   { code: "it", flag: "🇮🇹", name: "Italiano" },
   { code: "zh", flag: "🇨🇳", name: "中文" },
   { code: "th", flag: "🇹🇭", name: "ไทย" },
+  { code: "sv", flag: "🇸🇪", name: "Svenska" },
 ];
 
 const TRANSLATIONS_ISSUE_URL =

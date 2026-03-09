@@ -195,5 +195,22 @@
   "languageSwitcher": {
     "disclaimer": "翻译可能不完整。",
     "contribute": "帮助改进翻译！"
+  },
+  "translationEditor": {
+    "title": "翻译编辑器",
+    "editLanguage": "编辑语言",
+    "info": "直接在浏览器中编辑翻译。更改会本地保存并立即应用。导出你的翻译以提交给项目。",
+    "progress": "{{translated}} / {{total}} 个键已翻译",
+    "localEdits": "{{count}} 处本地编辑",
+    "searchPlaceholder": "搜索键或值...",
+    "filterAll": "所有键",
+    "filterMissing": "缺失",
+    "filterEdited": "已编辑",
+    "exportJson": "导出 JSON",
+    "copyJson": "复制 JSON",
+    "copied": "已复制！",
+    "resetAll": "重置所有编辑",
+    "resetKey": "重置为默认值",
+    "noResults": "未找到匹配的翻译键。"
   }
 }

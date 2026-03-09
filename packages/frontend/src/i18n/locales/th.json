@@ -195,5 +195,22 @@
   "languageSwitcher": {
     "disclaimer": "การแปลอาจไม่สมบูรณ์",
     "contribute": "ช่วยปรับปรุงการแปล!"
+  },
+  "translationEditor": {
+    "title": "ตัวแก้ไขการแปล",
+    "editLanguage": "แก้ไขภาษา",
+    "info": "แก้ไขการแปลโดยตรงในเบราว์เซอร์ของคุณ การเปลี่ยนแปลงจะถูกบันทึกในเครื่องและใช้งานได้ทันที ส่งออกการแปลของคุณเพื่อส่งให้โครงการ",
+    "progress": "{{translated}} / {{total}} คีย์ที่แปลแล้ว",
+    "localEdits": "{{count}} การแก้ไขในเครื่อง",
+    "searchPlaceholder": "ค้นหาคีย์หรือค่า...",
+    "filterAll": "คีย์ทั้งหมด",
+    "filterMissing": "ขาดหายไป",
+    "filterEdited": "แก้ไขแล้ว",
+    "exportJson": "ส่งออก JSON",
+    "copyJson": "คัดลอก JSON",
+    "copied": "คัดลอกแล้ว!",
+    "resetAll": "รีเซ็ตการแก้ไขทั้งหมด",
+    "resetKey": "รีเซ็ตเป็นค่าเริ่มต้น",
+    "noResults": "ไม่พบคีย์การแปลที่ตรงกัน"
   }
 }

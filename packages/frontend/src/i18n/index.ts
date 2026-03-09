@@ -6,6 +6,7 @@ import en from "./locales/en.json";
 import es from "./locales/es.json";
 import fr from "./locales/fr.json";
 import it from "./locales/it.json";
+import sv from "./locales/sv.json";
 import th from "./locales/th.json";
 import zh from "./locales/zh.json";
 
@@ -21,6 +22,7 @@ i18n
       es: { translation: es },
       zh: { translation: zh },
       th: { translation: th },
+      sv: { translation: sv },
     },
     fallbackLng: "en",
     interpolation: {
