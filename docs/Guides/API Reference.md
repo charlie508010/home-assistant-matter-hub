@@ -284,6 +284,72 @@ Restart the application after a restore.
 
 ---
 
+## Plugin API
+
+Base path: `/api/plugins`
+
+### GET /api/plugins
+
+List installed plugin packages and active plugins per bridge.
+
+### POST /api/plugins/install
+
+Install a plugin from npm.
+
+**Request:**
+```json
+{ "packageName": "hamh-plugin-example" }
+```
+
+### POST /api/plugins/upload
+
+Install a plugin from an uploaded `.tgz` file. Send the raw binary as the request body with `Content-Type: application/octet-stream`.
+
+### POST /api/plugins/install-local
+
+Link a local plugin directory.
+
+**Request:**
+```json
+{ "path": "/absolute/path/to/plugin" }
+```
+
+### POST /api/plugins/uninstall
+
+Uninstall a plugin package.
+
+**Request:**
+```json
+{ "packageName": "hamh-plugin-example" }
+```
+
+### POST /api/plugins/:bridgeId/:pluginName/enable
+
+Enable a plugin on a bridge.
+
+### POST /api/plugins/:bridgeId/:pluginName/disable
+
+Disable a plugin on a bridge.
+
+### POST /api/plugins/:bridgeId/:pluginName/reset
+
+Reset a plugin's circuit breaker (re-enable after auto-disable from failures).
+
+### GET /api/plugins/:bridgeId/:pluginName/config-schema
+
+Get the JSON config schema for a plugin (if the plugin provides one).
+
+### POST /api/plugins/:bridgeId/:pluginName/config
+
+Update a plugin's configuration.
+
+**Request:**
+```json
+{ "config": { "pollingInterval": 30000 } }
+```
+
+---
+
 ## Lock Credentials API
 
 Base path: `/api/lock-credentials`

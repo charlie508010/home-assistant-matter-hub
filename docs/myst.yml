@@ -18,6 +18,7 @@ project:
         - file: Guides/Connectivity Issues.md
         - file: "Guides/Connect Multiple Fabrics.md"
         - file: "Guides/Reverse Proxy.md"
+        - file: "Guides/Plugin System.md"
     - file: Supported Device Types.md
     - title: Devices
       children:

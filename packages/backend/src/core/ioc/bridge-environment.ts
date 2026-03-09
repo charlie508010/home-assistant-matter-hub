@@ -73,6 +73,7 @@ export class BridgeEnvironment extends EnvironmentBase {
         bridgeId,
         this.endpointManagerLogger,
         pluginManager,
+        this.storageLocation,
       ),
     );
   }

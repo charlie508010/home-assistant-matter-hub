@@ -1,0 +1,17 @@
+{
+  "name": "hamh-plugin-example",
+  "version": "1.0.0",
+  "description": "Example HAMH plugin that registers a virtual temperature sensor",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "pack": "npm pack"
+  },
+  "keywords": ["hamh", "matter", "plugin"],
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

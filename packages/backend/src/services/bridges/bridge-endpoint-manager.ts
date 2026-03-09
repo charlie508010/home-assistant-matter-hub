@@ -9,7 +9,9 @@ import { AggregatorEndpoint } from "../../matter/endpoints/aggregator-endpoint.j
 import type { EntityEndpoint } from "../../matter/endpoints/entity-endpoint.js";
 import { LegacyEndpoint } from "../../matter/endpoints/legacy/legacy-endpoint.js";
 import { createPluginEndpointType } from "../../plugins/plugin-device-factory.js";
+import { PluginInstaller } from "../../plugins/plugin-installer.js";
 import type { PluginManager } from "../../plugins/plugin-manager.js";
+import { PluginRegistry } from "../../plugins/plugin-registry.js";
 import type { PluginDevice, PluginMetadata } from "../../plugins/types.js";
 import { isHeapUnderPressure } from "../../utils/log-memory.js";
 import { subscribeEntities } from "../home-assistant/api/subscribe-entities.js";
@@ -28,6 +30,7 @@ export class BridgeEndpointManager extends Service {
   private _failedEntities: FailedEntity[] = [];
   private readonly mappingFingerprints = new Map<string, string>();
   private readonly pluginEndpoints = new Map<string, Endpoint>();
+  private readonly pluginStateUpdating = new Set<string>();
 
   get failedEntities(): FailedEntity[] {
     // Combine static failed entities with dynamically isolated entities
@@ -42,6 +45,7 @@ export class BridgeEndpointManager extends Service {
     private readonly bridgeId: string,
     private readonly log: Logger,
     private readonly pluginManager?: PluginManager,
+    private readonly storageLocation?: string,
   ) {
     super("BridgeEndpointManager");
     this.root = new AggregatorEndpoint("aggregator");
@@ -86,6 +90,7 @@ export class BridgeEndpointManager extends Service {
       try {
         await this.root.add(endpoint);
         this.pluginEndpoints.set(device.id, endpoint);
+        this.wirePluginEndpointEvents(device, endpoint);
         this.log.info(
           `Plugin "${pluginName}": added device "${device.name}" (${device.deviceType})`,
         );
@@ -130,19 +135,79 @@ export class BridgeEndpointManager extends Service {
         );
         return;
       }
-      endpoint.setStateOf(behaviorType, attributes).catch((e) => {
-        this.log.warn(
-          `Plugin "${pluginName}": failed to update "${clusterId}" on "${deviceId}":`,
-          e,
-        );
-      });
+      this.pluginStateUpdating.add(deviceId);
+      endpoint
+        .setStateOf(behaviorType, attributes)
+        .catch((e) => {
+          this.log.warn(
+            `Plugin "${pluginName}": failed to update "${clusterId}" on "${deviceId}":`,
+            e,
+          );
+        })
+        .finally(() => {
+          this.pluginStateUpdating.delete(deviceId);
+        });
     };
+  }
+
+  private wirePluginEndpointEvents(
+    device: PluginDevice,
+    endpoint: Endpoint,
+  ): void {
+    if (!device.onAttributeWrite) return;
+    // biome-ignore lint/suspicious/noExplicitAny: matter.js events are dynamically typed per endpoint
+    const allEvents = endpoint.events as any;
+    for (const behaviorId of Object.keys(endpoint.type.behaviors)) {
+      if (behaviorId === "pluginDevice") continue;
+      const behaviorEvents = allEvents[behaviorId];
+      if (!behaviorEvents || typeof behaviorEvents !== "object") continue;
+      for (const eventName of Object.keys(behaviorEvents)) {
+        if (!eventName.endsWith("$Changed")) continue;
+        const observable = behaviorEvents[eventName];
+        if (!observable || typeof observable.on !== "function") continue;
+        const attrName = eventName.slice(0, -"$Changed".length);
+        observable.on((newValue: unknown) => {
+          if (this.pluginStateUpdating.has(device.id)) return;
+          device
+            .onAttributeWrite?.(behaviorId, attrName, newValue)
+            .catch((e: unknown) => {
+              this.log.debug(
+                `Plugin device "${device.id}": onAttributeWrite error for ${behaviorId}.${attrName}:`,
+                e,
+              );
+            });
+        });
+      }
+    }
   }
 
   async startPlugins(): Promise<void> {
     if (!this.pluginManager) return;
+    await this.loadRegisteredPlugins();
     await this.pluginManager.startAll();
     await this.pluginManager.configureAll();
+  }
+
+  private async loadRegisteredPlugins(): Promise<void> {
+    if (!this.pluginManager || !this.storageLocation) return;
+    const pluginRegistry = new PluginRegistry(this.storageLocation);
+    const installer = new PluginInstaller(this.storageLocation);
+    const registered = pluginRegistry.getAll();
+    for (const entry of registered) {
+      if (!entry.autoLoad) continue;
+      const packagePath = installer.getPluginPath(entry.packageName);
+      try {
+        await this.pluginManager.loadExternal(packagePath, entry.config);
+        this.log.info(
+          `Loaded external plugin: ${entry.packageName} from ${packagePath}`,
+        );
+      } catch (e) {
+        this.log.warn(
+          `Failed to load external plugin "${entry.packageName}":`,
+          e,
+        );
+      }
+    }
   }
 
   async stopPlugins(): Promise<void> {
@@ -204,6 +269,22 @@ export class BridgeEndpointManager extends Service {
 
   resetPlugin(pluginName: string): void {
     this.pluginManager?.resetPlugin(pluginName);
+  }
+
+  getPluginConfigSchema(
+    pluginName: string,
+  ): Record<string, unknown> | undefined {
+    // biome-ignore lint/suspicious/noExplicitAny: PluginConfigSchema is structurally compatible
+    return this.pluginManager?.getConfigSchema(pluginName) as any;
+  }
+
+  async updatePluginConfig(
+    pluginName: string,
+    config: Record<string, unknown>,
+  ): Promise<boolean> {
+    return (
+      (await this.pluginManager?.updateConfig(pluginName, config)) ?? false
+    );
   }
 
   /**

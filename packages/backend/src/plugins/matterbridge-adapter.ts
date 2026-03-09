@@ -1,4 +1,5 @@
 import { Logger } from "@matter/general";
+import { Matter } from "@matter/main/model";
 import type {
   MatterHubPlugin,
   PluginClusterConfig,
@@ -7,6 +8,30 @@ import type {
 } from "./types.js";
 
 const logger = Logger.get("MatterbridgeAdapter");
+
+const clusterIdToKeyMap = new Map<number, string>();
+for (const cluster of Matter.clusters) {
+  if (cluster.id != null) {
+    clusterIdToKeyMap.set(
+      cluster.id,
+      cluster.name[0].toLowerCase() + cluster.name.slice(1),
+    );
+  }
+}
+
+const deviceTypeCodeToKeyMap = new Map<number, string>([
+  [0x100, "on_off_light"],
+  [0x101, "dimmable_light"],
+  [0x10a, "on_off_plugin_unit"],
+  [0x302, "temperature_sensor"],
+  [0x307, "humidity_sensor"],
+  [0x106, "light_sensor"],
+  [0x107, "occupancy_sensor"],
+  [0x15, "contact_sensor"],
+  [0x301, "thermostat"],
+  [0xa, "door_lock"],
+  [0x2b, "fan"],
+]);
 
 /**
  * Minimal shim of Matterbridge's MatterbridgeEndpoint for adapter use.
@@ -138,13 +163,25 @@ export class MatterbridgePluginAdapter implements MatterHubPlugin {
 
       const clusters: PluginClusterConfig[] = (
         endpoint.clusterServersObjs ?? []
-      ).map((cs) => ({
-        clusterId: String(cs.clusterId),
-        attributes: cs.attributes ?? {},
-      }));
+      )
+        .map((cs) => {
+          const key = clusterIdToKeyMap.get(cs.clusterId);
+          if (!key) {
+            logger.debug(`Unknown cluster ID ${cs.clusterId}, skipping`);
+            return undefined;
+          }
+          return {
+            clusterId: key,
+            attributes: cs.attributes ?? {},
+          };
+        })
+        .filter((c): c is PluginClusterConfig => c !== undefined);
 
+      const code = endpoint.deviceTypes?.[0]?.code;
       const deviceType =
-        endpoint.deviceTypes?.[0]?.name ?? "on_off_plugin_unit";
+        code != null
+          ? (deviceTypeCodeToKeyMap.get(code) ?? "on_off_plugin_unit")
+          : "on_off_plugin_unit";
 
       const pluginDevice: PluginDevice = {
         id: deviceId,

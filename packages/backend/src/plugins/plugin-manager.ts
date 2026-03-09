@@ -1,4 +1,5 @@
 import { Logger } from "@matter/general";
+import { getSupportedPluginDeviceTypes } from "./plugin-device-factory.js";
 import { FilePluginStorage } from "./plugin-storage.js";
 import {
   type CircuitBreakerState,
@@ -7,12 +8,38 @@ import {
 import type {
   MatterHubPlugin,
   MatterHubPluginConstructor,
+  PluginConfigSchema,
   PluginContext,
   PluginDevice,
   PluginMetadata,
 } from "./types.js";
 
 const logger = Logger.get("PluginManager");
+
+export const PLUGIN_API_VERSION = 1;
+
+function validatePluginDevice(device: unknown): string | undefined {
+  if (!device || typeof device !== "object") return "device must be an object";
+  const d = device as Record<string, unknown>;
+  if (!d.id || typeof d.id !== "string")
+    return "device.id must be a non-empty string";
+  if (!d.name || typeof d.name !== "string")
+    return "device.name must be a non-empty string";
+  if (!d.deviceType || typeof d.deviceType !== "string")
+    return "device.deviceType must be a non-empty string";
+  const supported = getSupportedPluginDeviceTypes();
+  if (!supported.includes(d.deviceType as string))
+    return `unsupported deviceType "${d.deviceType}". Supported: ${supported.join(", ")}`;
+  if (!Array.isArray(d.clusters)) return "device.clusters must be an array";
+  for (let i = 0; i < (d.clusters as unknown[]).length; i++) {
+    const c = (d.clusters as unknown[])[i];
+    if (!c || typeof c !== "object") return `clusters[${i}] must be an object`;
+    const cc = c as Record<string, unknown>;
+    if (!cc.clusterId || typeof cc.clusterId !== "string")
+      return `clusters[${i}].clusterId must be a non-empty string`;
+  }
+  return undefined;
+}
 
 interface PluginInstance {
   plugin: MatterHubPlugin;
@@ -134,6 +161,11 @@ export class PluginManager {
       log: pluginLogger,
 
       registerDevice: async (device: PluginDevice) => {
+        const validationError = validatePluginDevice(device);
+        if (validationError) {
+          pluginLogger.warn(`Rejected device registration: ${validationError}`);
+          return;
+        }
         if (devices.has(device.id)) {
           pluginLogger.warn(
             `Device "${device.id}" already registered, updating`,
@@ -283,5 +315,26 @@ export class PluginManager {
     if (instance) {
       instance.metadata.enabled = true;
     }
+  }
+
+  getConfigSchema(pluginName: string): PluginConfigSchema | undefined {
+    const instance = this.instances.get(pluginName);
+    if (!instance) return undefined;
+    return instance.plugin.getConfigSchema?.();
+  }
+
+  async updateConfig(
+    pluginName: string,
+    config: Record<string, unknown>,
+  ): Promise<boolean> {
+    const instance = this.instances.get(pluginName);
+    if (!instance) return false;
+    instance.metadata.config = config;
+    if (instance.plugin.onConfigChanged) {
+      await this.runner.run(pluginName, "onConfigChanged", () =>
+        instance.plugin.onConfigChanged!(config),
+      );
+    }
+    return true;
   }
 }

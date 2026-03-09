@@ -96,6 +96,44 @@ export function pluginApi(
   });
 
   /**
+   * GET /api/plugins/:bridgeId/:pluginName/config-schema
+   * Get the config schema for a plugin.
+   */
+  router.get("/:bridgeId/:pluginName/config-schema", (req, res) => {
+    const bridge = bridgeService.get(req.params.bridgeId);
+    if (!bridge) {
+      res.status(404).json({ error: "Bridge not found" });
+      return;
+    }
+    const schema = bridge.getPluginConfigSchema(req.params.pluginName);
+    res.json({ pluginName: req.params.pluginName, schema: schema ?? null });
+  });
+
+  /**
+   * POST /api/plugins/:bridgeId/:pluginName/config
+   * Update the config for a plugin.
+   * Body: { config: object }
+   */
+  router.post("/:bridgeId/:pluginName/config", async (req, res) => {
+    const bridge = bridgeService.get(req.params.bridgeId);
+    if (!bridge) {
+      res.status(404).json({ error: "Bridge not found" });
+      return;
+    }
+    const { config } = req.body as { config?: Record<string, unknown> };
+    if (!config || typeof config !== "object") {
+      res.status(400).json({ error: "config object is required" });
+      return;
+    }
+    const ok = await bridge.updatePluginConfig(req.params.pluginName, config);
+    if (!ok) {
+      res.status(404).json({ error: "Plugin not found" });
+      return;
+    }
+    res.json({ success: true, pluginName: req.params.pluginName });
+  });
+
+  /**
    * POST /api/plugins/:bridgeId/:pluginName/reset
    * Reset the circuit breaker for a plugin.
    */
@@ -207,6 +245,88 @@ export function pluginApi(
     } catch (err) {
       res.status(500).json({
         error: err instanceof Error ? err.message : "Uninstall failed",
+      });
+    }
+  });
+
+  /**
+   * POST /api/plugins/upload
+   * Install a plugin from an uploaded .tgz file.
+   * Expects raw binary body with Content-Type: application/gzip or application/octet-stream.
+   */
+  router.post("/upload", async (req, res) => {
+    try {
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      }
+      const tgzBuffer = Buffer.concat(chunks);
+
+      if (tgzBuffer.length === 0) {
+        res.status(400).json({ error: "Empty upload body" });
+        return;
+      }
+
+      const result = await installer.installFromTgz(tgzBuffer);
+      if (!result.success) {
+        res.status(500).json({
+          error: `Upload install failed: ${result.error}`,
+          details: result,
+        });
+        return;
+      }
+
+      registry.add(result.packageName, {});
+
+      res.json({
+        success: true,
+        packageName: result.packageName,
+        version: result.version,
+        message:
+          "Plugin uploaded and installed. Restart the bridge to load it.",
+      });
+    } catch (err) {
+      res.status(500).json({
+        error: err instanceof Error ? err.message : "Upload failed",
+      });
+    }
+  });
+
+  /**
+   * POST /api/plugins/install-local
+   * Install a plugin from a local filesystem path (symlink).
+   * Body: { path: string }
+   */
+  router.post("/install-local", (req, res) => {
+    const { path: localPath } = req.body as { path?: string };
+
+    if (!localPath || typeof localPath !== "string") {
+      res.status(400).json({ error: "path is required" });
+      return;
+    }
+
+    try {
+      const result = installer.installFromLocal(localPath);
+      if (!result.success) {
+        res.status(500).json({
+          error: `Local install failed: ${result.error}`,
+          details: result,
+        });
+        return;
+      }
+
+      registry.add(result.packageName, {});
+
+      res.json({
+        success: true,
+        packageName: result.packageName,
+        version: result.version,
+        message:
+          "Plugin linked from local path. Restart the bridge to load it.",
+      });
+    } catch (err) {
+      res.status(500).json({
+        error: err instanceof Error ? err.message : "Local install failed",
       });
     }
   });

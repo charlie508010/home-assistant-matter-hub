@@ -169,6 +169,115 @@ export class PluginInstaller {
     }
   }
 
+  async installFromTgz(tgzBuffer: Buffer): Promise<InstallResult> {
+    const tgzPath = path.join(this.pluginDir, `.upload-${Date.now()}.tgz`);
+    try {
+      fs.writeFileSync(tgzPath, tgzBuffer);
+
+      // npm install supports local tgz files directly
+      return await this.installFromNpm(tgzPath);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      logger.error("Failed to install from tgz:", msg);
+      return { success: false, packageName: "unknown", error: msg };
+    } finally {
+      try {
+        if (fs.existsSync(tgzPath)) fs.unlinkSync(tgzPath);
+      } catch {
+        // cleanup best-effort
+      }
+    }
+  }
+
+  private installFromNpm(target: string): Promise<InstallResult> {
+    return new Promise((resolve) => {
+      execFile(
+        "npm",
+        ["install", target, "--save"],
+        {
+          cwd: this.pluginDir,
+          timeout: 120_000,
+          env: { ...process.env, NODE_ENV: "production" },
+        },
+        (error, _stdout, stderr) => {
+          if (error) {
+            resolve({
+              success: false,
+              packageName: path.basename(target),
+              error: stderr || error.message,
+            });
+            return;
+          }
+
+          // Read what was actually installed from package.json deps
+          const installed = this.listInstalled();
+          const latest = installed[installed.length - 1];
+          resolve({
+            success: true,
+            packageName: latest?.name ?? path.basename(target),
+            version: latest?.version,
+          });
+        },
+      );
+    });
+  }
+
+  installFromLocal(localPath: string): InstallResult {
+    const resolvedPath = path.resolve(localPath);
+    if (!fs.existsSync(resolvedPath)) {
+      return {
+        success: false,
+        packageName: "unknown",
+        error: `Path does not exist: ${resolvedPath}`,
+      };
+    }
+
+    const pkgJsonPath = path.join(resolvedPath, "package.json");
+    if (!fs.existsSync(pkgJsonPath)) {
+      return {
+        success: false,
+        packageName: "unknown",
+        error: `Missing package.json in ${resolvedPath}`,
+      };
+    }
+
+    let pkg: { name?: string; version?: string };
+    try {
+      pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf-8"));
+    } catch {
+      return {
+        success: false,
+        packageName: "unknown",
+        error: `Invalid package.json in ${resolvedPath}`,
+      };
+    }
+
+    const packageName = pkg.name;
+    if (!packageName || typeof packageName !== "string") {
+      return {
+        success: false,
+        packageName: "unknown",
+        error: "Invalid package.json: missing 'name' field",
+      };
+    }
+
+    const targetLink = path.join(this.pluginDir, "node_modules", packageName);
+    if (fs.existsSync(targetLink)) {
+      fs.rmSync(targetLink, { recursive: true, force: true });
+    }
+    fs.mkdirSync(path.dirname(targetLink), { recursive: true });
+    fs.symlinkSync(resolvedPath, targetLink, "dir");
+
+    logger.info(
+      `Linked local plugin: ${packageName}@${pkg.version || "unknown"} → ${resolvedPath}`,
+    );
+    return {
+      success: true,
+      packageName,
+      version: pkg.version ?? undefined,
+    };
+  }
+
   private getInstalledVersion(packageName: string): string | null {
     try {
       const pkgPath = path.join(

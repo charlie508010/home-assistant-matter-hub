@@ -120,6 +120,19 @@ export class Bridge {
     this.endpointManager.resetPlugin(pluginName);
   }
 
+  getPluginConfigSchema(
+    pluginName: string,
+  ): Record<string, unknown> | undefined {
+    return this.endpointManager.getPluginConfigSchema(pluginName);
+  }
+
+  async updatePluginConfig(
+    pluginName: string,
+    config: Record<string, unknown>,
+  ): Promise<boolean> {
+    return this.endpointManager.updatePluginConfig(pluginName, config);
+  }
+
   constructor(
     env: Environment,
     logger: LoggerService,
