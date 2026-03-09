@@ -174,8 +174,25 @@ export class PluginInstaller {
     try {
       fs.writeFileSync(tgzPath, tgzBuffer);
 
-      // npm install supports local tgz files directly
-      return await this.installFromNpm(tgzPath);
+      // Snapshot deps before install to detect what was added
+      const depsBefore = new Set(Object.keys(this.readDeps()));
+
+      const result = await this.installFromNpm(tgzPath);
+      if (!result.success) return result;
+
+      // Find the newly added package by diffing deps
+      const depsAfter = this.readDeps();
+      for (const name of Object.keys(depsAfter)) {
+        if (!depsBefore.has(name)) {
+          return {
+            success: true,
+            packageName: name,
+            version: this.getInstalledVersion(name) ?? String(depsAfter[name]),
+          };
+        }
+      }
+
+      return result;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       logger.error("Failed to install from tgz:", msg);
@@ -208,18 +225,24 @@ export class PluginInstaller {
             });
             return;
           }
-
-          // Read what was actually installed from package.json deps
-          const installed = this.listInstalled();
-          const latest = installed[installed.length - 1];
           resolve({
             success: true,
-            packageName: latest?.name ?? path.basename(target),
-            version: latest?.version,
+            packageName: path.basename(target),
           });
         },
       );
     });
+  }
+
+  private readDeps(): Record<string, string> {
+    try {
+      const pkgJson = path.join(this.pluginDir, "package.json");
+      if (!fs.existsSync(pkgJson)) return {};
+      const pkg = JSON.parse(fs.readFileSync(pkgJson, "utf-8"));
+      return pkg.dependencies ?? {};
+    } catch {
+      return {};
+    }
   }
 
   installFromLocal(localPath: string): InstallResult {
