@@ -14,6 +14,7 @@ import {
 } from "./alarm-control-panel/index.js";
 import { AutomationDevice } from "./automation/index.js";
 import { BinarySensorDevice } from "./binary-sensor/index.js";
+import { RainSensorType } from "./binary-sensor/rain-sensor.js";
 import { SmokeAlarmType } from "./binary-sensor/smoke-co-alarm.js";
 import { WaterFreezeDetectorType } from "./binary-sensor/water-freeze-detector.js";
 import { WaterLeakDetectorType } from "./binary-sensor/water-leak-detector.js";
@@ -285,6 +286,10 @@ const matterDeviceTypeFactories: Partial<
   mode_select: SelectDevice,
   water_valve: ValveDevice,
   pump: PumpEndpoint,
+  rain_sensor: (ha) =>
+    RainSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
   water_heater: WaterHeaterDevice,
   generic_switch: EventDevice,
   smoke_co_alarm: (ha) =>

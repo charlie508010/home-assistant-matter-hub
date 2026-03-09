@@ -32,6 +32,7 @@ export type MatterDeviceType =
   | "pm1_sensor"
   | "pressure_sensor"
   | "pump"
+  | "rain_sensor"
   | "radon_sensor"
   | "robot_vacuum_cleaner"
   | "smoke_co_alarm"
@@ -209,6 +210,7 @@ export const matterDeviceTypeLabels: Record<MatterDeviceType, string> = {
   pm1_sensor: "PM1 Sensor",
   pressure_sensor: "Pressure Sensor",
   pump: "Pump",
+  rain_sensor: "Rain Sensor",
   radon_sensor: "Radon Sensor",
   robot_vacuum_cleaner: "Robot Vacuum Cleaner",
   smoke_co_alarm: "Smoke/CO Alarm",
@@ -253,6 +255,7 @@ export const domainToDefaultMatterTypes: Partial<
   binary_sensor: [
     "contact_sensor",
     "occupancy_sensor",
+    "rain_sensor",
     "smoke_co_alarm",
     "water_freeze_detector",
     "water_leak_detector",

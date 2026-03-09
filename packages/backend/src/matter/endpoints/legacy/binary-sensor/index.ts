@@ -20,6 +20,7 @@ import {
   OnOffSensorType,
   OnOffSensorWithBatteryType,
 } from "./on-off-sensor.js";
+import type { RainSensorType } from "./rain-sensor.js";
 import {
   CoAlarmType,
   CoAlarmWithBatteryType,
@@ -32,6 +33,7 @@ import { WaterLeakDetectorType } from "./water-leak-detector.js";
 type CombinedType =
   | typeof ContactSensorType
   | typeof OccupancySensorType
+  | typeof RainSensorType
   | typeof WaterFreezeDetectorType
   | typeof WaterLeakDetectorType
   | typeof SmokeAlarmType
