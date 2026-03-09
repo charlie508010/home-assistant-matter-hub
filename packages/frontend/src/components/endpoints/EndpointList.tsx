@@ -256,6 +256,11 @@ export const EndpointList = (props: EndpointListProps) => {
                 size="small"
                 color={showOnlyUnavailable ? "warning" : "default"}
                 onClick={() => setShowOnlyUnavailable((v) => !v)}
+                aria-label={
+                  showOnlyUnavailable
+                    ? "Show all entities"
+                    : `Show ${unavailableCount} unavailable entities`
+                }
               >
                 <Badge badgeContent={unavailableCount} color="warning" max={99}>
                   <WarningAmberIcon />
@@ -287,13 +292,14 @@ export const EndpointList = (props: EndpointListProps) => {
             exclusive
             onChange={(_, value) => value && setViewMode(value)}
             size="small"
+            aria-label="View mode"
           >
-            <ToggleButton value="cards">
+            <ToggleButton value="cards" aria-label="Card view">
               <Tooltip title="Card View">
                 <GridViewIcon />
               </Tooltip>
             </ToggleButton>
-            <ToggleButton value="tree">
+            <ToggleButton value="tree" aria-label="Tree view">
               <Tooltip title="Tree View">
                 <ListIcon />
               </Tooltip>

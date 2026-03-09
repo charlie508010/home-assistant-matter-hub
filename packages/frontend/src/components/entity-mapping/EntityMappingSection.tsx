@@ -386,12 +386,14 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
                         onClick={() =>
                           handleEditMapping(config.entityId, config)
                         }
+                        aria-label={`Edit mapping for ${config.entityId}`}
                       >
                         <EditIcon fontSize="small" />
                       </IconButton>
                       <IconButton
                         size="small"
                         onClick={() => handleDeleteMapping(config.entityId)}
+                        aria-label={`Delete mapping for ${config.entityId}`}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>

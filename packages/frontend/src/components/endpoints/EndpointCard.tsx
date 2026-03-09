@@ -528,6 +528,7 @@ export const EndpointCard = ({
                       size="small"
                       onClick={handleUploadClick}
                       sx={{ ml: 0.5 }}
+                      aria-label={`Upload image for ${name}`}
                     >
                       <CameraAltIcon fontSize="small" />
                     </IconButton>
@@ -538,6 +539,7 @@ export const EndpointCard = ({
                         size="small"
                         onClick={handleDeleteImage}
                         sx={{ ml: -0.5 }}
+                        aria-label={`Remove image for ${name}`}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
@@ -554,6 +556,7 @@ export const EndpointCard = ({
                       onEditMapping(entityId, bridgeId);
                     }}
                     sx={{ ml: 0.5 }}
+                    aria-label={`Edit mapping for ${name}`}
                   >
                     <EditIcon fontSize="small" />
                   </IconButton>

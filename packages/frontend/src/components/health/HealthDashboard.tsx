@@ -227,7 +227,7 @@ export function HealthDashboard(props: HealthDashboardProps = {}) {
             Export Diagnostic
           </Button>
           <Tooltip title="Refresh">
-            <IconButton onClick={fetchHealth}>
+            <IconButton onClick={fetchHealth} aria-label="Refresh health data">
               <RefreshIcon />
             </IconButton>
           </Tooltip>
@@ -309,6 +309,7 @@ export function HealthDashboard(props: HealthDashboardProps = {}) {
               onClick={() =>
                 setSortDirection(sortDirection === "asc" ? "desc" : "asc")
               }
+              aria-label={`Sort ${sortDirection === "asc" ? "descending" : "ascending"}`}
             >
               {sortDirection === "asc" ? (
                 <ArrowUpwardIcon fontSize="small" />
