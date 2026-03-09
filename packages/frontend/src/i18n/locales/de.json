@@ -113,7 +113,16 @@
     "multiPair": "Multi-Fabric-Kopplung",
     "deleteBridge": "Bridge löschen",
     "deleteConfirm": "Möchtest du diese Bridge wirklich löschen?",
-    "featureFlags": "Feature Flags"
+    "featureFlags": "Feature Flags",
+    "failedEntitiesCount": "{{count}} Entity/Entities konnten nicht geladen werden.",
+    "clickToShow": "Klicke, um Details anzuzeigen.",
+    "clickToHide": "Klicke, um Details auszublenden.",
+    "loadFailed": "Bridge-Details konnten nicht geladen werden",
+    "refreshHint": "Neue Geräte und Label-Änderungen werden alle 30 Sekunden erkannt.",
+    "refreshingStates": "Status wird in {{seconds}} Sekunden aktualisiert...",
+    "serverModeSingleDeviceNote": "Hinweis: Der Server-Modus erfordert, dass der Saugroboter das einzige Gerät auf dieser Bridge ist. Entferne zuerst andere Entities, dann aktiviere den Server-Modus in den Bridge-Einstellungen.",
+    "serverModeEnabled": "Server-Modus aktiviert. Die Bridge wird mit deinem Saugroboter als eigenständiges Gerät neu gestartet.",
+    "serverModeEnableFailed": "Server-Modus konnte nicht aktiviert werden: {{error}}"
   },
   "endpoints": {
     "title": "Endpunkte",

@@ -113,7 +113,16 @@
     "multiPair": "Multi-Fabric Pairing",
     "deleteBridge": "Delete Bridge",
     "deleteConfirm": "Are you sure you want to delete this bridge?",
-    "featureFlags": "Feature Flags"
+    "featureFlags": "Feature Flags",
+    "failedEntitiesCount": "{{count}} entity/entities could not be loaded.",
+    "clickToShow": "Click to show details.",
+    "clickToHide": "Click to hide details.",
+    "loadFailed": "Failed to load Bridge details",
+    "refreshHint": "New devices and changes on labels are discovered every 30 seconds.",
+    "refreshingStates": "Refreshing states in {{seconds}} seconds...",
+    "serverModeSingleDeviceNote": "Note: Server Mode requires the vacuum to be the only device on this bridge. Please remove other entities from this bridge first, then enable Server Mode in the bridge settings.",
+    "serverModeEnabled": "Server Mode enabled. The bridge will restart with your vacuum as a standalone device.",
+    "serverModeEnableFailed": "Failed to enable Server Mode: {{error}}"
   },
   "endpoints": {
     "title": "Endpoints",
