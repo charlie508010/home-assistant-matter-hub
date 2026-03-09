@@ -5,7 +5,6 @@ interface AllBridgeFeatureFlags {
   readonly coverUseHomeAssistantPercentage: boolean;
   readonly coverSwapOpenClose: boolean;
   readonly includeHiddenEntities: boolean;
-  readonly alexaPreserveBrightnessOnTurnOn: boolean;
   readonly vacuumIncludeUnnamedRooms: boolean;
   /**
    * Server Mode: Expose devices directly as standalone Matter devices instead of bridged devices.
@@ -66,19 +65,6 @@ interface AllBridgeFeatureFlags {
    * default-to-true logic in isServerModeVacuumOnOffEnabled().
    */
   readonly vacuumOnOff: boolean;
-  /**
-   * Vacuum Minimal Clusters: Strip the vacuum endpoint to only the clusters
-   * defined in the Matter RoboticVacuumCleaner device type specification.
-   * Removes PowerSource (which adds a second device type 0x0011 to the descriptor)
-   * and skips the default ServiceArea when no rooms are configured.
-   *
-   * Enable this if Alexa commissions the vacuum successfully but the device
-   * never appears in the app. This matches the cluster configuration used by
-   * other working Matter RVC implementations.
-   *
-   * Trade-off: Battery percentage will not be reported in Matter controllers.
-   */
-  readonly vacuumMinimalClusters: boolean;
 }
 
 export type BridgeFeatureFlags = Partial<AllBridgeFeatureFlags>;

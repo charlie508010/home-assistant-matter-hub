@@ -161,15 +161,6 @@ const featureFlagSchema: JSONSchema7 = {
       default: false,
     },
 
-    alexaPreserveBrightnessOnTurnOn: {
-      title: "Alexa: Preserve Brightness on Turn-On (Deprecated)",
-      description:
-        "This workaround is now always active and this setting has no effect. " +
-        "The bridge automatically ignores brightness commands that set lights to 100% immediately after a turn-on command.",
-      type: "boolean",
-      default: true,
-    },
-
     serverMode: {
       title: "Server Mode (for Robot Vacuums)",
       description:
@@ -237,17 +228,6 @@ const featureFlagSchema: JSONSchema7 = {
         "WARNING: OnOff is NOT part of the Matter RVC device type specification. " +
         "Enabling this may break Apple Home (shows 'Updating') and Google Home.",
       type: "boolean",
-    },
-
-    vacuumMinimalClusters: {
-      title: "Vacuum: Minimal Clusters (Alexa troubleshooting)",
-      description:
-        "Strip the vacuum endpoint to only the clusters required by the Matter RVC spec. " +
-        "Removes PowerSource (battery) and the default ServiceArea placeholder. " +
-        "Enable this if Alexa commissions the vacuum but the device never appears in the app. " +
-        "Trade-off: battery percentage will not be reported to Matter controllers.",
-      type: "boolean",
-      default: false,
     },
   },
   additionalProperties: false,
