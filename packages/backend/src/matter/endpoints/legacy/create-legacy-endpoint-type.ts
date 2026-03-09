@@ -7,6 +7,7 @@ import type {
 import type { EndpointType } from "@matter/main";
 import { FixedLabelServer } from "@matter/main/behaviors";
 import type { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-entity-behavior.js";
+import { validateEndpointType } from "../validate-endpoint-type.js";
 import { AirPurifierEndpoint } from "./air-purifier/index.js";
 import {
   AlarmControlPanelDevice,
@@ -107,6 +108,8 @@ export function createLegacyEndpointType(
   if (!type) {
     return undefined;
   }
+
+  validateEndpointType(type, entity.entity_id);
 
   if (areaName) {
     type = addFixedLabel(type, areaName);
