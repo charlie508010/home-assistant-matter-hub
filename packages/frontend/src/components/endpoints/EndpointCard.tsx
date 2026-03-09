@@ -240,6 +240,16 @@ export const EndpointCard = ({
     return mappings;
   }, [mapping]);
 
+  const autoMappedClusters = useMemo(() => {
+    const set = new Set<string>();
+    if (mapping?.batteryEntity) set.add("powerSource");
+    if (mapping?.humidityEntity) set.add("relativeHumidityMeasurement");
+    if (mapping?.pressureEntity) set.add("pressureMeasurement");
+    if (mapping?.powerEntity) set.add("electricalPowerMeasurement");
+    if (mapping?.energyEntity) set.add("electricalEnergyMeasurement");
+    return set;
+  }, [mapping]);
+
   const powerSource = useMemo(() => {
     const state = endpoint.state as { powerSource?: PowerSourceState };
     return state.powerSource;
@@ -600,15 +610,17 @@ export const EndpointCard = ({
               spacing={0.5}
               sx={{ mt: 1, flexWrap: "wrap", gap: 0.5 }}
             >
-              <Chip
-                label={deviceType}
-                size="small"
-                sx={{
-                  backgroundColor: `${getDeviceColor(deviceType, isDark)}20`,
-                  color: getDeviceColor(deviceType, isDark),
-                  fontWeight: 500,
-                }}
-              />
+              <Tooltip title={`Device Type ID: ${endpoint.type.id}`}>
+                <Chip
+                  label={`${deviceType} (${endpoint.type.id})`}
+                  size="small"
+                  sx={{
+                    backgroundColor: `${getDeviceColor(deviceType, isDark)}20`,
+                    color: getDeviceColor(deviceType, isDark),
+                    fontWeight: 500,
+                  }}
+                />
+              </Tooltip>
               {stateChips.map((chip) => (
                 <Chip
                   key={chip.label}
@@ -704,15 +716,28 @@ export const EndpointCard = ({
             spacing={0.5}
             sx={{ flexWrap: "wrap", gap: 0.5, mt: 0.5 }}
           >
-            {clusters.slice(0, expanded ? undefined : 5).map((cluster) => (
-              <Chip
-                key={cluster}
-                label={cluster}
-                size="small"
-                variant="outlined"
-                sx={{ fontSize: "0.7rem", height: 22 }}
-              />
-            ))}
+            {clusters.slice(0, expanded ? undefined : 5).map((cluster) => {
+              const isAutoMapped = autoMappedClusters.has(cluster);
+              return (
+                <Tooltip
+                  key={cluster}
+                  title={
+                    isAutoMapped
+                      ? `Auto-mapped from linked entity`
+                      : `Device cluster`
+                  }
+                >
+                  <Chip
+                    icon={isAutoMapped ? <LinkIcon /> : undefined}
+                    label={cluster}
+                    size="small"
+                    variant="outlined"
+                    color={isAutoMapped ? "info" : "default"}
+                    sx={{ fontSize: "0.7rem", height: 22 }}
+                  />
+                </Tooltip>
+              );
+            })}
             {!expanded && clusters.length > 5 && (
               <Chip
                 label={`+${clusters.length - 5}`}

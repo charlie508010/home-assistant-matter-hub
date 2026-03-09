@@ -31,7 +31,7 @@ function contrastText(hex: string): string {
     0.2126 * (r <= 0.03928 ? r / 12.92 : ((r + 0.055) / 1.055) ** 2.4) +
     0.7152 * (g <= 0.03928 ? g / 12.92 : ((g + 0.055) / 1.055) ** 2.4) +
     0.0722 * (b <= 0.03928 ? b / 12.92 : ((b + 0.055) / 1.055) ** 2.4);
-  return luminance > 0.4 ? "#000" : "#fff";
+  return luminance > 0.179 ? "#000" : "#fff";
 }
 
 const eventTypeColors: Record<string, string> = {

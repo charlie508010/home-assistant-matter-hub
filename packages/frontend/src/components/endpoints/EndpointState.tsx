@@ -297,6 +297,14 @@ const EntityDiagnosticsPanel = ({ endpoint }: { endpoint: EndpointData }) => {
   );
 };
 
+const autoMappedClusterNames: Record<string, string> = {
+  powerSource: "batteryEntity",
+  relativeHumidityMeasurement: "humidityEntity",
+  pressureMeasurement: "pressureEntity",
+  electricalPowerMeasurement: "powerEntity",
+  electricalEnergyMeasurement: "energyEntity",
+};
+
 export const EndpointState = (props: EndpointStateProps) => {
   const { t } = useTranslation();
   const allBehaviors = useMemo(
@@ -310,6 +318,23 @@ export const EndpointState = (props: EndpointStateProps) => {
     () => allBehaviors.filter((it) => !ignoredBehaviors.includes(it)).sort(),
     [allBehaviors],
   );
+
+  const autoMappedClusters = useMemo(() => {
+    const diag = extractHaDiagnostics(
+      props.endpoint.state as Record<string, unknown>,
+    );
+    if (!diag) return new Set<string>();
+    const set = new Set<string>();
+    for (const m of diag.mappings) {
+      for (const [cluster, field] of Object.entries(autoMappedClusterNames)) {
+        if (field.toLowerCase().startsWith(m.label.toLowerCase())) {
+          set.add(cluster);
+        }
+      }
+    }
+    return set;
+  }, [props.endpoint.state]);
+
   const metadata = useMemo(
     () => ({
       "Endpoint ID": props.endpoint.id.local,
@@ -350,21 +375,36 @@ export const EndpointState = (props: EndpointStateProps) => {
         </Stack>
       </Paper>
 
-      {behaviors.map((behavior) => (
-        <Accordion key={behavior}>
-          <AccordionSummary
-            expandIcon={<ExpandMoreIcon />}
-            aria-controls="panel1-content"
-          >
-            <Typography component="span">
-              {t("endpoints.behavior")}: <strong>{behavior}</strong>
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <ObjectTable value={props.endpoint.state[behavior]} />
-          </AccordionDetails>
-        </Accordion>
-      ))}
+      {behaviors.map((behavior) => {
+        const isAutoMapped = autoMappedClusters.has(behavior);
+        return (
+          <Accordion key={behavior}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              aria-controls="panel1-content"
+            >
+              <Box display="flex" alignItems="center" gap={1}>
+                <Typography component="span">
+                  {t("endpoints.behavior")}: <strong>{behavior}</strong>
+                </Typography>
+                {isAutoMapped && (
+                  <Chip
+                    icon={<LinkIcon />}
+                    label="auto-mapped"
+                    size="small"
+                    color="info"
+                    variant="outlined"
+                    sx={{ fontSize: "0.7rem", height: 20 }}
+                  />
+                )}
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <ObjectTable value={props.endpoint.state[behavior]} />
+            </AccordionDetails>
+          </Accordion>
+        );
+      })}
     </>
   );
 };
