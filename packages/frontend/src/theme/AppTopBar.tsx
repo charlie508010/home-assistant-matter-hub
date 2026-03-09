@@ -2,6 +2,7 @@ import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import DevicesIcon from "@mui/icons-material/Devices";
+import ExtensionIcon from "@mui/icons-material/Extension";
 import HomeIcon from "@mui/icons-material/Home";
 import HubIcon from "@mui/icons-material/Hub";
 import LabelIcon from "@mui/icons-material/Label";
@@ -86,6 +87,11 @@ export const AppTopBar = () => {
       label: t("nav.filterReference"),
       icon: <LabelIcon />,
       to: navigation.labels,
+    },
+    {
+      label: "Plugins",
+      icon: <ExtensionIcon />,
+      to: navigation.plugins,
     },
     {
       label: t("nav.settings"),

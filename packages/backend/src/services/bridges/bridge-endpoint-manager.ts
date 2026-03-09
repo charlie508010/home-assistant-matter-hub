@@ -3,11 +3,14 @@ import type {
   FailedEntity,
 } from "@home-assistant-matter-hub/common";
 import type { Logger } from "@matter/general";
-import type { Endpoint } from "@matter/main";
+import { Endpoint } from "@matter/main";
 import { Service } from "../../core/ioc/service.js";
 import { AggregatorEndpoint } from "../../matter/endpoints/aggregator-endpoint.js";
 import type { EntityEndpoint } from "../../matter/endpoints/entity-endpoint.js";
 import { LegacyEndpoint } from "../../matter/endpoints/legacy/legacy-endpoint.js";
+import { createPluginEndpointType } from "../../plugins/plugin-device-factory.js";
+import type { PluginManager } from "../../plugins/plugin-manager.js";
+import type { PluginDevice, PluginMetadata } from "../../plugins/types.js";
 import { isHeapUnderPressure } from "../../utils/log-memory.js";
 import { subscribeEntities } from "../home-assistant/api/subscribe-entities.js";
 import type { HomeAssistantClient } from "../home-assistant/home-assistant-client.js";
@@ -24,6 +27,7 @@ export class BridgeEndpointManager extends Service {
   private unsubscribe?: () => void;
   private _failedEntities: FailedEntity[] = [];
   private readonly mappingFingerprints = new Map<string, string>();
+  private readonly pluginEndpoints = new Map<string, Endpoint>();
 
   get failedEntities(): FailedEntity[] {
     // Combine static failed entities with dynamically isolated entities
@@ -37,6 +41,7 @@ export class BridgeEndpointManager extends Service {
     private readonly mappingStorage: EntityMappingStorage,
     private readonly bridgeId: string,
     private readonly log: Logger,
+    private readonly pluginManager?: PluginManager,
   ) {
     super("BridgeEndpointManager");
     this.root = new AggregatorEndpoint("aggregator");
@@ -46,6 +51,125 @@ export class BridgeEndpointManager extends Service {
       bridgeId,
       this.isolateEntity.bind(this),
     );
+
+    if (this.pluginManager) {
+      this.wirePluginCallbacks();
+    }
+  }
+
+  private wirePluginCallbacks(): void {
+    if (!this.pluginManager) return;
+
+    this.pluginManager.onDeviceRegistered = async (
+      pluginName: string,
+      device: PluginDevice,
+    ) => {
+      const type = createPluginEndpointType(device.deviceType);
+      if (!type) {
+        this.log.warn(
+          `Plugin "${pluginName}": unsupported device type "${device.deviceType}" for device "${device.id}"`,
+        );
+        return;
+      }
+      const endpoint = new Endpoint(type, { id: `plugin_${device.id}` });
+      try {
+        await this.root.add(endpoint);
+        this.pluginEndpoints.set(device.id, endpoint);
+        this.log.info(
+          `Plugin "${pluginName}": added device "${device.name}" (${device.deviceType})`,
+        );
+      } catch (e) {
+        this.log.warn(
+          `Plugin "${pluginName}": failed to add device "${device.id}":`,
+          e,
+        );
+      }
+    };
+
+    this.pluginManager.onDeviceUnregistered = async (
+      pluginName: string,
+      deviceId: string,
+    ) => {
+      const endpoint = this.pluginEndpoints.get(deviceId);
+      if (endpoint) {
+        try {
+          await endpoint.delete();
+        } catch (e) {
+          this.log.warn(
+            `Plugin "${pluginName}": failed to remove device "${deviceId}":`,
+            e,
+          );
+        }
+        this.pluginEndpoints.delete(deviceId);
+      }
+    };
+  }
+
+  async startPlugins(): Promise<void> {
+    if (!this.pluginManager) return;
+    await this.pluginManager.startAll();
+    await this.pluginManager.configureAll();
+  }
+
+  async stopPlugins(): Promise<void> {
+    if (!this.pluginManager) return;
+    await this.pluginManager.shutdownAll("Bridge stopping");
+    for (const [id, endpoint] of this.pluginEndpoints) {
+      try {
+        await endpoint.delete();
+      } catch (e) {
+        this.log.warn(`Failed to delete plugin endpoint ${id}:`, e);
+      }
+    }
+    this.pluginEndpoints.clear();
+  }
+
+  getPluginInfo(): {
+    metadata: PluginMetadata[];
+    devices: Array<{ pluginName: string; device: PluginDevice }>;
+    circuitBreakers: Record<
+      string,
+      {
+        failures: number;
+        disabled: boolean;
+        lastError?: string;
+        disabledAt?: number;
+      }
+    >;
+  } {
+    if (!this.pluginManager) {
+      return { metadata: [], devices: [], circuitBreakers: {} };
+    }
+    const cbStates = this.pluginManager.getCircuitBreakerStates();
+    const circuitBreakers: Record<
+      string,
+      {
+        failures: number;
+        disabled: boolean;
+        lastError?: string;
+        disabledAt?: number;
+      }
+    > = {};
+    for (const [name, state] of cbStates) {
+      circuitBreakers[name] = state;
+    }
+    return {
+      metadata: this.pluginManager.getMetadata(),
+      devices: this.pluginManager.getAllDevices(),
+      circuitBreakers,
+    };
+  }
+
+  enablePlugin(pluginName: string): void {
+    this.pluginManager?.enablePlugin(pluginName);
+  }
+
+  disablePlugin(pluginName: string): void {
+    this.pluginManager?.disablePlugin(pluginName);
+  }
+
+  resetPlugin(pluginName: string): void {
+    this.pluginManager?.resetPlugin(pluginName);
   }
 
   /**

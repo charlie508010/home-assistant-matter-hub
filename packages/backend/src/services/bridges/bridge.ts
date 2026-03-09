@@ -104,6 +104,22 @@ export class Bridge {
     return this.endpointManager.root;
   }
 
+  get pluginInfo() {
+    return this.endpointManager.getPluginInfo();
+  }
+
+  enablePlugin(pluginName: string): void {
+    this.endpointManager.enablePlugin(pluginName);
+  }
+
+  disablePlugin(pluginName: string): void {
+    this.endpointManager.disablePlugin(pluginName);
+  }
+
+  resetPlugin(pluginName: string): void {
+    this.endpointManager.resetPlugin(pluginName);
+  }
+
   constructor(
     env: Environment,
     logger: LoggerService,
@@ -164,6 +180,7 @@ export class Bridge {
       this.endpointManager.startObserving();
       ensureCommissioningConfig(this.server);
       await this.server.start();
+      await this.endpointManager.startPlugins();
       this.setStatus({ code: BridgeStatus.Running });
       this.startAutoForceSyncIfEnabled();
       this.wireSessionDiagnostics();
@@ -186,6 +203,7 @@ export class Bridge {
   ) {
     this.unwireSessionDiagnostics();
     this.stopAutoForceSync();
+    await this.endpointManager.stopPlugins();
     this.endpointManager.stopObserving();
     try {
       await this.server.cancel();

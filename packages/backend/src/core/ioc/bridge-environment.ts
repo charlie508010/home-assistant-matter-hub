@@ -1,6 +1,7 @@
 import type { BridgeData } from "@home-assistant-matter-hub/common";
 import type { Environment, Logger } from "@matter/general";
 import { ServerModeServerNode } from "../../matter/endpoints/server-mode-server-node.js";
+import { PluginManager } from "../../plugins/plugin-manager.js";
 import { Bridge } from "../../services/bridges/bridge.js";
 import { BridgeDataProvider } from "../../services/bridges/bridge-data-provider.js";
 import { BridgeEndpointManager } from "../../services/bridges/bridge-endpoint-manager.js";
@@ -17,21 +18,31 @@ import type { AppEnvironment } from "./app-environment.js";
 import { EnvironmentBase } from "./environment-base.js";
 
 export class BridgeEnvironment extends EnvironmentBase {
-  static async create(parent: Environment, initialData: BridgeData) {
-    const bridge = new BridgeEnvironment(parent, initialData);
+  static async create(
+    parent: Environment,
+    initialData: BridgeData,
+    storageLocation?: string,
+  ) {
+    const bridge = new BridgeEnvironment(parent, initialData, storageLocation);
     await bridge.construction;
     return bridge;
   }
 
   private readonly construction: Promise<void>;
   private readonly endpointManagerLogger: Logger;
+  private readonly storageLocation?: string;
 
-  private constructor(parent: Environment, initialData: BridgeData) {
+  private constructor(
+    parent: Environment,
+    initialData: BridgeData,
+    storageLocation?: string,
+  ) {
     const loggerService = parent.get(LoggerService);
     const log = loggerService.get(`BridgeEnvironment / ${initialData.id}`);
 
     super({ id: initialData.id, parent, log });
     this.endpointManagerLogger = loggerService.get("BridgeEndpointManager");
+    this.storageLocation = storageLocation;
     this.construction = this.init();
 
     this.set(BridgeDataProvider, new BridgeDataProvider(initialData));
@@ -46,14 +57,22 @@ export class BridgeEnvironment extends EnvironmentBase {
       new BridgeRegistry(haRegistry, this.get(BridgeDataProvider), haClient),
     );
     this.set(EntityStateProvider, new EntityStateProvider(haRegistry));
+
+    const bridgeId = this.get(BridgeDataProvider).id;
+    let pluginManager: PluginManager | undefined;
+    if (this.storageLocation) {
+      pluginManager = new PluginManager(bridgeId, this.storageLocation);
+    }
+
     this.set(
       BridgeEndpointManager,
       new BridgeEndpointManager(
         await this.load(HomeAssistantClient),
         this.get(BridgeRegistry),
         await this.load(EntityMappingStorage),
-        this.get(BridgeDataProvider).id,
+        bridgeId,
         this.endpointManagerLogger,
+        pluginManager,
       ),
     );
   }
@@ -97,7 +116,10 @@ export class ServerModeEnvironment extends EnvironmentBase {
 }
 
 export class BridgeEnvironmentFactory extends BridgeFactory {
-  constructor(private readonly parent: AppEnvironment) {
+  constructor(
+    private readonly parent: AppEnvironment,
+    private readonly storageLocation?: string,
+  ) {
     super("BridgeEnvironmentFactory");
   }
 
@@ -112,7 +134,11 @@ export class BridgeEnvironmentFactory extends BridgeFactory {
   }
 
   private async createNormalBridge(initialData: BridgeData): Promise<Bridge> {
-    const env = await BridgeEnvironment.create(this.parent, initialData);
+    const env = await BridgeEnvironment.create(
+      this.parent,
+      initialData,
+      this.storageLocation,
+    );
 
     class BridgeWithEnvironment extends Bridge {
       override async dispose(): Promise<void> {

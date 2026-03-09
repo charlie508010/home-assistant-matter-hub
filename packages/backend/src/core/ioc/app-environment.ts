@@ -78,7 +78,10 @@ export class AppEnvironment extends EnvironmentBase {
       ),
     );
 
-    this.set(BridgeFactory, new BridgeEnvironmentFactory(this));
+    this.set(
+      BridgeFactory,
+      new BridgeEnvironmentFactory(this, this.options.webApi.storageLocation),
+    );
     this.set(
       BridgeService,
       new BridgeService(
