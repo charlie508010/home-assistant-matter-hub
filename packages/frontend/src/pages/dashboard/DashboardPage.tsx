@@ -36,6 +36,7 @@ import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import {
   checkBridgeIconExists,
@@ -172,6 +173,7 @@ function BridgeMiniCard({
   order: number;
   onClick: () => void;
 }) {
+  const { t } = useTranslation();
   const { content: bridges } = useBridges();
   const bridgeData = bridges?.find((b) => b.id === bridge.id);
   const [hasCustomIcon, setHasCustomIcon] = useState(false);
@@ -245,11 +247,11 @@ function BridgeMiniCard({
                   sx={{ height: 18, fontSize: "0.65rem" }}
                 />
                 <Typography variant="caption" color="text.secondary">
-                  {bridge.deviceCount} devices
+                  {bridge.deviceCount} {t("common.devices").toLowerCase()}
                 </Typography>
                 {bridge.fabricCount > 0 && (
                   <Typography variant="caption" color="text.secondary">
-                    · {bridge.fabricCount} fabrics
+                    · {bridge.fabricCount} {t("common.fabrics").toLowerCase()}
                   </Typography>
                 )}
               </Stack>
@@ -304,6 +306,7 @@ function NavCard({
 }
 
 export const DashboardPage = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -371,14 +374,14 @@ export const DashboardPage = () => {
       <Box display="flex" alignItems="center" gap={2} mb={3}>
         <HomeIcon color="primary" fontSize="large" />
         <Typography variant="h5" fontWeight={600} component="h1">
-          Dashboard
+          {t("dashboard.title")}
         </Typography>
         {hasBridges && (
           <IconButton
             size="small"
             onClick={() => setCustomizeOpen(true)}
             sx={{ ml: "auto" }}
-            title="Customize dashboard"
+            title={t("dashboard.customizeDashboard")}
           >
             <TuneIcon />
           </IconButton>
@@ -402,8 +405,7 @@ export const DashboardPage = () => {
             </IconButton>
           }
         >
-          Your bridges are connected to {totalFabrics} controller fabric(s).
-          Devices should now appear in your controller app.
+          {t("dashboard.successMessage", { count: totalFabrics })}
         </Alert>
       )}
 
@@ -420,15 +422,14 @@ export const DashboardPage = () => {
           <CardContent sx={{ textAlign: "center", py: 5, px: 3 }}>
             <HubIcon sx={{ fontSize: 56, color: "primary.main", mb: 2 }} />
             <Typography variant="h5" fontWeight={600} gutterBottom>
-              Welcome to Home Assistant Matter Hub
+              {t("dashboard.welcome")}
             </Typography>
             <Typography
               variant="body1"
               color="text.secondary"
               sx={{ maxWidth: 520, mx: "auto", mb: 4 }}
             >
-              Bridge your Home Assistant devices to Matter controllers like
-              Apple Home, Google Home, and Amazon Alexa.
+              {t("dashboard.welcomeDescription")}
             </Typography>
             <Stack
               direction={{ xs: "column", sm: "row" }}
@@ -442,7 +443,7 @@ export const DashboardPage = () => {
                 startIcon={<AutoFixHighIcon />}
                 onClick={() => setWizardOpen(true)}
               >
-                Bridge Wizard
+                {t("dashboard.bridgeWizard")}
               </Button>
               <Button
                 variant="outlined"
@@ -450,7 +451,7 @@ export const DashboardPage = () => {
                 startIcon={<MapIcon />}
                 onClick={() => navigate(navigation.areaSetup)}
               >
-                Setup by Area
+                {t("dashboard.setupByArea")}
               </Button>
               <Button
                 variant="outlined"
@@ -458,7 +459,7 @@ export const DashboardPage = () => {
                 startIcon={<AddIcon />}
                 onClick={() => navigate(navigation.createBridge)}
               >
-                Manual Setup
+                {t("dashboard.manualSetup")}
               </Button>
             </Stack>
             <Button
@@ -468,7 +469,7 @@ export const DashboardPage = () => {
               target="_blank"
               rel="noopener"
             >
-              Documentation
+              {t("dashboard.documentation")}
             </Button>
           </CardContent>
         </Card>
@@ -484,7 +485,7 @@ export const DashboardPage = () => {
               <Grid container spacing={2} sx={{ mb: 3 }}>
                 <Grid size={{ xs: 6, sm: 3 }}>
                   <StatCard
-                    title="Bridges"
+                    title={t("nav.bridges")}
                     value={bridges?.total ?? 0}
                     icon={<HubIcon />}
                     color={theme.palette.success.main}
@@ -498,7 +499,7 @@ export const DashboardPage = () => {
                 </Grid>
                 <Grid size={{ xs: 6, sm: 3 }}>
                   <StatCard
-                    title="Devices"
+                    title={t("common.devices")}
                     value={totalDevices}
                     icon={<DevicesIcon />}
                     color={theme.palette.primary.main}
@@ -510,7 +511,7 @@ export const DashboardPage = () => {
                 </Grid>
                 <Grid size={{ xs: 6, sm: 3 }}>
                   <StatCard
-                    title="Fabrics"
+                    title={t("common.fabrics")}
                     value={totalFabrics}
                     icon={<LinkIcon />}
                     color={theme.palette.secondary.main}
@@ -519,8 +520,10 @@ export const DashboardPage = () => {
                 </Grid>
                 <Grid size={{ xs: 6, sm: 3 }}>
                   <StatCard
-                    title="HA Connection"
-                    value={haConnected ? "Online" : "Offline"}
+                    title={t("dashboard.haConnection")}
+                    value={
+                      haConnected ? t("common.online") : t("common.offline")
+                    }
                     icon={haConnected ? <CheckCircleIcon /> : <ErrorIcon />}
                     color={
                       haConnected
@@ -529,7 +532,7 @@ export const DashboardPage = () => {
                     }
                     subtitle={
                       health?.uptime != null
-                        ? `Uptime ${formatUptime(health.uptime)}`
+                        ? `${t("health.uptime")} ${formatUptime(health.uptime)}`
                         : undefined
                     }
                   />
@@ -547,7 +550,7 @@ export const DashboardPage = () => {
                   flexWrap="wrap"
                   gap={1}
                 >
-                  <Typography variant="h6">Bridges</Typography>
+                  <Typography variant="h6">{t("nav.bridges")}</Typography>
                 </Box>
 
                 <Stack
@@ -563,7 +566,7 @@ export const DashboardPage = () => {
                     onClick={() => setWizardOpen(true)}
                     size="large"
                   >
-                    Bridge Wizard
+                    {t("dashboard.bridgeWizard")}
                   </Button>
                   <Button
                     variant="outlined"
@@ -571,7 +574,7 @@ export const DashboardPage = () => {
                     onClick={() => navigate(navigation.createBridge)}
                     size="large"
                   >
-                    Create Bridge
+                    {t("dashboard.createBridge")}
                   </Button>
                   <Button
                     variant="outlined"
@@ -579,7 +582,7 @@ export const DashboardPage = () => {
                     onClick={() => navigate(navigation.areaSetup)}
                     size="large"
                   >
-                    Area Setup
+                    {t("dashboard.areaSetup")}
                   </Button>
                   <Divider orientation="vertical" flexItem />
                   <Button
@@ -600,7 +603,7 @@ export const DashboardPage = () => {
                       }
                     }}
                   >
-                    Start All
+                    {t("dashboard.startAll")}
                   </Button>
                   <Button
                     variant="outlined"
@@ -620,7 +623,7 @@ export const DashboardPage = () => {
                       }
                     }}
                   >
-                    Stop All
+                    {t("dashboard.stopAll")}
                   </Button>
                   <Button
                     variant="outlined"
@@ -640,7 +643,7 @@ export const DashboardPage = () => {
                       }
                     }}
                   >
-                    Restart All
+                    {t("dashboard.restartAll")}
                   </Button>
                 </Stack>
 
@@ -664,8 +667,7 @@ export const DashboardPage = () => {
                   <Card variant="outlined">
                     <CardContent sx={{ textAlign: "center", py: 4 }}>
                       <Typography color="text.secondary">
-                        No bridges configured yet. Use the Bridge Wizard or
-                        create one manually.
+                        {t("dashboard.noBridgesHint")}
                       </Typography>
                     </CardContent>
                   </Card>
@@ -676,68 +678,68 @@ export const DashboardPage = () => {
             {widgetId === "quickNav" && (
               <>
                 <Typography variant="h6" sx={{ mb: 2 }}>
-                  Quick Navigation
+                  {t("dashboard.quickNavigation")}
                 </Typography>
                 <Grid container spacing={1.5}>
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <NavCard
-                      title="Bridges"
+                      title={t("nav.bridges")}
                       icon={<HubIcon sx={{ fontSize: 20 }} />}
                       onClick={() => navigate(navigation.bridges)}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <NavCard
-                      title="Area Setup"
+                      title={t("dashboard.areaSetup")}
                       icon={<MapIcon sx={{ fontSize: 20 }} />}
                       onClick={() => navigate(navigation.areaSetup)}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <NavCard
-                      title="All Devices"
+                      title={t("nav.devices")}
                       icon={<DevicesIcon sx={{ fontSize: 20 }} />}
                       onClick={() => navigate(navigation.devices)}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <NavCard
-                      title="Network Map"
+                      title={t("nav.networkMap")}
                       icon={<AccountTreeIcon sx={{ fontSize: 20 }} />}
                       onClick={() => navigate(navigation.networkMap)}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <NavCard
-                      title="Health Dashboard"
+                      title={t("nav.health")}
                       icon={<MonitorHeartIcon sx={{ fontSize: 20 }} />}
                       onClick={() => navigate(navigation.health)}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <NavCard
-                      title="Startup Order"
+                      title={t("dashboard.startupOrder")}
                       icon={<RocketLaunchIcon sx={{ fontSize: 20 }} />}
                       onClick={() => navigate(navigation.startup)}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <NavCard
-                      title="Lock Credentials"
+                      title={t("dashboard.lockCredentials")}
                       icon={<LockIcon sx={{ fontSize: 20 }} />}
                       onClick={() => navigate(navigation.lockCredentials)}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <NavCard
-                      title="Filter Reference"
+                      title={t("dashboard.filterReference")}
                       icon={<LabelIcon sx={{ fontSize: 20 }} />}
                       onClick={() => navigate(navigation.labels)}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <NavCard
-                      title="Settings"
+                      title={t("nav.settings")}
                       icon={<SettingsIcon sx={{ fontSize: 20 }} />}
                       onClick={() => navigate(navigation.settings)}
                     />

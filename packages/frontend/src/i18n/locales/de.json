@@ -19,14 +19,50 @@
     "starting": "Startet",
     "devices": "Geräte",
     "fabrics": "Fabrics",
-    "port": "Port"
+    "port": "Port",
+    "unknown": "Unbekannt",
+    "confirm": "Bestätigen",
+    "create": "Erstellen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "actions": "Aktionen",
+    "name": "Name",
+    "type": "Typ",
+    "error": "Fehler",
+    "version": "Version"
   },
   "nav": {
     "bridges": "Bridges",
     "devices": "Alle Geräte",
     "health": "Status & Diagnose",
     "diagnostics": "Live-Ereignisse",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "networkMap": "Netzwerkkarte",
+    "logs": "Logs"
+  },
+  "status": {
+    "error": "Fehler",
+    "unhealthy": "Fehlerhaft",
+    "noBridges": "Keine Bridges",
+    "loadingHealth": "Lade Statusdaten...",
+    "unknown": "Unbekannt"
+  },
+  "errorBoundary": {
+    "title": "Etwas ist schiefgelaufen",
+    "fallbackMessage": "Ein unerwarteter Fehler ist aufgetreten.",
+    "reload": "Seite neu laden"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "language": "Sprache",
+    "languageDescription": "Wähle die Sprache der Benutzeroberfläche.",
+    "checkUpdates": "Nach Updates suchen",
+    "backupRestore": "Sichern & Wiederherstellen",
+    "exportBackup": "Backup exportieren",
+    "importBackup": "Backup importieren",
+    "dangerZone": "Gefahrenzone",
+    "resetAll": "Alles zurücksetzen",
+    "about": "Über"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -35,7 +71,27 @@
     "bridgeOverview": "Bridge-Übersicht",
     "noBridges": "Noch keine Bridges konfiguriert.",
     "createBridge": "Bridge erstellen",
-    "viewAll": "Alle anzeigen"
+    "viewAll": "Alle anzeigen",
+    "totalDevices": "Geräte gesamt",
+    "customize": "Anpassen",
+    "startAll": "Alle starten",
+    "stopAll": "Alle stoppen",
+    "restartAll": "Alle neustarten",
+    "welcome": "Willkommen bei Home Assistant Matter Hub",
+    "welcomeDescription": "Verbinde deine Home Assistant Geräte mit Matter-Controllern wie Apple Home, Google Home und Amazon Alexa.",
+    "bridgeWizard": "Bridge-Assistent",
+    "setupByArea": "Nach Bereich einrichten",
+    "manualSetup": "Manuelle Einrichtung",
+    "areaSetup": "Bereich-Einrichtung",
+    "documentation": "Dokumentation",
+    "quickNavigation": "Schnellnavigation",
+    "haConnection": "HA-Verbindung",
+    "startupOrder": "Startreihenfolge",
+    "lockCredentials": "Schloss-Zugangsdaten",
+    "filterReference": "Filterreferenz",
+    "successMessage": "Deine Bridges sind mit {{count}} Controller-Fabric(s) verbunden. Geräte sollten jetzt in deiner Controller-App erscheinen.",
+    "noBridgesHint": "Noch keine Bridges konfiguriert. Nutze den Bridge-Assistenten oder erstelle eine manuell.",
+    "customizeDashboard": "Dashboard anpassen"
   },
   "bridge": {
     "name": "Bridge-Name",
@@ -47,7 +103,17 @@
     "serverModeRecommended": "Server-Modus empfohlen für Saugroboter",
     "serverModeDescription": "Diese Bridge enthält einen Saugroboter im Bridge-Modus. Apple Home und Alexa zeigen die Bridge als zusätzliches Gerät an, was zu doppelten Einträgen führt. Aktiviere den Server-Modus, um den Saugroboter als eigenständiges Matter-Gerät bereitzustellen.",
     "enableServerMode": "Server-Modus aktivieren",
-    "enabling": "Wird aktiviert..."
+    "enabling": "Wird aktiviert...",
+    "start": "Starten",
+    "stop": "Stoppen",
+    "restart": "Neustarten",
+    "factoryReset": "Werksreset",
+    "pairingCode": "Kopplungscode",
+    "openCommissioning": "Kopplungsfenster öffnen",
+    "multiPair": "Multi-Fabric-Kopplung",
+    "deleteBridge": "Bridge löschen",
+    "deleteConfirm": "Möchtest du diese Bridge wirklich löschen?",
+    "featureFlags": "Feature Flags"
   },
   "endpoints": {
     "title": "Endpunkte",
@@ -65,7 +131,10 @@
     "uploadImage": "Gerätebild hochladen",
     "removeImage": "Benutzerdefiniertes Bild entfernen",
     "editMapping": "Entity-Zuordnung bearbeiten",
-    "homeAssistantEntity": "Home Assistant Entity"
+    "homeAssistantEntity": "Home Assistant Entity",
+    "noEndpoints": "Keine Endpunkte gefunden.",
+    "expandAll": "Alle aufklappen",
+    "collapseAll": "Alle zuklappen"
   },
   "health": {
     "title": "Status & Diagnose",
@@ -77,7 +146,15 @@
     "bridgeStatus": "Bridge-Status",
     "refreshHealth": "Statusdaten aktualisieren",
     "exportDiagnostic": "Diagnose exportieren",
-    "memory": "Speicher"
+    "memory": "Speicher",
+    "fabricDetails": "Fabric-Details",
+    "sessions": "Sitzungen",
+    "subscriptions": "Abonnements",
+    "noFabrics": "Keine Fabrics verbunden",
+    "systemMetrics": "Systemmetriken",
+    "heap": "Heap",
+    "rss": "RSS",
+    "external": "Extern"
   },
   "mapping": {
     "title": "Entity-Zuordnungen",

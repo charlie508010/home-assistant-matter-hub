@@ -19,14 +19,50 @@
     "starting": "Starting",
     "devices": "Devices",
     "fabrics": "Fabrics",
-    "port": "Port"
+    "port": "Port",
+    "unknown": "Unknown",
+    "confirm": "Confirm",
+    "create": "Create",
+    "back": "Back",
+    "next": "Next",
+    "actions": "Actions",
+    "name": "Name",
+    "type": "Type",
+    "error": "Error",
+    "version": "Version"
   },
   "nav": {
     "bridges": "Bridges",
     "devices": "All Devices",
     "health": "Health & Diagnostics",
     "diagnostics": "Live Events",
-    "settings": "Settings"
+    "settings": "Settings",
+    "networkMap": "Network Map",
+    "logs": "Logs"
+  },
+  "status": {
+    "error": "Error",
+    "unhealthy": "Unhealthy",
+    "noBridges": "No Bridges",
+    "loadingHealth": "Loading health status...",
+    "unknown": "Unknown"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "fallbackMessage": "An unexpected error occurred.",
+    "reload": "Reload Page"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "languageDescription": "Select the interface language.",
+    "checkUpdates": "Check for Updates",
+    "backupRestore": "Backup & Restore",
+    "exportBackup": "Export Backup",
+    "importBackup": "Import Backup",
+    "dangerZone": "Danger Zone",
+    "resetAll": "Reset All",
+    "about": "About"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -35,7 +71,27 @@
     "bridgeOverview": "Bridge Overview",
     "noBridges": "No bridges configured yet.",
     "createBridge": "Create Bridge",
-    "viewAll": "View All"
+    "viewAll": "View All",
+    "totalDevices": "Total Devices",
+    "customize": "Customize",
+    "startAll": "Start All",
+    "stopAll": "Stop All",
+    "restartAll": "Restart All",
+    "welcome": "Welcome to Home Assistant Matter Hub",
+    "welcomeDescription": "Bridge your Home Assistant devices to Matter controllers like Apple Home, Google Home, and Amazon Alexa.",
+    "bridgeWizard": "Bridge Wizard",
+    "setupByArea": "Setup by Area",
+    "manualSetup": "Manual Setup",
+    "areaSetup": "Area Setup",
+    "documentation": "Documentation",
+    "quickNavigation": "Quick Navigation",
+    "haConnection": "HA Connection",
+    "startupOrder": "Startup Order",
+    "lockCredentials": "Lock Credentials",
+    "filterReference": "Filter Reference",
+    "successMessage": "Your bridges are connected to {{count}} controller fabric(s). Devices should now appear in your controller app.",
+    "noBridgesHint": "No bridges configured yet. Use the Bridge Wizard or create one manually.",
+    "customizeDashboard": "Customize dashboard"
   },
   "bridge": {
     "name": "Bridge Name",
@@ -47,7 +103,17 @@
     "serverModeRecommended": "Server Mode Recommended for Robot Vacuums",
     "serverModeDescription": "This bridge contains a robot vacuum in bridged mode. Apple Home and Alexa will show the bridge as an additional device, resulting in duplicate entries. Enable Server Mode to expose the vacuum as a standalone Matter device for full Siri/Alexa voice command support and no duplicates.",
     "enableServerMode": "Enable Server Mode",
-    "enabling": "Enabling..."
+    "enabling": "Enabling...",
+    "start": "Start",
+    "stop": "Stop",
+    "restart": "Restart",
+    "factoryReset": "Factory Reset",
+    "pairingCode": "Pairing Code",
+    "openCommissioning": "Open Commissioning Window",
+    "multiPair": "Multi-Fabric Pairing",
+    "deleteBridge": "Delete Bridge",
+    "deleteConfirm": "Are you sure you want to delete this bridge?",
+    "featureFlags": "Feature Flags"
   },
   "endpoints": {
     "title": "Endpoints",
@@ -65,7 +131,10 @@
     "uploadImage": "Upload device image",
     "removeImage": "Remove custom image",
     "editMapping": "Edit Entity Mapping",
-    "homeAssistantEntity": "Home Assistant Entity"
+    "homeAssistantEntity": "Home Assistant Entity",
+    "noEndpoints": "No endpoints found.",
+    "expandAll": "Expand All",
+    "collapseAll": "Collapse All"
   },
   "health": {
     "title": "Health & Diagnostics",
@@ -77,7 +146,15 @@
     "bridgeStatus": "Bridge Status",
     "refreshHealth": "Refresh health data",
     "exportDiagnostic": "Export Diagnostic",
-    "memory": "Memory"
+    "memory": "Memory",
+    "fabricDetails": "Fabric Details",
+    "sessions": "Sessions",
+    "subscriptions": "Subscriptions",
+    "noFabrics": "No fabrics connected",
+    "systemMetrics": "System Metrics",
+    "heap": "Heap",
+    "rss": "RSS",
+    "external": "External"
   },
   "mapping": {
     "title": "Entity Mappings",
