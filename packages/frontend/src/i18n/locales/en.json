@@ -191,5 +191,9 @@
     "saveFailed": "Failed to save mapping: {{error}}",
     "deleted": "Mapping deleted for {{entityId}}.",
     "deleteFailed": "Failed to delete mapping."
+  },
+  "languageSwitcher": {
+    "disclaimer": "Translations may be incomplete.",
+    "contribute": "Help improve them!"
   }
 }

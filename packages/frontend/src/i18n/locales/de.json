@@ -191,5 +191,9 @@
     "saveFailed": "Zuordnung konnte nicht gespeichert werden: {{error}}",
     "deleted": "Zuordnung für {{entityId}} gelöscht.",
     "deleteFailed": "Zuordnung konnte nicht gelöscht werden."
+  },
+  "languageSwitcher": {
+    "disclaimer": "Übersetzungen können unvollständig sein.",
+    "contribute": "Hilf sie zu verbessern!"
   }
 }
