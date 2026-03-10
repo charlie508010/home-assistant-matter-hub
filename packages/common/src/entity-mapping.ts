@@ -23,6 +23,7 @@ export type MatterDeviceType =
   | "humidity_sensor"
   | "light_sensor"
   | "mode_select"
+  | "motion_sensor"
   | "nitrogen_dioxide_sensor"
   | "occupancy_sensor"
   | "on_off_light"
@@ -201,6 +202,7 @@ export const matterDeviceTypeLabels: Record<MatterDeviceType, string> = {
   humidity_sensor: "Humidity Sensor",
   light_sensor: "Light Sensor",
   mode_select: "Mode Select",
+  motion_sensor: "Motion Sensor (PIR)",
   nitrogen_dioxide_sensor: "Nitrogen Dioxide (NO\u2082) Sensor",
   occupancy_sensor: "Occupancy Sensor",
   on_off_light: "On/Off Light",
@@ -254,6 +256,7 @@ export const domainToDefaultMatterTypes: Partial<
   automation: ["on_off_switch"],
   binary_sensor: [
     "contact_sensor",
+    "motion_sensor",
     "occupancy_sensor",
     "rain_sensor",
     "smoke_co_alarm",

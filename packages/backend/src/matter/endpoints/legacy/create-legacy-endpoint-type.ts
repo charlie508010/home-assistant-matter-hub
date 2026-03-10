@@ -15,6 +15,7 @@ import {
 } from "./alarm-control-panel/index.js";
 import { AutomationDevice } from "./automation/index.js";
 import { BinarySensorDevice } from "./binary-sensor/index.js";
+import { MotionSensorType } from "./binary-sensor/motion-sensor.js";
 import { RainSensorType } from "./binary-sensor/rain-sensor.js";
 import { SmokeAlarmType } from "./binary-sensor/smoke-co-alarm.js";
 import { WaterFreezeDetectorType } from "./binary-sensor/water-freeze-detector.js";
@@ -282,6 +283,10 @@ const matterDeviceTypeFactories: Partial<
     }),
   electrical_sensor: (ha) =>
     ElectricalSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  motion_sensor: (ha) =>
+    MotionSensorType.set({
       homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
     }),
   mode_select: SelectDevice,

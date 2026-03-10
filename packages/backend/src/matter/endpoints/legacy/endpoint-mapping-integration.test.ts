@@ -380,9 +380,18 @@ describe("endpoint mapping integration", () => {
         createEntity<BinarySensorDeviceAttributes>(
           "binary_sensor.ovr10",
           "on",
-          { device_class: BinarySensorDeviceClass.Motion },
+          { device_class: BinarySensorDeviceClass.Occupancy },
         ),
         "occupancy_sensor",
+      ],
+      [
+        "binary_sensor → motion_sensor",
+        createEntity<BinarySensorDeviceAttributes>(
+          "binary_sensor.ovr10b",
+          "on",
+          { device_class: BinarySensorDeviceClass.Motion },
+        ),
+        "motion_sensor",
       ],
       [
         "switch → water_valve",
@@ -507,11 +516,21 @@ describe("endpoint mapping integration", () => {
       expect(type.behaviors).toHaveProperty("booleanState");
     });
 
-    it("occupancy sensor has occupancySensing behavior", () => {
+    it("motion sensor has occupancySensing behavior (PIR)", () => {
       const entity = createEntity<BinarySensorDeviceAttributes>(
         "binary_sensor.beh11",
         "on",
         { device_class: BinarySensorDeviceClass.Motion },
+      );
+      const { type } = createAndValidate(entity);
+      expect(type.behaviors).toHaveProperty("occupancySensing");
+    });
+
+    it("occupancy sensor has occupancySensing behavior (PhysicalContact)", () => {
+      const entity = createEntity<BinarySensorDeviceAttributes>(
+        "binary_sensor.beh11b",
+        "on",
+        { device_class: BinarySensorDeviceClass.Occupancy },
       );
       const { type } = createAndValidate(entity);
       expect(type.behaviors).toHaveProperty("occupancySensing");
