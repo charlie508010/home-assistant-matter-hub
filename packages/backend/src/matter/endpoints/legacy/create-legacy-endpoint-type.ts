@@ -7,6 +7,7 @@ import type {
 import type { EndpointType } from "@matter/main";
 import { FixedLabelServer } from "@matter/main/behaviors";
 import type { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-entity-behavior.js";
+import { validateEndpointType } from "../validate-endpoint-type.js";
 import { AirPurifierEndpoint } from "./air-purifier/index.js";
 import {
   AlarmControlPanelDevice,
@@ -14,6 +15,8 @@ import {
 } from "./alarm-control-panel/index.js";
 import { AutomationDevice } from "./automation/index.js";
 import { BinarySensorDevice } from "./binary-sensor/index.js";
+import { MotionSensorType } from "./binary-sensor/motion-sensor.js";
+import { RainSensorType } from "./binary-sensor/rain-sensor.js";
 import { SmokeAlarmType } from "./binary-sensor/smoke-co-alarm.js";
 import { WaterFreezeDetectorType } from "./binary-sensor/water-freeze-detector.js";
 import { WaterLeakDetectorType } from "./binary-sensor/water-leak-detector.js";
@@ -39,10 +42,17 @@ import { ScriptDevice } from "./script/index.js";
 import { InputSelectDevice, SelectDevice } from "./select/index.js";
 import { AirQualitySensorType } from "./sensor/devices/air-quality-sensor.js";
 import { BatterySensorType } from "./sensor/devices/battery-sensor.js";
+import { CarbonMonoxideSensorType } from "./sensor/devices/carbon-monoxide-sensor.js";
+import { ElectricalSensorType } from "./sensor/devices/electrical-sensor.js";
 import { FlowSensorType } from "./sensor/devices/flow-sensor.js";
+import { FormaldehydeSensorType } from "./sensor/devices/formaldehyde-sensor.js";
 import { HumiditySensorType } from "./sensor/devices/humidity-sensor.js";
 import { IlluminanceSensorType } from "./sensor/devices/illuminance-sensor.js";
+import { NitrogenDioxideSensorType } from "./sensor/devices/nitrogen-dioxide-sensor.js";
+import { OzoneSensorType } from "./sensor/devices/ozone-sensor.js";
+import { Pm1SensorType } from "./sensor/devices/pm1-sensor.js";
 import { PressureSensorType } from "./sensor/devices/pressure-sensor.js";
+import { RadonSensorType } from "./sensor/devices/radon-sensor.js";
 import { TemperatureSensorType } from "./sensor/devices/temperature-sensor.js";
 import { TvocSensorType } from "./sensor/devices/tvoc-sensor.js";
 import { SensorDevice } from "./sensor/index.js";
@@ -56,7 +66,6 @@ import { WaterHeaterDevice } from "./water-heater/index.js";
  */
 export interface LegacyEndpointOptions {
   vacuumOnOff?: boolean;
-  vacuumMinimalClusters?: boolean;
   cleaningModeOptions?: string[];
 }
 
@@ -84,7 +93,6 @@ export function createLegacyEndpointType(
       type = VacuumDevice(
         { entity, customName, mapping },
         options?.vacuumOnOff,
-        options?.vacuumMinimalClusters,
         options?.cleaningModeOptions,
       );
     } else {
@@ -99,6 +107,8 @@ export function createLegacyEndpointType(
   if (!type) {
     return undefined;
   }
+
+  validateEndpointType(type, entity.entity_id);
 
   if (areaName) {
     type = addFixedLabel(type, areaName);
@@ -247,9 +257,45 @@ const matterDeviceTypeFactories: Partial<
     TvocSensorType.set({
       homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
     }),
+  carbon_monoxide_sensor: (ha) =>
+    CarbonMonoxideSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  nitrogen_dioxide_sensor: (ha) =>
+    NitrogenDioxideSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  ozone_sensor: (ha) =>
+    OzoneSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  formaldehyde_sensor: (ha) =>
+    FormaldehydeSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  radon_sensor: (ha) =>
+    RadonSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  pm1_sensor: (ha) =>
+    Pm1SensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  electrical_sensor: (ha) =>
+    ElectricalSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
+  motion_sensor: (ha) =>
+    MotionSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
   mode_select: SelectDevice,
   water_valve: ValveDevice,
   pump: PumpEndpoint,
+  rain_sensor: (ha) =>
+    RainSensorType.set({
+      homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
+    }),
   water_heater: WaterHeaterDevice,
   generic_switch: EventDevice,
   smoke_co_alarm: (ha) =>

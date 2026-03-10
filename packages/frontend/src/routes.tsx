@@ -12,6 +12,7 @@ import { LabelsPage } from "./pages/labels/LabelsPage.tsx";
 import { LockCredentialsPage } from "./pages/lock-credentials/LockCredentialsPage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { NetworkMapPage } from "./pages/network-map/NetworkMapPage.tsx";
+import { PluginsPage } from "./pages/plugins/PluginsPage.tsx";
 import { SettingsPage } from "./pages/settings/SettingsPage.tsx";
 import { StartupPage } from "./pages/startup/StartupPage.tsx";
 
@@ -28,6 +29,7 @@ export const navigation = {
   health: "/health",
   labels: "/labels",
   lockCredentials: "/lock-credentials",
+  plugins: "/plugins",
   settings: "/settings",
   startup: "/startup",
 
@@ -58,6 +60,7 @@ export const routes: RouteObject[] = [
       { path: navigation.health, element: <HealthPage /> },
       { path: navigation.labels, element: <LabelsPage /> },
       { path: navigation.lockCredentials, element: <LockCredentialsPage /> },
+      { path: navigation.plugins, element: <PluginsPage /> },
       { path: navigation.settings, element: <SettingsPage /> },
       { path: navigation.startup, element: <StartupPage /> },
       { path: "*", element: <NotFoundPage /> },

@@ -66,6 +66,9 @@ export class WindowCoveringServerBase extends FeaturedBase {
   // Track when the last command was received to implement two-phase debounce
   private lastLiftCommandTime = 0;
   private lastTiltCommandTime = 0;
+  // Track lift direction to skip redundant tilt on downOrClose / upOrOpen (#246)
+  private lastLiftMovementMs = 0;
+  private lastLiftMovementDirection: MovementDirection | null = null;
   // Store everything needed for debounced HA calls - entityId and actions service
   // must be captured before setTimeout because agent context expires after command handler
   private pendingLiftAction: {
@@ -249,6 +252,8 @@ export class WindowCoveringServerBase extends FeaturedBase {
     // can be in HA semantics (non-inverted) when coverUseHomeAssistantPercentage
     // is enabled, causing matter.js to derive the wrong direction.
     if (type === MovementType.Lift) {
+      this.lastLiftMovementMs = Date.now();
+      this.lastLiftMovementDirection = direction;
       if (targetPercent100ths === 0) {
         this.handleLiftOpen();
       } else if (targetPercent100ths === 10000) {
@@ -264,6 +269,20 @@ export class WindowCoveringServerBase extends FeaturedBase {
         this.handleLiftClose();
       }
     } else if (type === MovementType.Tilt) {
+      // When lift was just triggered in the same direction (within the same
+      // downOrClose / upOrOpen call) and tilt has no specific target, skip
+      // the redundant tilt action. KNX and similar actuators interpret the
+      // rapid close_cover + close_cover_tilt as a stop command (#246).
+      if (
+        targetPercent100ths == null &&
+        this.lastLiftMovementDirection === direction &&
+        Date.now() - this.lastLiftMovementMs < 50
+      ) {
+        logger.info(
+          `Skipping tilt ${MovementDirection[direction]} — lift already moving in same direction`,
+        );
+        return;
+      }
       if (targetPercent100ths === 0) {
         this.handleTiltOpen();
       } else if (targetPercent100ths === 10000) {

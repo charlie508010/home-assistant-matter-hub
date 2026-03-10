@@ -1,0 +1,367 @@
+import * as nodePath from "node:path";
+import express from "express";
+import { PluginInstaller } from "../plugins/plugin-installer.js";
+import { PluginRegistry } from "../plugins/plugin-registry.js";
+import type { BridgeService } from "../services/bridges/bridge-service.js";
+
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MB
+const BLOCKED_PREFIXES = [
+  "/bin",
+  "/sbin",
+  "/usr",
+  "/etc",
+  "/var",
+  "/sys",
+  "/proc",
+  "/dev",
+  "/boot",
+  "/root",
+];
+
+export function pluginApi(
+  bridgeService: BridgeService,
+  storageLocation: string,
+) {
+  const router = express.Router();
+  const installer = new PluginInstaller(storageLocation);
+  const registry = new PluginRegistry(storageLocation);
+
+  /**
+   * GET /api/plugins
+   * Returns all plugins across all bridges with metadata, devices, and circuit breaker state.
+   */
+  router.get("/", (_req, res) => {
+    const result: Array<{
+      bridgeId: string;
+      bridgeName: string;
+      plugins: Array<{
+        name: string;
+        version: string;
+        source: string;
+        enabled: boolean;
+        config: Record<string, unknown>;
+        circuitBreaker?: {
+          failures: number;
+          disabled: boolean;
+          lastError?: string;
+          disabledAt?: number;
+        };
+        devices: Array<{
+          id: string;
+          name: string;
+          deviceType: string;
+        }>;
+      }>;
+    }> = [];
+
+    for (const bridge of bridgeService.bridges) {
+      const info = bridge.pluginInfo;
+      const plugins = info.metadata.map((meta) => ({
+        name: meta.name,
+        version: meta.version,
+        source: meta.source,
+        enabled: meta.enabled,
+        config: meta.config,
+        circuitBreaker: info.circuitBreakers[meta.name],
+        devices: info.devices
+          .filter((d) => d.pluginName === meta.name)
+          .map((d) => ({
+            id: d.device.id,
+            name: d.device.name,
+            deviceType: d.device.deviceType,
+          })),
+      }));
+
+      result.push({
+        bridgeId: bridge.id,
+        bridgeName: bridge.data.name,
+        plugins,
+      });
+    }
+
+    res.json(result);
+  });
+
+  /**
+   * POST /api/plugins/:bridgeId/:pluginName/enable
+   */
+  router.post("/:bridgeId/:pluginName/enable", (req, res) => {
+    const bridge = bridgeService.get(req.params.bridgeId);
+    if (!bridge) {
+      res.status(404).json({ error: "Bridge not found" });
+      return;
+    }
+    const { pluginName } = req.params;
+    bridge.enablePlugin(pluginName);
+    res.json({ success: true, pluginName, enabled: true });
+  });
+
+  /**
+   * POST /api/plugins/:bridgeId/:pluginName/disable
+   */
+  router.post("/:bridgeId/:pluginName/disable", (req, res) => {
+    const bridge = bridgeService.get(req.params.bridgeId);
+    if (!bridge) {
+      res.status(404).json({ error: "Bridge not found" });
+      return;
+    }
+    const { pluginName } = req.params;
+    bridge.disablePlugin(pluginName);
+    res.json({ success: true, pluginName, enabled: false });
+  });
+
+  /**
+   * GET /api/plugins/:bridgeId/:pluginName/config-schema
+   * Get the config schema for a plugin.
+   */
+  router.get("/:bridgeId/:pluginName/config-schema", (req, res) => {
+    const bridge = bridgeService.get(req.params.bridgeId);
+    if (!bridge) {
+      res.status(404).json({ error: "Bridge not found" });
+      return;
+    }
+    const schema = bridge.getPluginConfigSchema(req.params.pluginName);
+    res.json({ pluginName: req.params.pluginName, schema: schema ?? null });
+  });
+
+  /**
+   * POST /api/plugins/:bridgeId/:pluginName/config
+   * Update the config for a plugin.
+   * Body: { config: object }
+   */
+  router.post("/:bridgeId/:pluginName/config", async (req, res) => {
+    const bridge = bridgeService.get(req.params.bridgeId);
+    if (!bridge) {
+      res.status(404).json({ error: "Bridge not found" });
+      return;
+    }
+    const { config } = req.body as { config?: Record<string, unknown> };
+    if (!config || typeof config !== "object") {
+      res.status(400).json({ error: "config object is required" });
+      return;
+    }
+    const ok = await bridge.updatePluginConfig(req.params.pluginName, config);
+    if (!ok) {
+      res.status(404).json({ error: "Plugin not found" });
+      return;
+    }
+    res.json({ success: true, pluginName: req.params.pluginName });
+  });
+
+  /**
+   * POST /api/plugins/:bridgeId/:pluginName/reset
+   * Reset the circuit breaker for a plugin.
+   */
+  router.post("/:bridgeId/:pluginName/reset", (req, res) => {
+    const bridge = bridgeService.get(req.params.bridgeId);
+    if (!bridge) {
+      res.status(404).json({ error: "Bridge not found" });
+      return;
+    }
+    const { pluginName } = req.params;
+    bridge.resetPlugin(pluginName);
+    res.json({ success: true, pluginName, reset: true });
+  });
+
+  /**
+   * GET /api/plugins/installed
+   * List all installed plugin packages (from registry + npm).
+   */
+  router.get("/installed", (_req, res) => {
+    const registered = registry.getAll();
+    const npmInstalled = installer.listInstalled();
+
+    const result = registered.map((entry) => {
+      const npm = npmInstalled.find((p) => p.name === entry.packageName);
+      return {
+        packageName: entry.packageName,
+        version: npm?.version ?? "unknown",
+        config: entry.config,
+        autoLoad: entry.autoLoad,
+        installedAt: entry.installedAt,
+        path: installer.getPluginPath(entry.packageName),
+      };
+    });
+
+    res.json(result);
+  });
+
+  /**
+   * POST /api/plugins/install
+   * Install a plugin via npm and register it.
+   * Body: { packageName: string, config?: object }
+   */
+  router.post("/install", async (req, res) => {
+    const { packageName, config } = req.body as {
+      packageName?: string;
+      config?: Record<string, unknown>;
+    };
+
+    if (!packageName || typeof packageName !== "string") {
+      res.status(400).json({ error: "packageName is required" });
+      return;
+    }
+
+    try {
+      const result = await installer.install(packageName);
+      if (!result.success) {
+        res.status(500).json({
+          error: `Installation failed: ${result.error}`,
+          details: result,
+        });
+        return;
+      }
+
+      registry.add(packageName, config ?? {});
+
+      res.json({
+        success: true,
+        packageName,
+        version: result.version,
+        message: "Plugin installed. Restart the bridge to load it.",
+      });
+    } catch (err) {
+      res.status(500).json({
+        error: err instanceof Error ? err.message : "Installation failed",
+      });
+    }
+  });
+
+  /**
+   * POST /api/plugins/uninstall
+   * Uninstall a plugin via npm and remove it from registry.
+   * Body: { packageName: string }
+   */
+  router.post("/uninstall", async (req, res) => {
+    const { packageName } = req.body as { packageName?: string };
+
+    if (!packageName || typeof packageName !== "string") {
+      res.status(400).json({ error: "packageName is required" });
+      return;
+    }
+
+    try {
+      const result = await installer.uninstall(packageName);
+      if (!result.success) {
+        res.status(500).json({
+          error: `Uninstall failed: ${result.error}`,
+          details: result,
+        });
+        return;
+      }
+
+      registry.remove(packageName);
+
+      res.json({
+        success: true,
+        packageName,
+        message: "Plugin uninstalled. Restart the bridge to apply changes.",
+      });
+    } catch (err) {
+      res.status(500).json({
+        error: err instanceof Error ? err.message : "Uninstall failed",
+      });
+    }
+  });
+
+  /**
+   * POST /api/plugins/upload
+   * Install a plugin from an uploaded .tgz file.
+   * Expects raw binary body with Content-Type: application/gzip or application/octet-stream.
+   */
+  router.post("/upload", async (req, res) => {
+    try {
+      const chunks: Buffer[] = [];
+      let totalSize = 0;
+      for await (const chunk of req) {
+        const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        totalSize += buf.length;
+        if (totalSize > MAX_UPLOAD_BYTES) {
+          res.status(413).json({
+            error: `Upload exceeds ${MAX_UPLOAD_BYTES / 1024 / 1024}MB limit`,
+          });
+          return;
+        }
+        chunks.push(buf);
+      }
+      const tgzBuffer = Buffer.concat(chunks);
+
+      if (tgzBuffer.length === 0) {
+        res.status(400).json({ error: "Empty upload body" });
+        return;
+      }
+
+      const result = await installer.installFromTgz(tgzBuffer);
+      if (!result.success) {
+        res.status(500).json({
+          error: `Upload install failed: ${result.error}`,
+          details: result,
+        });
+        return;
+      }
+
+      registry.add(result.packageName, {});
+
+      res.json({
+        success: true,
+        packageName: result.packageName,
+        version: result.version,
+        message:
+          "Plugin uploaded and installed. Restart the bridge to load it.",
+      });
+    } catch (err) {
+      res.status(500).json({
+        error: err instanceof Error ? err.message : "Upload failed",
+      });
+    }
+  });
+
+  /**
+   * POST /api/plugins/install-local
+   * Install a plugin from a local filesystem path (symlink).
+   * Body: { path: string }
+   */
+  router.post("/install-local", (req, res) => {
+    const { path: localPath } = req.body as { path?: string };
+
+    if (!localPath || typeof localPath !== "string") {
+      res.status(400).json({ error: "path is required" });
+      return;
+    }
+
+    const resolved = nodePath.resolve(localPath);
+    if (BLOCKED_PREFIXES.some((p) => resolved.startsWith(p))) {
+      res
+        .status(400)
+        .json({ error: "Path is inside a restricted system directory" });
+      return;
+    }
+
+    try {
+      const result = installer.installFromLocal(localPath);
+      if (!result.success) {
+        res.status(500).json({
+          error: `Local install failed: ${result.error}`,
+          details: result,
+        });
+        return;
+      }
+
+      registry.add(result.packageName, {});
+
+      res.json({
+        success: true,
+        packageName: result.packageName,
+        version: result.version,
+        message:
+          "Plugin linked from local path. Restart the bridge to load it.",
+      });
+    } catch (err) {
+      res.status(500).json({
+        error: err instanceof Error ? err.message : "Local install failed",
+      });
+    }
+  });
+
+  return router;
+}

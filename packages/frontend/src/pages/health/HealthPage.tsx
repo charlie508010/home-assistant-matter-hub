@@ -1,6 +1,8 @@
 import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
 import { useState } from "react";
 import { HealthDashboard } from "../../components/health/HealthDashboard.tsx";
+import { TranslationEditor } from "../../components/i18n/TranslationEditor.tsx";
 import { SystemInfo } from "../../components/system/SystemInfo.tsx";
 import { LiveEventLog } from "../diagnostics/DiagnosticsPage.tsx";
 
@@ -22,6 +24,8 @@ export const HealthPage = () => {
       <Box sx={{ px: 2, pb: 2 }}>
         <SystemInfo />
       </Box>
+      <Divider />
+      <TranslationEditor />
     </Box>
   );
 };

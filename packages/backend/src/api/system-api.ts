@@ -78,6 +78,43 @@ function detectEnvironment(): string {
 export function systemApi(version: string): express.Router {
   const router = express.Router();
 
+  router.get("/update-check", async (_req, res) => {
+    try {
+      const response = await fetch(
+        "https://api.github.com/repos/riddix/home-assistant-matter-hub/releases/latest",
+        {
+          headers: { Accept: "application/vnd.github.v3+json" },
+          signal: AbortSignal.timeout(10000),
+        },
+      );
+      if (!response.ok) {
+        res.status(502).json({ error: "Failed to check for updates" });
+        return;
+      }
+      const data = (await response.json()) as {
+        tag_name: string;
+        html_url: string;
+        published_at: string;
+        body?: string;
+      };
+      const latestVersion = data.tag_name.replace(/^v/, "");
+      const updateAvailable =
+        version !== "0.0.0-dev" && latestVersion !== version;
+      res.json({
+        currentVersion: version,
+        latestVersion,
+        updateAvailable,
+        releaseUrl: data.html_url,
+        publishedAt: data.published_at,
+        releaseNotes: data.body ? data.body.substring(0, 500) : undefined,
+        environment: detectEnvironment(),
+      });
+    } catch (error) {
+      logger.error("Failed to check for updates:", error);
+      res.status(500).json({ error: "Failed to check for updates" });
+    }
+  });
+
   router.get("/info", async (_req, res) => {
     try {
       const totalMem = os.totalmem();

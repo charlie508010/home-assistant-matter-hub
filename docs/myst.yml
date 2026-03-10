@@ -18,9 +18,14 @@ project:
         - file: Guides/Connectivity Issues.md
         - file: "Guides/Connect Multiple Fabrics.md"
         - file: "Guides/Reverse Proxy.md"
+        - file: "Guides/Plugin System.md"
     - file: Supported Device Types.md
     - title: Devices
       children:
+        - file: "Devices/Light.md"
+        - file: "Devices/Climate.md"
+        - file: "Devices/Cover.md"
+        - file: "Devices/Lock.md"
         - file: "Devices/Robot Vacuum.md"
         - file: "Devices/Air Purifier.md"
         - file: "Devices/Temperature Humidity Sensor.md"

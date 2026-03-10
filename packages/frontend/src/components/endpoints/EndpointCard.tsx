@@ -22,6 +22,7 @@ import { useTheme } from "@mui/material/styles";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { DeviceImageInfo } from "../../api/device-images";
 import {
   deleteDeviceImage,
@@ -192,6 +193,7 @@ export const EndpointCard = ({
   imageInfo,
   onImageChanged,
 }: EndpointCardProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const name = getEndpointName(endpoint.state) ?? endpoint.id.local;
@@ -236,6 +238,16 @@ export const EndpointCard = ({
       mappings.push({ label: "Energy", entity: mapping.energyEntity });
     }
     return mappings;
+  }, [mapping]);
+
+  const autoMappedClusters = useMemo(() => {
+    const set = new Set<string>();
+    if (mapping?.batteryEntity) set.add("powerSource");
+    if (mapping?.humidityEntity) set.add("relativeHumidityMeasurement");
+    if (mapping?.pressureEntity) set.add("pressureMeasurement");
+    if (mapping?.powerEntity) set.add("electricalPowerMeasurement");
+    if (mapping?.energyEntity) set.add("electricalEnergyMeasurement");
+    return set;
   }, [mapping]);
 
   const powerSource = useMemo(() => {
@@ -523,21 +535,23 @@ export const EndpointCard = ({
                     accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
                     style={{ display: "none" }}
                   />
-                  <Tooltip title="Upload device image">
+                  <Tooltip title={t("endpoints.uploadImage")}>
                     <IconButton
                       size="small"
                       onClick={handleUploadClick}
                       sx={{ ml: 0.5 }}
+                      aria-label={`Upload image for ${name}`}
                     >
                       <CameraAltIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
                   {imageInfo?.source === "custom" && (
-                    <Tooltip title="Remove custom image">
+                    <Tooltip title={t("endpoints.removeImage")}>
                       <IconButton
                         size="small"
                         onClick={handleDeleteImage}
                         sx={{ ml: -0.5 }}
+                        aria-label={`Remove image for ${name}`}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
@@ -546,7 +560,7 @@ export const EndpointCard = ({
                 </>
               )}
               {onEditMapping && entityId && bridgeId && (
-                <Tooltip title="Edit Entity Mapping">
+                <Tooltip title={t("endpoints.editMapping")}>
                   <IconButton
                     size="small"
                     onClick={(e) => {
@@ -554,6 +568,7 @@ export const EndpointCard = ({
                       onEditMapping(entityId, bridgeId);
                     }}
                     sx={{ ml: 0.5 }}
+                    aria-label={`Edit mapping for ${name}`}
                   >
                     <EditIcon fontSize="small" />
                   </IconButton>
@@ -564,7 +579,9 @@ export const EndpointCard = ({
                   <WarningAmberIcon color="warning" fontSize="small" />
                 </Tooltip>
               ) : (
-                <Tooltip title={isReachable ? "Online" : "Offline"}>
+                <Tooltip
+                  title={isReachable ? t("common.online") : t("common.offline")}
+                >
                   {isReachable ? (
                     <CheckCircleIcon color="success" fontSize="small" />
                   ) : (
@@ -593,15 +610,17 @@ export const EndpointCard = ({
               spacing={0.5}
               sx={{ mt: 1, flexWrap: "wrap", gap: 0.5 }}
             >
-              <Chip
-                label={deviceType}
-                size="small"
-                sx={{
-                  backgroundColor: `${getDeviceColor(deviceType, isDark)}20`,
-                  color: getDeviceColor(deviceType, isDark),
-                  fontWeight: 500,
-                }}
-              />
+              <Tooltip title={`Device Type ID: ${endpoint.type.id}`}>
+                <Chip
+                  label={`${deviceType} (${endpoint.type.id})`}
+                  size="small"
+                  sx={{
+                    backgroundColor: `${getDeviceColor(deviceType, isDark)}20`,
+                    color: getDeviceColor(deviceType, isDark),
+                    fontWeight: 500,
+                  }}
+                />
+              </Tooltip>
               {stateChips.map((chip) => (
                 <Chip
                   key={chip.label}
@@ -681,7 +700,7 @@ export const EndpointCard = ({
               color="text.secondary"
               sx={{ flexGrow: 1 }}
             >
-              Clusters ({clusters.length})
+              {t("endpoints.clusters")} ({clusters.length})
             </Typography>
             <ExpandMoreIcon
               sx={{
@@ -697,18 +716,31 @@ export const EndpointCard = ({
             spacing={0.5}
             sx={{ flexWrap: "wrap", gap: 0.5, mt: 0.5 }}
           >
-            {clusters.slice(0, expanded ? undefined : 5).map((cluster) => (
-              <Chip
-                key={cluster}
-                label={cluster}
-                size="small"
-                variant="outlined"
-                sx={{ fontSize: "0.7rem", height: 22 }}
-              />
-            ))}
+            {clusters.slice(0, expanded ? undefined : 5).map((cluster) => {
+              const isAutoMapped = autoMappedClusters.has(cluster);
+              return (
+                <Tooltip
+                  key={cluster}
+                  title={
+                    isAutoMapped
+                      ? `Auto-mapped from linked entity`
+                      : `Device cluster`
+                  }
+                >
+                  <Chip
+                    icon={isAutoMapped ? <LinkIcon /> : undefined}
+                    label={cluster}
+                    size="small"
+                    variant="outlined"
+                    color={isAutoMapped ? "info" : "default"}
+                    sx={{ fontSize: "0.7rem", height: 22 }}
+                  />
+                </Tooltip>
+              );
+            })}
             {!expanded && clusters.length > 5 && (
               <Chip
-                label={`+${clusters.length - 5} more`}
+                label={`+${clusters.length - 5}`}
                 size="small"
                 variant="outlined"
                 sx={{ fontSize: "0.7rem", height: 22 }}
@@ -729,14 +761,14 @@ export const EndpointCard = ({
                 color="text.secondary"
                 sx={{ display: "block", mb: 0.5 }}
               >
-                Home Assistant Entity
+                {t("endpoints.homeAssistantEntity")}
               </Typography>
               <Typography
                 variant="body2"
                 fontFamily="monospace"
                 fontSize="0.75rem"
               >
-                State: {haState ?? "unknown"}
+                {t("endpoints.haState")}: {haState ?? t("common.unknown")}
               </Typography>
               <Typography
                 variant="body2"

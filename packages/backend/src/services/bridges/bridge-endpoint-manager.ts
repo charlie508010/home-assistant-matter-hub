@@ -3,11 +3,16 @@ import type {
   FailedEntity,
 } from "@home-assistant-matter-hub/common";
 import type { Logger } from "@matter/general";
-import type { Endpoint } from "@matter/main";
+import { Endpoint } from "@matter/main";
 import { Service } from "../../core/ioc/service.js";
 import { AggregatorEndpoint } from "../../matter/endpoints/aggregator-endpoint.js";
 import type { EntityEndpoint } from "../../matter/endpoints/entity-endpoint.js";
 import { LegacyEndpoint } from "../../matter/endpoints/legacy/legacy-endpoint.js";
+import { createPluginEndpointType } from "../../plugins/plugin-device-factory.js";
+import type { PluginInstaller } from "../../plugins/plugin-installer.js";
+import type { PluginManager } from "../../plugins/plugin-manager.js";
+import type { PluginRegistry } from "../../plugins/plugin-registry.js";
+import type { PluginDevice, PluginMetadata } from "../../plugins/types.js";
 import { isHeapUnderPressure } from "../../utils/log-memory.js";
 import { subscribeEntities } from "../home-assistant/api/subscribe-entities.js";
 import type { HomeAssistantClient } from "../home-assistant/home-assistant-client.js";
@@ -24,6 +29,8 @@ export class BridgeEndpointManager extends Service {
   private unsubscribe?: () => void;
   private _failedEntities: FailedEntity[] = [];
   private readonly mappingFingerprints = new Map<string, string>();
+  private readonly pluginEndpoints = new Map<string, Endpoint>();
+  private readonly pluginStateUpdating = new Set<string>();
 
   get failedEntities(): FailedEntity[] {
     // Combine static failed entities with dynamically isolated entities
@@ -37,6 +44,9 @@ export class BridgeEndpointManager extends Service {
     private readonly mappingStorage: EntityMappingStorage,
     private readonly bridgeId: string,
     private readonly log: Logger,
+    private readonly pluginManager?: PluginManager,
+    private readonly pluginRegistry?: PluginRegistry,
+    private readonly pluginInstaller?: PluginInstaller,
   ) {
     super("BridgeEndpointManager");
     this.root = new AggregatorEndpoint("aggregator");
@@ -45,6 +55,235 @@ export class BridgeEndpointManager extends Service {
     EntityIsolationService.registerIsolationCallback(
       bridgeId,
       this.isolateEntity.bind(this),
+    );
+
+    if (this.pluginManager) {
+      this.wirePluginCallbacks();
+    }
+  }
+
+  private wirePluginCallbacks(): void {
+    if (!this.pluginManager) return;
+
+    this.pluginManager.onDeviceRegistered = async (
+      pluginName: string,
+      device: PluginDevice,
+    ) => {
+      const type = createPluginEndpointType(device.deviceType);
+      if (!type) {
+        this.log.warn(
+          `Plugin "${pluginName}": unsupported device type "${device.deviceType}" for device "${device.id}"`,
+        );
+        return;
+      }
+      // Set PluginDeviceBehavior state and apply initial cluster config
+      const initialState: Record<string, object> = {
+        pluginDevice: { device, pluginName },
+      };
+      for (const cluster of device.clusters) {
+        initialState[cluster.clusterId] = cluster.attributes;
+      }
+      // biome-ignore lint/suspicious/noExplicitAny: EndpointType lacks .set() in its type but all factory results are MutableEndpoints
+      const configuredType = (type as any).set(initialState) as typeof type;
+      const endpoint = new Endpoint(configuredType, {
+        id: `plugin_${device.id}`,
+      });
+      try {
+        await this.root.add(endpoint);
+        this.pluginEndpoints.set(device.id, endpoint);
+        this.wirePluginEndpointEvents(device, endpoint);
+        this.log.info(
+          `Plugin "${pluginName}": added device "${device.name}" (${device.deviceType})`,
+        );
+      } catch (e) {
+        this.log.warn(
+          `Plugin "${pluginName}": failed to add device "${device.id}":`,
+          e,
+        );
+      }
+    };
+
+    this.pluginManager.onDeviceUnregistered = async (
+      pluginName: string,
+      deviceId: string,
+    ) => {
+      const endpoint = this.pluginEndpoints.get(deviceId);
+      if (endpoint) {
+        try {
+          await endpoint.delete();
+        } catch (e) {
+          this.log.warn(
+            `Plugin "${pluginName}": failed to remove device "${deviceId}":`,
+            e,
+          );
+        }
+        this.pluginEndpoints.delete(deviceId);
+      }
+    };
+
+    this.pluginManager.onDeviceStateUpdated = (
+      pluginName: string,
+      deviceId: string,
+      clusterId: string,
+      attributes: Record<string, unknown>,
+    ) => {
+      const endpoint = this.pluginEndpoints.get(deviceId);
+      if (!endpoint) return;
+      const behaviorType = endpoint.type.behaviors[clusterId];
+      if (!behaviorType) {
+        this.log.debug(
+          `Plugin "${pluginName}": cluster "${clusterId}" not found on device "${deviceId}"`,
+        );
+        return;
+      }
+      this.pluginStateUpdating.add(deviceId);
+      endpoint
+        .setStateOf(behaviorType, attributes)
+        .catch((e) => {
+          this.log.warn(
+            `Plugin "${pluginName}": failed to update "${clusterId}" on "${deviceId}":`,
+            e,
+          );
+        })
+        .finally(() => {
+          this.pluginStateUpdating.delete(deviceId);
+        });
+    };
+  }
+
+  private wirePluginEndpointEvents(
+    device: PluginDevice,
+    endpoint: Endpoint,
+  ): void {
+    if (!device.onAttributeWrite) return;
+    // biome-ignore lint/suspicious/noExplicitAny: matter.js events are dynamically typed per endpoint
+    const allEvents = endpoint.events as any;
+    for (const behaviorId of Object.keys(endpoint.type.behaviors)) {
+      if (behaviorId === "pluginDevice") continue;
+      const behaviorEvents = allEvents[behaviorId];
+      if (!behaviorEvents || typeof behaviorEvents !== "object") continue;
+      for (const eventName of Object.keys(behaviorEvents)) {
+        if (!eventName.endsWith("$Changed")) continue;
+        const observable = behaviorEvents[eventName];
+        if (!observable || typeof observable.on !== "function") continue;
+        const attrName = eventName.slice(0, -"$Changed".length);
+        observable.on((newValue: unknown) => {
+          if (this.pluginStateUpdating.has(device.id)) return;
+          device
+            .onAttributeWrite?.(behaviorId, attrName, newValue)
+            .catch((e: unknown) => {
+              this.log.debug(
+                `Plugin device "${device.id}": onAttributeWrite error for ${behaviorId}.${attrName}:`,
+                e,
+              );
+            });
+        });
+      }
+    }
+  }
+
+  async startPlugins(): Promise<void> {
+    if (!this.pluginManager) return;
+    await this.loadRegisteredPlugins();
+    await this.pluginManager.startAll();
+    await this.pluginManager.configureAll();
+  }
+
+  private async loadRegisteredPlugins(): Promise<void> {
+    if (!this.pluginManager || !this.pluginRegistry || !this.pluginInstaller)
+      return;
+    const registered = this.pluginRegistry.getAll();
+    for (const entry of registered) {
+      if (!entry.autoLoad) continue;
+      const packagePath = this.pluginInstaller.getPluginPath(entry.packageName);
+      try {
+        await this.pluginManager.loadExternal(packagePath, entry.config);
+        this.log.info(
+          `Loaded external plugin: ${entry.packageName} from ${packagePath}`,
+        );
+      } catch (e) {
+        this.log.warn(
+          `Failed to load external plugin "${entry.packageName}":`,
+          e,
+        );
+      }
+    }
+  }
+
+  async stopPlugins(): Promise<void> {
+    if (!this.pluginManager) return;
+    await this.pluginManager.shutdownAll("Bridge stopping");
+    for (const [id, endpoint] of this.pluginEndpoints) {
+      try {
+        await endpoint.delete();
+      } catch (e) {
+        this.log.warn(`Failed to delete plugin endpoint ${id}:`, e);
+      }
+    }
+    this.pluginEndpoints.clear();
+  }
+
+  getPluginInfo(): {
+    metadata: PluginMetadata[];
+    devices: Array<{ pluginName: string; device: PluginDevice }>;
+    circuitBreakers: Record<
+      string,
+      {
+        failures: number;
+        disabled: boolean;
+        lastError?: string;
+        disabledAt?: number;
+      }
+    >;
+  } {
+    if (!this.pluginManager) {
+      return { metadata: [], devices: [], circuitBreakers: {} };
+    }
+    const cbStates = this.pluginManager.getCircuitBreakerStates();
+    const circuitBreakers: Record<
+      string,
+      {
+        failures: number;
+        disabled: boolean;
+        lastError?: string;
+        disabledAt?: number;
+      }
+    > = {};
+    for (const [name, state] of cbStates) {
+      circuitBreakers[name] = state;
+    }
+    return {
+      metadata: this.pluginManager.getMetadata(),
+      devices: this.pluginManager.getAllDevices(),
+      circuitBreakers,
+    };
+  }
+
+  enablePlugin(pluginName: string): void {
+    this.pluginManager?.enablePlugin(pluginName);
+  }
+
+  disablePlugin(pluginName: string): void {
+    this.pluginManager?.disablePlugin(pluginName);
+  }
+
+  resetPlugin(pluginName: string): void {
+    this.pluginManager?.resetPlugin(pluginName);
+  }
+
+  getPluginConfigSchema(
+    pluginName: string,
+  ): Record<string, unknown> | undefined {
+    // biome-ignore lint/suspicious/noExplicitAny: PluginConfigSchema is structurally compatible
+    return this.pluginManager?.getConfigSchema(pluginName) as any;
+  }
+
+  async updatePluginConfig(
+    pluginName: string,
+    config: Record<string, unknown>,
+  ): Promise<boolean> {
+    return (
+      (await this.pluginManager?.updateConfig(pluginName, config)) ?? false
     );
   }
 
@@ -164,6 +403,25 @@ export class BridgeEndpointManager extends Service {
           await endpoint.delete();
         } catch (e) {
           this.log.warn(`Failed to delete endpoint ${endpoint.entityId}:`, e);
+        }
+        this.mappingFingerprints.delete(endpoint.entityId);
+      } else if (
+        this.registry.isAutoComposedDevicesEnabled() &&
+        this.registry.isComposedSubEntityUsed(endpoint.entityId)
+      ) {
+        // Entity was consumed by a composed device (e.g., temp/hum sensor
+        // absorbed into an air purifier). Delete the standalone endpoint so
+        // the composed device is the only representation (#218).
+        this.log.info(
+          `Deleting standalone endpoint ${endpoint.entityId} — consumed by composed device`,
+        );
+        try {
+          await endpoint.delete();
+        } catch (e) {
+          this.log.warn(
+            `Failed to delete composed sub-entity endpoint ${endpoint.entityId}:`,
+            e,
+          );
         }
         this.mappingFingerprints.delete(endpoint.entityId);
       } else {

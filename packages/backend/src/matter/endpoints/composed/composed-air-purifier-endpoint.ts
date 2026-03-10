@@ -155,6 +155,7 @@ export interface ComposedAirPurifierConfig {
  */
 export class ComposedAirPurifierEndpoint extends Endpoint {
   readonly entityId: string;
+  readonly mappedEntityIds: string[];
   private trackedEntityIds: string[];
   private lastStates = new Map<string, string>();
   private debouncedFlush?: ReturnType<
@@ -278,11 +279,16 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
       trackedEntityIds.push(config.temperatureEntityId);
     if (config.humidityEntityId) trackedEntityIds.push(config.humidityEntityId);
 
+    // Expose non-primary entities so bridge-endpoint-manager subscribes to
+    // their state changes via WebSocket (without this, sensor data goes stale).
+    const mappedIds = trackedEntityIds.filter((id) => id !== primaryEntityId);
+
     const endpoint = new ComposedAirPurifierEndpoint(
       parentTypeWithState,
       primaryEntityId,
       endpointId,
       trackedEntityIds,
+      mappedIds,
     );
 
     const clusterLabels = [
@@ -304,10 +310,12 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
     entityId: string,
     id: string,
     trackedEntityIds: string[],
+    mappedEntityIds: string[],
   ) {
     super(type, { id });
     this.entityId = entityId;
     this.trackedEntityIds = trackedEntityIds;
+    this.mappedEntityIds = mappedEntityIds;
   }
 
   async updateStates(states: HomeAssistantStates): Promise<void> {

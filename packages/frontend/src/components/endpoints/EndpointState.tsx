@@ -24,6 +24,7 @@ import TableRow from "@mui/material/TableRow";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface EndpointStateProps {
   endpoint: EndpointData;
@@ -112,6 +113,7 @@ const extractHaDiagnostics = (
 };
 
 const EntityDiagnosticsPanel = ({ endpoint }: { endpoint: EndpointData }) => {
+  const { t } = useTranslation();
   const diag = useMemo(
     () => extractHaDiagnostics(endpoint.state as Record<string, unknown>),
     [endpoint.state],
@@ -156,7 +158,7 @@ const EntityDiagnosticsPanel = ({ endpoint }: { endpoint: EndpointData }) => {
       <Stack spacing={1.5}>
         <Box display="flex" alignItems="center" gap={1}>
           <Typography variant="subtitle2" fontWeight={600}>
-            Home Assistant Entity
+            {t("endpoints.homeAssistantEntity")}
           </Typography>
           {diag.isUnavailable ? (
             <Chip
@@ -182,7 +184,7 @@ const EntityDiagnosticsPanel = ({ endpoint }: { endpoint: EndpointData }) => {
             <TableBody>
               <TableRow>
                 <TableCell sx={{ fontWeight: 500, width: "35%" }}>
-                  Entity ID
+                  {t("endpoints.entityId")}
                 </TableCell>
                 <TableCell>
                   <Typography fontFamily="monospace" fontSize="0.85em">
@@ -191,7 +193,9 @@ const EntityDiagnosticsPanel = ({ endpoint }: { endpoint: EndpointData }) => {
                 </TableCell>
               </TableRow>
               <TableRow>
-                <TableCell sx={{ fontWeight: 500 }}>HA State</TableCell>
+                <TableCell sx={{ fontWeight: 500 }}>
+                  {t("endpoints.haState")}
+                </TableCell>
                 <TableCell>
                   <Typography fontFamily="monospace" fontSize="0.85em">
                     {diag.haState}
@@ -200,14 +204,16 @@ const EntityDiagnosticsPanel = ({ endpoint }: { endpoint: EndpointData }) => {
               </TableRow>
               {diag.customName && (
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 500 }}>Custom Name</TableCell>
+                  <TableCell sx={{ fontWeight: 500 }}>
+                    {t("endpoints.customName")}
+                  </TableCell>
                   <TableCell>{diag.customName}</TableCell>
                 </TableRow>
               )}
               {diag.matterDeviceType && (
                 <TableRow>
                   <TableCell sx={{ fontWeight: 500 }}>
-                    Device Type Override
+                    {t("endpoints.deviceTypeOverride")}
                   </TableCell>
                   <TableCell>
                     <Chip
@@ -230,7 +236,7 @@ const EntityDiagnosticsPanel = ({ endpoint }: { endpoint: EndpointData }) => {
               color="text.secondary"
               fontWeight={600}
             >
-              Key HA Attributes
+              {t("endpoints.keyHaAttributes")}
             </Typography>
             <TableContainer>
               <Table size="small">
@@ -269,7 +275,7 @@ const EntityDiagnosticsPanel = ({ endpoint }: { endpoint: EndpointData }) => {
               color="text.secondary"
               fontWeight={600}
             >
-              Entity Mappings
+              {t("endpoints.entityMappings")}
             </Typography>
             <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
               {diag.mappings.map((m) => (
@@ -291,7 +297,16 @@ const EntityDiagnosticsPanel = ({ endpoint }: { endpoint: EndpointData }) => {
   );
 };
 
+const autoMappedClusterNames: Record<string, string> = {
+  powerSource: "batteryEntity",
+  relativeHumidityMeasurement: "humidityEntity",
+  pressureMeasurement: "pressureEntity",
+  electricalPowerMeasurement: "powerEntity",
+  electricalEnergyMeasurement: "energyEntity",
+};
+
 export const EndpointState = (props: EndpointStateProps) => {
+  const { t } = useTranslation();
   const allBehaviors = useMemo(
     () =>
       Object.keys(
@@ -303,6 +318,23 @@ export const EndpointState = (props: EndpointStateProps) => {
     () => allBehaviors.filter((it) => !ignoredBehaviors.includes(it)).sort(),
     [allBehaviors],
   );
+
+  const autoMappedClusters = useMemo(() => {
+    const diag = extractHaDiagnostics(
+      props.endpoint.state as Record<string, unknown>,
+    );
+    if (!diag) return new Set<string>();
+    const set = new Set<string>();
+    for (const m of diag.mappings) {
+      for (const [cluster, field] of Object.entries(autoMappedClusterNames)) {
+        if (field.toLowerCase().startsWith(m.label.toLowerCase())) {
+          set.add(cluster);
+        }
+      }
+    }
+    return set;
+  }, [props.endpoint.state]);
+
   const metadata = useMemo(
     () => ({
       "Endpoint ID": props.endpoint.id.local,
@@ -324,7 +356,9 @@ export const EndpointState = (props: EndpointStateProps) => {
             justifyContent="space-between"
             alignItems="center"
           >
-            <Typography component="span">About this endpoint</Typography>
+            <Typography component="span">
+              {t("endpoints.aboutEndpoint")}
+            </Typography>
             <Button
               onClick={() => {
                 navigator.clipboard.writeText(
@@ -334,28 +368,43 @@ export const EndpointState = (props: EndpointStateProps) => {
               variant="outlined"
               size="small"
             >
-              Copy data to clipboard
+              {t("endpoints.copyData")}
             </Button>
           </Stack>
           <ObjectTable value={metadata} hideHead></ObjectTable>
         </Stack>
       </Paper>
 
-      {behaviors.map((behavior) => (
-        <Accordion key={behavior}>
-          <AccordionSummary
-            expandIcon={<ExpandMoreIcon />}
-            aria-controls="panel1-content"
-          >
-            <Typography component="span">
-              Behavior: <strong>{behavior}</strong>
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <ObjectTable value={props.endpoint.state[behavior]} />
-          </AccordionDetails>
-        </Accordion>
-      ))}
+      {behaviors.map((behavior) => {
+        const isAutoMapped = autoMappedClusters.has(behavior);
+        return (
+          <Accordion key={behavior}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              aria-controls="panel1-content"
+            >
+              <Box display="flex" alignItems="center" gap={1}>
+                <Typography component="span">
+                  {t("endpoints.behavior")}: <strong>{behavior}</strong>
+                </Typography>
+                {isAutoMapped && (
+                  <Chip
+                    icon={<LinkIcon />}
+                    label="auto-mapped"
+                    size="small"
+                    color="info"
+                    variant="outlined"
+                    sx={{ fontSize: "0.7rem", height: 20 }}
+                  />
+                )}
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <ObjectTable value={props.endpoint.state[behavior]} />
+            </AccordionDetails>
+          </Accordion>
+        );
+      })}
     </>
   );
 };
@@ -364,6 +413,7 @@ const ObjectTable = <T extends object>(props: {
   value: T;
   hideHead?: boolean;
 }) => {
+  const { t } = useTranslation();
   const properties = useMemo(
     () => Object.keys(props.value) as (keyof T & string)[],
     [props.value],
@@ -374,8 +424,8 @@ const ObjectTable = <T extends object>(props: {
         {!props.hideHead && (
           <TableHead>
             <TableRow>
-              <TableCell>Property</TableCell>
-              <TableCell>Value</TableCell>
+              <TableCell>{t("common.property")}</TableCell>
+              <TableCell>{t("common.value")}</TableCell>
             </TableRow>
           </TableHead>
         )}

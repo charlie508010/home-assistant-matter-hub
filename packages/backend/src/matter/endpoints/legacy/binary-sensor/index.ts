@@ -13,6 +13,10 @@ import {
   ContactSensorWithBatteryType,
 } from "./contact-sensor.js";
 import {
+  MotionSensorType,
+  MotionSensorWithBatteryType,
+} from "./motion-sensor.js";
+import {
   OccupancySensorType,
   OccupancySensorWithBatteryType,
 } from "./occupancy-sensor.js";
@@ -20,6 +24,7 @@ import {
   OnOffSensorType,
   OnOffSensorWithBatteryType,
 } from "./on-off-sensor.js";
+import type { RainSensorType } from "./rain-sensor.js";
 import {
   CoAlarmType,
   CoAlarmWithBatteryType,
@@ -31,7 +36,9 @@ import { WaterLeakDetectorType } from "./water-leak-detector.js";
 
 type CombinedType =
   | typeof ContactSensorType
+  | typeof MotionSensorType
   | typeof OccupancySensorType
+  | typeof RainSensorType
   | typeof WaterFreezeDetectorType
   | typeof WaterLeakDetectorType
   | typeof SmokeAlarmType
@@ -64,8 +71,8 @@ const deviceClasses: Partial<Record<BinarySensorDeviceClass, CombinedType>> = {
   [BinarySensorDeviceClass.Vibration]: ContactSensorType,
   [BinarySensorDeviceClass.Window]: ContactSensorType,
 
-  [BinarySensorDeviceClass.Motion]: OccupancySensorType,
-  [BinarySensorDeviceClass.Moving]: OccupancySensorType,
+  [BinarySensorDeviceClass.Motion]: MotionSensorType,
+  [BinarySensorDeviceClass.Moving]: MotionSensorType,
   [BinarySensorDeviceClass.Occupancy]: OccupancySensorType,
   [BinarySensorDeviceClass.Presence]: OccupancySensorType,
 
@@ -77,6 +84,7 @@ const deviceClasses: Partial<Record<BinarySensorDeviceClass, CombinedType>> = {
 // Mapping from normal type to battery type
 const batteryTypes = new Map<CombinedType, CombinedType>([
   [ContactSensorType, ContactSensorWithBatteryType],
+  [MotionSensorType, MotionSensorWithBatteryType],
   [OccupancySensorType, OccupancySensorWithBatteryType],
   [OnOffSensorType, OnOffSensorWithBatteryType],
   [SmokeAlarmType, SmokeAlarmWithBatteryType],

@@ -3,6 +3,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import i18n from "../../i18n/index.ts";
 
 interface Props {
   children: ReactNode;
@@ -41,7 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
         >
           <ErrorOutlineIcon color="error" sx={{ fontSize: 64 }} />
           <Typography variant="h5" fontWeight={600}>
-            Something went wrong
+            {i18n.t("errorBoundary.title")}
           </Typography>
           <Typography
             variant="body2"
@@ -49,7 +50,8 @@ export class ErrorBoundary extends Component<Props, State> {
             textAlign="center"
             maxWidth={480}
           >
-            {this.state.error?.message ?? "An unexpected error occurred."}
+            {this.state.error?.message ??
+              i18n.t("errorBoundary.fallbackMessage")}
           </Typography>
           <Button
             variant="contained"
@@ -58,7 +60,7 @@ export class ErrorBoundary extends Component<Props, State> {
               window.location.reload();
             }}
           >
-            Reload Page
+            {i18n.t("errorBoundary.reload")}
           </Button>
         </Box>
       );

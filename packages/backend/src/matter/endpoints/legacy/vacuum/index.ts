@@ -35,7 +35,6 @@ const VacuumEndpointType = RoboticVacuumCleanerDevice.with(
 export function VacuumDevice(
   homeAssistantEntity: HomeAssistantEntityBehavior.State,
   includeOnOff = false,
-  minimalClusters = false,
   cleaningModeOptions?: string[],
 ): EndpointType | undefined {
   if (homeAssistantEntity.entity.state === undefined) {
@@ -73,13 +72,9 @@ export function VacuumDevice(
   }
 
   // PowerSource — adds device type 0x0011 to the descriptor alongside 0x0074.
-  // When minimalClusters is enabled, skip it to match working Alexa RVC setups.
-  if (!minimalClusters) {
-    device = device.with(VacuumPowerSourceServer);
-  }
+  device = device.with(VacuumPowerSourceServer);
 
   // ServiceArea — included when rooms/custom areas are configured.
-  // When minimalClusters is enabled, skip the default placeholder area.
   const roomEntities = homeAssistantEntity.mapping?.roomEntities;
   const rooms = parseVacuumRooms(attributes);
   logger.info(
@@ -95,11 +90,9 @@ export function VacuumDevice(
     device = device.with(
       createVacuumServiceAreaServer(attributes, roomEntities),
     );
-  } else if (!minimalClusters) {
+  } else {
     logger.info(`${entityId}: Adding ServiceArea (default single-area)`);
     device = device.with(createDefaultServiceAreaServer());
-  } else {
-    logger.info(`${entityId}: Skipping ServiceArea (minimal clusters mode)`);
   }
 
   // RvcCleanMode — always included.

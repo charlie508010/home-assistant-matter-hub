@@ -45,7 +45,15 @@ function shouldSuppressError(error: unknown): boolean {
 // Check if an error is isolatable (can isolate the entity causing it)
 function isIsolatableError(error: unknown): boolean {
   const msg = error instanceof Error ? error.message : String(error);
-  return msg.includes("Invalid intervalMs") || msg.includes("aggregator.");
+  return (
+    msg.includes("Invalid intervalMs") ||
+    msg.includes("Behaviors have errors") ||
+    msg.includes("TransactionDestroyedError") ||
+    msg.includes("DestroyedDependencyError") ||
+    msg.includes("UninitializedDependencyError") ||
+    msg.includes("Endpoint storage inaccessible") ||
+    msg.includes("aggregator.")
+  );
 }
 
 // Register early error handlers to catch errors before Matter.js initializes
@@ -134,6 +142,27 @@ export async function startHandler(
   bridgeService.onBridgeChanged = (bridgeId) => {
     webApi.websocket.broadcastBridgeUpdate(bridgeId);
   };
+
+  // Register graceful shutdown handlers.
+  // When the process receives SIGTERM (Docker stop) or SIGINT (Ctrl+C),
+  // stop all bridges cleanly so matter.js persists fabric/subscription state.
+  let shuttingDown = false;
+  const gracefulShutdown = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`Received ${signal}, shutting down gracefully...`);
+    try {
+      await Promise.race([
+        bridgeService.dispose(),
+        new Promise((resolve) => setTimeout(resolve, 10_000)),
+      ]);
+    } catch (e) {
+      console.warn("Error during graceful shutdown:", e);
+    }
+    process.exit(0);
+  };
+  process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+  process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
   const initBridges = bridgeService.startAll();
   const initApi = webApi.start();

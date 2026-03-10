@@ -104,6 +104,35 @@ export class Bridge {
     return this.endpointManager.root;
   }
 
+  get pluginInfo() {
+    return this.endpointManager.getPluginInfo();
+  }
+
+  enablePlugin(pluginName: string): void {
+    this.endpointManager.enablePlugin(pluginName);
+  }
+
+  disablePlugin(pluginName: string): void {
+    this.endpointManager.disablePlugin(pluginName);
+  }
+
+  resetPlugin(pluginName: string): void {
+    this.endpointManager.resetPlugin(pluginName);
+  }
+
+  getPluginConfigSchema(
+    pluginName: string,
+  ): Record<string, unknown> | undefined {
+    return this.endpointManager.getPluginConfigSchema(pluginName);
+  }
+
+  async updatePluginConfig(
+    pluginName: string,
+    config: Record<string, unknown>,
+  ): Promise<boolean> {
+    return this.endpointManager.updatePluginConfig(pluginName, config);
+  }
+
   constructor(
     env: Environment,
     logger: LoggerService,
@@ -164,6 +193,7 @@ export class Bridge {
       this.endpointManager.startObserving();
       ensureCommissioningConfig(this.server);
       await this.server.start();
+      await this.endpointManager.startPlugins();
       this.setStatus({ code: BridgeStatus.Running });
       this.startAutoForceSyncIfEnabled();
       this.wireSessionDiagnostics();
@@ -186,6 +216,7 @@ export class Bridge {
   ) {
     this.unwireSessionDiagnostics();
     this.stopAutoForceSync();
+    await this.endpointManager.stopPlugins();
     this.endpointManager.stopObserving();
     try {
       await this.server.cancel();
@@ -250,13 +281,32 @@ export class Bridge {
       };
       sessionManager.subscriptionsChanged.on(this.sessionDiagHandler);
 
-      this.sessionAddedHandler = (session: {
+      this.sessionAddedHandler = (newSession: {
         id: number;
         peerNodeId: unknown;
+        fabric?: { fabricIndex: unknown };
       }) => {
         this.log.info(
-          `Session opened: id=${session.id} peer=${session.peerNodeId}`,
+          `Session opened: id=${newSession.id} peer=${newSession.peerNodeId}`,
         );
+        // Clean up stale sessions from the same peer that have lost all
+        // subscriptions. matter.js 0.16.10 CaseServer does not close
+        // previous sessions when establishing a new CASE session, causing
+        // unbounded session accumulation over time (#105).
+        for (const s of [...sessionManager.sessions]) {
+          if (
+            s !== newSession &&
+            !s.isClosing &&
+            s.peerNodeId === newSession.peerNodeId &&
+            s.fabric?.fabricIndex === newSession.fabric?.fabricIndex &&
+            s.subscriptions.size === 0
+          ) {
+            this.log.info(
+              `Closing stale session ${s.id} (peer ${s.peerNodeId}, 0 subs) — replaced by session ${newSession.id}`,
+            );
+            s.initiateForceClose().catch(() => {});
+          }
+        }
       };
       this.sessionDeletedHandler = (session: {
         id: number;

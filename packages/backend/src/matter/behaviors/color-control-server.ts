@@ -13,8 +13,30 @@ import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
 const logger = Logger.get("ColorControlServer");
 
 // Track optimistic color writes to prevent stale HA state from overwriting them.
-const optimisticColorTimestamps = new Map<string, number>();
-const OPTIMISTIC_COLOR_COOLDOWN_MS = 2000;
+// Instead of a blanket cooldown, track expected values and only skip stale updates.
+interface OptimisticColorState {
+  colorTemperatureMireds?: number;
+  currentHue?: number;
+  currentSaturation?: number;
+  timestamp: number;
+}
+const optimisticColorState = new Map<string, OptimisticColorState>();
+const OPTIMISTIC_TIMEOUT_MS = 3000;
+const OPTIMISTIC_TOLERANCE = 5;
+
+// Pre-staged color data for Adaptive Lighting. When a controller adjusts
+// color while the light is off (executeIfOff), the action is stored here
+// instead of calling HA (which would turn the light on). The OnOff handler
+// merges this into the turn-on action so the light comes on at the correct color.
+const pendingColorStaging = new Map<string, object>();
+
+export function consumePendingColorStaging(
+  entityId: string,
+): object | undefined {
+  const data = pendingColorStaging.get(entityId);
+  pendingColorStaging.delete(entityId);
+  return data;
+}
 
 export type ColorControlMode =
   | ColorControl.ColorMode.CurrentHueAndCurrentSaturation
@@ -137,12 +159,44 @@ export class ColorControlServerBase extends FeaturedBase {
       config.getCurrentMode(entity.state, this.agent),
     );
 
-    // Skip color attribute updates during optimistic cooldown to prevent stale
-    // HA state from reverting values set by a controller command.
-    const lastOptimistic = optimisticColorTimestamps.get(entity.entity_id);
-    const inCooldown =
-      lastOptimistic != null &&
-      Date.now() - lastOptimistic < OPTIMISTIC_COLOR_COOLDOWN_MS;
+    // Protect optimistic color values from stale HA state updates.
+    // Accept updates that confirm expected values; skip stale ones.
+    const optimistic = optimisticColorState.get(entity.entity_id);
+    let skipColorTemp = false;
+    let skipHueSat = false;
+    if (optimistic != null) {
+      if (Date.now() - optimistic.timestamp > OPTIMISTIC_TIMEOUT_MS) {
+        optimisticColorState.delete(entity.entity_id);
+      } else {
+        if (
+          optimistic.colorTemperatureMireds != null &&
+          currentMireds != null
+        ) {
+          if (
+            Math.abs(currentMireds - optimistic.colorTemperatureMireds) <=
+            OPTIMISTIC_TOLERANCE
+          ) {
+            optimisticColorState.delete(entity.entity_id);
+          } else {
+            skipColorTemp = true;
+          }
+        }
+        if (
+          optimistic.currentHue != null &&
+          optimistic.currentSaturation != null
+        ) {
+          if (
+            Math.abs(hue - optimistic.currentHue) <= OPTIMISTIC_TOLERANCE &&
+            Math.abs(saturation - optimistic.currentSaturation) <=
+              OPTIMISTIC_TOLERANCE
+          ) {
+            optimisticColorState.delete(entity.entity_id);
+          } else {
+            skipHueSat = true;
+          }
+        }
+      }
+    }
 
     // CRITICAL: For ColorTemperature, we must set boundaries FIRST, then values.
     // Matter.js validates that colorTemperatureMireds and startUpColorTemperatureMireds
@@ -185,14 +239,14 @@ export class ColorControlServerBase extends FeaturedBase {
       applyPatchState(this.state, {
         coupleColorTempToLevelMinMireds: minMireds,
         startUpColorTemperatureMireds: startUpMireds,
-        ...(inCooldown ? {} : { colorTemperatureMireds: effectiveMireds }),
+        ...(skipColorTemp ? {} : { colorTemperatureMireds: effectiveMireds }),
       });
     }
 
     // Set colorMode and hueSaturation attributes
     applyPatchState(this.state, {
-      ...(inCooldown ? {} : { colorMode: newColorMode }),
-      ...(this.features.hueSaturation && !inCooldown
+      ...(skipColorTemp && skipHueSat ? {} : { colorMode: newColorMode }),
+      ...(this.features.hueSaturation && !skipHueSat
         ? {
             currentHue: hue,
             currentSaturation: saturation,
@@ -227,7 +281,15 @@ export class ColorControlServerBase extends FeaturedBase {
       colorTemperatureMireds: targetMireds,
       colorMode: ColorControl.ColorMode.ColorTemperatureMireds,
     });
-    optimisticColorTimestamps.set(homeAssistant.entityId, Date.now());
+    optimisticColorState.set(homeAssistant.entityId, {
+      colorTemperatureMireds: targetMireds,
+      timestamp: Date.now(),
+    });
+
+    if (this.isLightOff()) {
+      pendingColorStaging.set(homeAssistant.entityId, action.data ?? {});
+      return;
+    }
     homeAssistant.callAction(action);
   }
 
@@ -269,8 +331,22 @@ export class ColorControlServerBase extends FeaturedBase {
       currentSaturation: targetSaturation,
       colorMode: ColorControl.ColorMode.CurrentHueAndCurrentSaturation,
     });
-    optimisticColorTimestamps.set(homeAssistant.entityId, Date.now());
+    optimisticColorState.set(homeAssistant.entityId, {
+      currentHue: targetHue,
+      currentSaturation: targetSaturation,
+      timestamp: Date.now(),
+    });
+
+    if (this.isLightOff()) {
+      pendingColorStaging.set(homeAssistant.entityId, action.data ?? {});
+      return;
+    }
     homeAssistant.callAction(action);
+  }
+
+  private isLightOff(): boolean {
+    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+    return homeAssistant.entity.state.state === "off";
   }
 
   private applyTransition(action: { data?: object }) {

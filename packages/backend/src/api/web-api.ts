@@ -24,8 +24,10 @@ import { healthApi } from "./health-api.js";
 import { homeAssistantApi } from "./home-assistant-api.js";
 import { lockCredentialApi } from "./lock-credential-api.js";
 import { logsApi } from "./logs-api.js";
+import { mappingProfileApi } from "./mapping-profile-api.js";
 import { matterApi } from "./matter-api.js";
 import { metricsApi } from "./metrics-api.js";
+import { pluginApi } from "./plugin-api.js";
 import { supportIngress, supportProxyLocation } from "./proxy-support.js";
 import { settingsApi } from "./settings-api.js";
 import { systemApi } from "./system-api.js";
@@ -104,6 +106,7 @@ export class WebApi extends Service {
         deviceImageApi(this.props.storageLocation, this.haRegistry),
       )
       .use("/entity-mappings", entityMappingApi(this.mappingStorage))
+      .use("/mapping-profiles", mappingProfileApi(this.mappingStorage))
       .use("/lock-credentials", lockCredentialApi(this.lockCredentialStorage))
       .use("/settings", settingsApi(this.settingsStorage, this.props.auth))
       .use(
@@ -135,6 +138,10 @@ export class WebApi extends Service {
           this.haRegistry,
           this.startTime,
         ),
+      )
+      .use(
+        "/plugins",
+        pluginApi(this.bridgeService, this.props.storageLocation),
       );
 
     const middlewares: express.Handler[] = [
