@@ -250,9 +250,32 @@ export class LegacyEndpoint extends EntityEndpoint {
           );
         }
 
-        // Auto-detect rooms when no rooms in attributes
+        // HA 2026.3 CLEAN_AREA: resolve HA area mapping before vendor-specific room detection
+        const supportedFeatures =
+          (state.attributes as VacuumDeviceAttributes).supported_features ?? 0;
+        const cleanAreaRooms = await registry.resolveCleanAreaRooms(
+          entityId,
+          supportedFeatures,
+        );
+        if (cleanAreaRooms.length > 0) {
+          effectiveMapping = {
+            ...effectiveMapping,
+            entityId: effectiveMapping?.entityId ?? entityId,
+            cleanAreaRooms,
+          };
+          logger.debug(
+            `Using ${cleanAreaRooms.length} HA areas via CLEAN_AREA for ${entityId}`,
+          );
+        }
+
+        // Auto-detect rooms when no rooms in attributes and no CLEAN_AREA mapping
         const vacAttrs = state.attributes as VacuumDeviceAttributes;
-        if (!vacAttrs.rooms && !vacAttrs.segments && !vacAttrs.room_mapping) {
+        if (
+          cleanAreaRooms.length === 0 &&
+          !vacAttrs.rooms &&
+          !vacAttrs.segments &&
+          !vacAttrs.room_mapping
+        ) {
           // Try Valetudo map segments sensor first
           const valetudoRooms = registry.findValetudoMapSegments(
             entity.device_id,

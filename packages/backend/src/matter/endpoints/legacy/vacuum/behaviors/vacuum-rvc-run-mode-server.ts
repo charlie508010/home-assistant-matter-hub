@@ -1,4 +1,5 @@
 import {
+  type CleanAreaRoom,
   type CustomServiceArea,
   type VacuumDeviceAttributes,
   VacuumDeviceFeature,
@@ -146,6 +147,23 @@ function handleCustomServiceAreas(
   };
 }
 
+/**
+ * Resolve Matter ServiceArea area IDs to HA area_id strings using CLEAN_AREA mapping.
+ */
+function resolveCleanAreaIds(
+  selectedAreas: number[],
+  cleanAreaRooms: CleanAreaRoom[],
+): string[] {
+  const haAreaIds: string[] = [];
+  for (const areaId of selectedAreas) {
+    const room = cleanAreaRooms.find((r) => r.areaId === areaId);
+    if (room) {
+      haAreaIds.push(room.haAreaId);
+    }
+  }
+  return haAreaIds;
+}
+
 const vacuumRvcRunModeConfig = {
   getCurrentMode: (entity: { state: string }) => {
     const state = entity.state as VacuumState;
@@ -193,6 +211,22 @@ const vacuumRvcRunModeConfig = {
             homeAssistant,
             serviceArea,
           );
+        }
+
+        // HA 2026.3 CLEAN_AREA: resolve selected ServiceArea IDs to HA area IDs
+        const cleanAreaRooms = homeAssistant.state.mapping?.cleanAreaRooms;
+        if (cleanAreaRooms && cleanAreaRooms.length > 0) {
+          const haAreaIds = resolveCleanAreaIds(selectedAreas, cleanAreaRooms);
+          serviceArea.state.selectedAreas = [];
+          if (haAreaIds.length > 0) {
+            logger.info(
+              `CLEAN_AREA: cleaning HA areas: ${haAreaIds.join(", ")}`,
+            );
+            return {
+              action: "vacuum.clean_area",
+              data: { cleaning_area_id: haAreaIds },
+            };
+          }
         }
 
         // Check if we have button entities mapped for rooms (Roborock integration)
@@ -382,6 +416,25 @@ const vacuumRvcRunModeConfig = {
 
     logger.info(`cleanRoom called: roomMode=${roomMode}`);
 
+    // HA 2026.3 CLEAN_AREA: resolve room mode to HA area ID
+    const cleanAreaRooms = homeAssistant.state.mapping?.cleanAreaRooms;
+    if (cleanAreaRooms && cleanAreaRooms.length > 0) {
+      const sorted = [...cleanAreaRooms].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      );
+      const areaIndex = roomMode - ROOM_MODE_BASE - 1;
+      if (areaIndex >= 0 && areaIndex < sorted.length) {
+        const area = sorted[areaIndex];
+        logger.info(
+          `cleanRoom: CLEAN_AREA "${area.name}" → vacuum.clean_area(${area.haAreaId})`,
+        );
+        return {
+          action: "vacuum.clean_area",
+          data: { cleaning_area_id: [area.haAreaId] },
+        };
+      }
+    }
+
     // Handle user-defined custom service areas first (lawn mowers, generic zone robots).
     // Mode values for custom areas: ROOM_MODE_BASE + (1-based sorted index).
     const customAreas = homeAssistant.state.mapping?.customServiceAreas;
@@ -553,6 +606,50 @@ export function createVacuumRvcRunModeServer(
 
   return RvcRunModeServer(vacuumRvcRunModeConfig, {
     supportedModes,
+    currentMode: RvcSupportedRunMode.Idle,
+  });
+}
+
+/**
+ * Create a VacuumRvcRunModeServer with HA areas from CLEAN_AREA mapping.
+ * Room modes are generated from the HA areas so Apple Home (which doesn't use
+ * ServiceArea.selectAreas) can still trigger per-area cleaning.
+ */
+export function createCleanAreaRvcRunModeServer(
+  cleanAreaRooms: CleanAreaRoom[],
+) {
+  const modes: RvcRunMode.ModeOption[] = [
+    {
+      label: "Idle",
+      mode: RvcSupportedRunMode.Idle,
+      modeTags: [{ value: RvcRunMode.ModeTag.Idle }],
+    },
+    {
+      label: "Cleaning",
+      mode: RvcSupportedRunMode.Cleaning,
+      modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }],
+    },
+  ];
+
+  const sorted = [...cleanAreaRooms].sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
+  for (let i = 0; i < sorted.length; i++) {
+    const modeValue = ROOM_MODE_BASE + i + 1;
+    if (modeValue > 255) continue;
+    modes.push({
+      label: sorted[i].name,
+      mode: modeValue,
+      modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }],
+    });
+  }
+
+  logger.info(
+    `Creating CLEAN_AREA RvcRunModeServer with ${cleanAreaRooms.length} HA areas, ${modes.length} total modes`,
+  );
+
+  return RvcRunModeServer(vacuumRvcRunModeConfig, {
+    supportedModes: modes,
     currentMode: RvcSupportedRunMode.Idle,
   });
 }

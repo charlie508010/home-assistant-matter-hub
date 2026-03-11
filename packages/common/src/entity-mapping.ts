@@ -140,6 +140,13 @@ export interface EntityMappingConfig {
    * Value is the Matter ModeTag.
    */
   readonly customFanSpeedTags?: Record<string, number>;
+  /**
+   * Auto-populated at runtime when the vacuum supports HA 2026.3 CLEAN_AREA.
+   * Maps HA areas (from the user's segment-to-area mapping in HA) to Matter
+   * ServiceArea area IDs. When set, vacuum.clean_area is used instead of
+   * vendor-specific room cleaning commands.
+   */
+  readonly cleanAreaRooms?: import("./domains/vacuum.js").CleanAreaRoom[];
 }
 
 export interface CustomServiceArea {
