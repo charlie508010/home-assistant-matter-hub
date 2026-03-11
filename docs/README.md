@@ -53,41 +53,40 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 ## What's New
 
 <details>
-<summary><strong>📦 Stable (v2.0.32) - Current</strong></summary>
+<summary><strong>📦 Stable (v2.0.34) - Current</strong></summary>
 
-**New in v2.0.32:**
-
-| Feature | Description |
-|---------|-------------|
-| **� Multi-Language Support** | Full i18n with 7+ languages (EN, DE, SV, ZH, …), in-app Translation Editor, and floating language switcher |
-| **🔌 Plugin System** | Extensible plugin architecture with fault isolation, UI management, and npm install/uninstall |
-| **🌡️ New Device Types** | Motion Sensor (PIR), Rain Sensor, Electrical Sensor, Extended AQ Sensors (NO₂, O₃, formaldehyde, radon, PM1, CO), Adaptive Lighting |
-| **🔍 Cluster Diagnostics** | Per-entity cluster diagnostics with auto-mapping tags, cross-fabric metadata, and spec-based validation |
-| **📊 Dashboard Enhancements** | Customizable widgets with reorder/visibility, startup order, update checker, version mismatch detection |
-| **🗺️ Mapping Profile Export/Import** | Community sharing with selective entity picker dialog |
-| **🌀 Fan & Air Purifier Fixes** | Cross-cluster OnOff↔FanControl sync, composed air purifier sub-endpoints ([#218](https://github.com/RiDDiX/home-assistant-matter-hub/issues/218), [#219](https://github.com/RiDDiX/home-assistant-matter-hub/issues/219)) |
-| **🧹 Stale Session Cleanup** | Clean up stale CASE sessions on new establishment ([#105](https://github.com/RiDDiX/home-assistant-matter-hub/issues/105)) |
-| **🪟 KNX Cover Fix** | Skip redundant tilt action on open/close for KNX covers ([#246](https://github.com/RiDDiX/home-assistant-matter-hub/issues/246)) |
-
-**Previously in v2.0.31:**
+**New in v2.0.34:**
 
 | Feature | Description |
 |---------|-------------|
-| **🎮 Controller Profiles & Area Setup** | New bridge wizard with controller-specific profiles (Apple Home, Google Home, Alexa) and area-based bridge setup |
-| **🌀 Fan Speed/Preset Fix** | Fix fan speed and preset control not working from Matter controllers ([#233](https://github.com/RiDDiX/home-assistant-matter-hub/issues/233)) |
-| **� Optimistic State Fix** | Prevent stale HA state from reverting optimistic brightness/color updates ([#230](https://github.com/RiDDiX/home-assistant-matter-hub/issues/230)) |
+| **💾 Automatic Backup** | Automatic backup with retention policy and snapshot management |
+| **🔋 Vacuum Battery Auto-Map** | Always auto-map battery entity for vacuum endpoints ([#237](https://github.com/RiDDiX/home-assistant-matter-hub/issues/237)) |
+| **⚙️ Deprecated Feature Flags Fix** | Allow deprecated feature flags in stored bridge data to pass validation |
+
+**Previously in v2.0.33:**
+
+| Feature | Description |
+|---------|-------------|
+| **🔢 Endpoint Number Preservation** | Preserve endpoint numbers across restarts ([#247](https://github.com/RiDDiX/home-assistant-matter-hub/issues/247)) |
+| **🔋 Binary Sensor Battery Auto-Map** | Support binary_sensor battery entities in auto-mapping |
 
 </details>
 
 <details>
 <summary><strong>🧪 Alpha (v2.1.0-alpha.x)</strong></summary>
 
-**Alpha is currently in sync with Stable (v2.0.32).** All alpha features have been promoted to stable. New alpha features will appear here as development continues. See the [Alpha Features Guide](./Guides/Alpha%20Features.md) for installation instructions.
+**Alpha is currently in sync with Stable (v2.0.34).** All alpha features have been promoted to stable. New alpha features will appear here as development continues. See the [Alpha Features Guide](./Guides/Alpha%20Features.md) for installation instructions.
 
 </details>
 
 <details>
 <summary><strong>📋 Previous Versions</strong></summary>
+
+### v2.0.33
+Endpoint Number Preservation, Binary Sensor Battery Auto-Map
+
+### v2.0.32
+Multi-Language Support, Plugin System, New Device Types (PIR, Rain, Electrical, AQ Sensors), Cluster Diagnostics, Dashboard Enhancements, Mapping Profile Export/Import, Fan & Air Purifier Fixes, Stale Session Cleanup, KNX Cover Fix
 
 ### v2.0.31
 Controller Profiles & Area Setup, Fan Speed/Preset Fix, Optimistic State Fix, Cover Target Fix, Humidity Auto-Mapping Default
