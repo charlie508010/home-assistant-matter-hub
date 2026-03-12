@@ -48,13 +48,22 @@ const config: Config = {
       {
         redirects: [
           { from: "/installation", to: "/getting-started/installation" },
-          { from: "/bridge-configuration", to: "/getting-started/bridge-configuration" },
+          {
+            from: "/bridge-configuration",
+            to: "/getting-started/bridge-configuration",
+          },
           { from: "/alpha-features", to: "/guides/alpha-features" },
           { from: "/testing-features", to: "/guides/testing-features" },
           { from: "/api-reference", to: "/guides/api-reference" },
-          { from: "/migration-from-t0bst4r", to: "/getting-started/migration-from-t0bst4r" },
+          {
+            from: "/migration-from-t0bst4r",
+            to: "/getting-started/migration-from-t0bst4r",
+          },
           { from: "/connectivity-issues", to: "/guides/connectivity-issues" },
-          { from: "/connect-multiple-fabrics", to: "/guides/connect-multiple-fabrics" },
+          {
+            from: "/connect-multiple-fabrics",
+            to: "/guides/connect-multiple-fabrics",
+          },
           { from: "/reverse-proxy", to: "/guides/reverse-proxy" },
           { from: "/plugin-system", to: "/guides/plugin-system" },
           { from: "/light", to: "/devices/light" },
@@ -63,13 +72,19 @@ const config: Config = {
           { from: "/lock", to: "/devices/lock" },
           { from: "/robot-vacuum", to: "/devices/robot-vacuum" },
           { from: "/air-purifier", to: "/devices/air-purifier" },
-          { from: "/temperature-humidity-sensor", to: "/devices/temperature-humidity-sensor" },
+          {
+            from: "/temperature-humidity-sensor",
+            to: "/devices/temperature-humidity-sensor",
+          },
           { from: "/frequently-asked-questions", to: "/faq" },
           { from: "/services", to: "/developer/services" },
           { from: "/endpoints", to: "/developer/endpoints" },
           { from: "/behaviors", to: "/developer/behaviors" },
           // Old Docusaurus paths before restructure
-          { from: "/guides/migration-from-t0bst4r", to: "/getting-started/migration-from-t0bst4r" },
+          {
+            from: "/guides/migration-from-t0bst4r",
+            to: "/getting-started/migration-from-t0bst4r",
+          },
         ],
       } satisfies ClientRedirectsOptions,
     ],
