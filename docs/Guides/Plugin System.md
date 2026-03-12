@@ -110,15 +110,24 @@ The `context` object passed to `onStart` provides:
 |-----|--------------|
 | `on_off_light` | On/Off Light (0x0100) |
 | `dimmable_light` | Dimmable Light (0x0101) |
+| `color_temperature_light` | Color Temperature Light (0x0102) |
+| `extended_color_light` | Extended Color Light (0x010D) |
 | `on_off_plugin_unit` | On/Off Plug-in Unit (0x010A) |
+| `dimmable_plug_in_unit` | Dimmable Plug-in Unit (0x010B) |
 | `temperature_sensor` | Temperature Sensor (0x0302) |
 | `humidity_sensor` | Humidity Sensor (0x0307) |
+| `pressure_sensor` | Pressure Sensor (0x0305) |
+| `flow_sensor` | Flow Sensor (0x0306) |
 | `light_sensor` | Light Sensor (0x0106) |
 | `occupancy_sensor` | Occupancy Sensor (0x0107) |
 | `contact_sensor` | Contact Sensor (0x0015) |
+| `air_quality_sensor` | Air Quality Sensor (0x002C) |
 | `thermostat` | Thermostat (0x0301) |
 | `door_lock` | Door Lock (0x000A) |
 | `fan` | Fan (0x002B) |
+| `window_covering` | Window Covering (0x0202) |
+| `generic_switch` | Generic Switch (0x000F) |
+| `water_leak_detector` | Water Leak Detector (0x0043) |
 
 ### Cluster IDs
 
@@ -129,6 +138,9 @@ Use Matter.js behavior key names as cluster IDs. Common ones:
 | `onOff` | On/Off state |
 | `levelControl` | Brightness level |
 | `colorControl` | Color (hue/saturation/temperature) |
+| `pressureMeasurement` | Pressure (in 0.1 kPa units) |
+| `flowMeasurement` | Flow rate (in 0.1 m³/h units) |
+| `windowCovering` | Window covering position and motion |
 | `temperatureMeasurement` | Temperature (in 0.01°C units) |
 | `relativeHumidityMeasurement` | Relative humidity (in 0.01% units) |
 | `booleanState` | Binary state (open/closed) |
