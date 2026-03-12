@@ -14,7 +14,6 @@ const config: Config = {
   projectName: "home-assistant-matter-hub",
 
   onBrokenLinks: "throw",
-  onBrokenMarkdownLinks: "warn",
 
   i18n: {
     defaultLocale: "en",

@@ -12,7 +12,7 @@ Robot vacuums are exposed as Matter **Robotic Vacuum Cleaner** devices with the 
 
 ## Server Mode (Required for Apple Home & Alexa)
 
-:::{important}
+:::warning
 **Apple Home and Alexa do not properly support bridged robot vacuums.** They require the vacuum to appear as a **standalone Matter device**, not as part of a bridge.
 
 If your vacuum shows "Updating" in Apple Home, doesn't respond to Siri commands, or isn't discovered by Alexa, you **must** use **Server Mode**.
@@ -34,7 +34,7 @@ Server Mode exposes a single device as a **standalone Matter device** instead of
 4. **Pair the new bridge** with Apple Home or Alexa
 5. Your other devices stay on your regular bridge(s)
 
-:::{note}
+:::note
 Server Mode bridges can only contain **one device**. This is a Matter protocol requirement for standalone devices.
 :::
 
@@ -60,7 +60,7 @@ The RVC Clean Mode cluster allows selecting the cleaning type. This is auto-enab
 | Vacuum & Mop | Vacuum + Mop | Vacuum and mop simultaneously |
 | Vacuum Then Mop | DeepClean + Vacuum + Mop | Vacuum first, then mop (Apple Home shows as "Deep Clean") |
 
-:::{note}
+:::note
 **Fallback behavior (v2.0.26+):** If your cleaning mode entity doesn't have a dedicated "Vacuum Then Mop" option, HAMH automatically falls back to the "Vacuum & Mop" option. This means you only need `vacuum`, `mop`, and `vacuum_and_mop` in your cleaning mode entity.
 :::
 
@@ -82,7 +82,7 @@ For vacuums where the cleaning mode entity can't be auto-detected, you need to c
 3. Set **Cleaning Mode Entity** to the select entity that controls the cleaning mode
 4. Changes take effect automatically within ~30 seconds
 
-:::{tip}
+:::tip
 To find the correct select entity, look in Home Assistant for a `select.*` entity belonging to your vacuum device that has options like "Vacuum", "Mop", "Vacuum and mop", etc. The naming varies by brand and language.
 :::
 
@@ -181,7 +181,7 @@ actions:
               option: mild
 ```
 
-:::{note}
+:::note
 Replace `vacuum.roborock_s7_maxv` and `select.roborock_s7_maxv_mop_intensity` with your actual entity IDs. Adjust the fan speed and mop intensity values to match your vacuum's available options.
 :::
 
@@ -245,7 +245,7 @@ Apple Home shows the same **Quiet / Automatic / Max** labels for mop intensity a
 | Automatic | Sets mop to medium intensity (e.g., "moderate", "medium") |
 | Max | Sets mop to highest intensity (e.g., "intense", "high") |
 
-:::{important}
+:::warning
 **Mop intensity requires a cleaning mode entity.** Without a cleaning mode entity configured, HAMH cannot determine when the vacuum is in Mop mode, and mop intensity options will not appear in Apple Home. See [Creating a Cleaning Mode Helper](#creating-a-cleaning-mode-helper-roborock--others) above if your integration doesn't provide one natively.
 :::
 
@@ -271,7 +271,7 @@ Starting with Home Assistant 2026.3, vacuums that support the **Clean Area** fea
 
 This is the **preferred method** when available, as it works with any vacuum integration that supports `CLEAN_AREA` (currently Ecovacs, Roborock, and Matter-based vacuums in HA 2026.3+).
 
-:::{note}
+:::note
 When `CLEAN_AREA` mapping is detected, it takes priority over all vendor-specific room detection methods (Valetudo segments, Roborock `get_maps`, Dreame rooms, etc.). The vendor-specific methods remain as fallback for vacuums without `CLEAN_AREA` support.
 :::
 
@@ -339,7 +339,7 @@ If auto-detection doesn't work (e.g., older Roborock firmware), you can use butt
 2. In **Room Button Entities**, select the button entities for each room
 3. The UI auto-discovers button entities from the same device
 
-:::{tip}
+:::tip
 You can also create **multi-room scenes** in the Roborock app and map those button entities for combined room cleaning.
 :::
 
@@ -431,7 +431,7 @@ Since v2.0.27, HAMH reports the `IsCharging` state when the vacuum is docked and
 ### Apple Home shows "Updating..." or "No Response"
 
 1. **Check Server Mode** — Must be enabled for Apple Home
-2. **Check network** — See [Connectivity Issues](../Guides/Connectivity%20Issues.md)
+2. **Check network** — See [Connectivity Issues](../guides/connectivity-issues.md)
 3. **Check logs** — Look for errors related to battery, cluster creation, or Matter.js
 4. **Factory reset** — As a last resort, factory reset the bridge and re-pair
 

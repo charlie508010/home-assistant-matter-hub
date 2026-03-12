@@ -65,7 +65,7 @@ Home Assistant lights are mapped to the appropriate Matter light type based on s
 - All major controllers support all light types
 - Color temperature range may differ between HA and Matter specifications
 
-See [Light Guide](./Devices/Light.md) for detailed setup, color conversion, and troubleshooting.
+See [Light Guide](./devices/light.md) for detailed setup, color conversion, and troubleshooting.
 
 ---
 
@@ -116,7 +116,7 @@ Mapped to **DoorLock** with PIN code support where available.
 - Google Home has disabled voice unlock for Matter locks (Google policy)
 - Apple Home shows an "Unlatch" button when the lock supports the Unbolting feature
 
-See [Lock Guide](./Devices/Lock.md) for PIN credentials, unlatch setup, and troubleshooting.
+See [Lock Guide](./devices/lock.md) for PIN credentials, unlatch setup, and troubleshooting.
 
 ---
 
@@ -147,7 +147,7 @@ Mapped to **WindowCovering** supporting position and tilt control.
 - `awning`
 - `garage` (limited support)
 
-See [Cover Guide](./Devices/Cover.md) for percentage mapping, feature flags, and troubleshooting.
+See [Cover Guide](./devices/cover.md) for percentage mapping, feature flags, and troubleshooting.
 
 ---
 
@@ -190,7 +190,7 @@ This prevents Alexa from rejecting commands on single-capability thermostats ([#
 **Temperature Display Unit:**
 The `ThermostatUserInterfaceConfiguration` cluster exposes your HA temperature unit preference (°C or °F) to Matter controllers.
 
-See [Climate Guide](./Devices/Climate.md) for detailed feature variants, mode mapping, and troubleshooting.
+See [Climate Guide](./devices/climate.md) for detailed feature variants, mode mapping, and troubleshooting.
 
 ---
 
@@ -277,7 +277,7 @@ You can also manually assign sensors via **Entity Mapping**:
 - `humidityEntity` — Humidity sensor entity ID
 - `pressureEntity` — Pressure sensor entity ID
 
-See [Temperature & Humidity Sensor](./Devices/Temperature%20Humidity%20Sensor.md) for detailed setup instructions.
+See [Temperature & Humidity Sensor](./devices/temperature-humidity-sensor.md) for detailed setup instructions.
 
 ---
 
@@ -434,7 +434,7 @@ Mapped to **RoboticVacuumCleaner**.
 - **Apple Home** requires iOS/tvOS/AudioOS 18.4+ on all Home hubs
 - **Google Home** has limited RVC support — basic start/stop works, room selection and cleaning modes may vary
 
-See [Robot Vacuum Guide](./Devices/Robot%20Vacuum.md) for detailed setup instructions.
+See [Robot Vacuum Guide](./devices/robot-vacuum.md) for detailed setup instructions.
 
 ---
 

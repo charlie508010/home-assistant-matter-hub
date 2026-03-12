@@ -64,7 +64,7 @@ When setting color from a controller, Matter Hue/Saturation is converted back to
 
 ### Light turns on at 100% brightness (Google Home)
 
-After a subscription renewal (~5 minutes), Google Home may set brightness to 100% when turning on a light. This is a Google Home behavior, not a bridge issue. See [Supported Device Types](../Supported%20Device%20Types.md#light-brightness-reset-after-extended-off-period) for a Home Assistant Blueprint workaround.
+After a subscription renewal (~5 minutes), Google Home may set brightness to 100% when turning on a light. This is a Google Home behavior, not a bridge issue. See [Supported Device Types](../supported-device-types.md#light-brightness-reset-after-extended-off-period) for a Home Assistant Blueprint workaround.
 
 ### Light turns on at 100% brightness (Alexa)
 

@@ -33,7 +33,7 @@ docker run -d \
 
 All previously alpha-only features have been promoted to Stable. New alpha features will appear here as development continues.
 
-For a complete list of all supported features and device types, see [Supported Device Types](../Supported%20Device%20Types.md).
+For a complete list of all supported features and device types, see [Supported Device Types](../supported-device-types.md).
 
 ---
 

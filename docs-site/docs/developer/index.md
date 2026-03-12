@@ -113,7 +113,7 @@ Bridge server nodes are configured using `createBridgeServerConfig`, which sets 
 
 ## REST API
 
-The backend exposes a comprehensive REST API via Express for bridge management, entity mappings, diagnostics, backups, and more. For the full list of endpoints, request/response formats, and WebSocket message types, see the [API Reference](../Guides/API%20Reference.md).
+The backend exposes a comprehensive REST API via Express for bridge management, entity mappings, diagnostics, backups, and more. For the full list of endpoints, request/response formats, and WebSocket message types, see the [API Reference](../guides/api-reference.md).
 
 ---
 

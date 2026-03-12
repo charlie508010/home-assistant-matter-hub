@@ -31,7 +31,7 @@ curl -X POST http://localhost:8482/api/plugins/install-local \
   -d '{"path": "/path/to/your/plugin"}'
 ```
 
-This creates a symlink, so changes to your plugin source apply on bridge restart.
+This creates a symlink, so changes to your plugin source apply on bridge restart. Note that locally linked plugins are not added to the internal `package.json` dependencies — they rely on the symlink persisting. This method is intended for development only.
 
 ## Writing a Plugin
 
@@ -52,9 +52,12 @@ my-plugin/
   "name": "hamh-plugin-my-plugin",
   "version": "1.0.0",
   "main": "index.js",
-  "type": "module"
+  "type": "module",
+  "hamhPluginApiVersion": 1
 }
 ```
+
+The `hamhPluginApiVersion` field declares which plugin API version your plugin targets. HAMH logs a warning if this doesn't match the current API version.
 
 **index.js:**
 

@@ -2,7 +2,7 @@
 
 This guide explains how to migrate from the original `t0bst4r/home-assistant-matter-hub` to the `riddix/home-assistant-matter-hub` fork **without losing your Matter fabric connections**.
 
-:::{important}
+:::warning
 The storage format is fully compatible between both versions. Your Matter fabric data (connections to Apple Home, Google Home, Alexa, etc.) will be preserved.
 :::
 

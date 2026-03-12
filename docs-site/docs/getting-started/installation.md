@@ -13,7 +13,7 @@ This application can be installed in different ways:
 > In addition, the matter protocol is relying on mDNS and UDP. If you are using VLANs you need
 > to make sure that UDP (especially mDNS) packages are routed properly.
 >
-> If you are facing issues, make sure to look at the [troubleshooting guide](../Guides/Connectivity%20Issues.md).
+> If you are facing issues, make sure to look at the [troubleshooting guide](../guides/connectivity-issues.md).
 
 ## 1. Native Home-Assistant AddOn
 
@@ -31,7 +31,7 @@ Simply add the following GitHub Repository URL to your Home Assistant AddOn Stor
 5. Refresh your Add-On Store and Install the Add-On
 6. You can configure the log level in the AddOn configuration page
 7. Click "Start" to start the addon
-8. Follow the [Bridge configuration guide](Bridge%20Configuration.md)
+8. Follow the [Bridge configuration guide](./bridge-configuration.md)
 
 ## 2. Manual Deployment
 
@@ -86,7 +86,7 @@ docker run -d \
 
 See 2.3 for more configuration options.
 
-Now you can go ahead and follow the [bridge configuration guide](./Bridge%20Configuration.md).
+Now you can go ahead and follow the [bridge configuration guide](./bridge-configuration.md).
 
 ### 2.2 Manual installation using `npm`
 
@@ -121,7 +121,7 @@ using the `--storage-location=/path/to/storage` option or `HAMH_STORAGE_LOCATION
 
 See 2.3 for more configuration options.
 
-Now you can go ahead and follow the [bridge configuration guide](./Bridge%20Configuration.md).
+Now you can go ahead and follow the [bridge configuration guide](./bridge-configuration.md).
 
 ### 2.3 Configuration options
 

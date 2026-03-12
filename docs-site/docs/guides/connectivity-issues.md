@@ -89,7 +89,7 @@ Common interface names:
 
 - **Home Hub Required**: Apple Home requires a **HomePod** (mini) or **Apple TV** as a Home Hub to maintain persistent Matter connections. Without a hub, the iPhone only maintains the connection while the Home app is active.
 - **"No Response" after adding a Home Hub**: If devices become unresponsive after adding a HomePod or Apple TV, this is almost always a network issue — see [Section 2](#2-network-equipment-blocking-mdnsmulticast) above.
-- **"Updating" status for Robot Vacuums**: Apple Home requires robot vacuums to be exposed as standalone devices, not bridged. Enable **Server Mode** — see [Robot Vacuum Documentation](../Devices/Robot%20Vacuum.md).
+- **"Updating" status for Robot Vacuums**: Apple Home requires robot vacuums to be exposed as standalone devices, not bridged. Enable **Server Mode** — see [Robot Vacuum Documentation](../devices/robot-vacuum.md).
 - **Phone reboot as a quick fix**: If Apple Home shows "No Response" but Alexa works fine, rebooting your iPhone/iPad can force Apple Home to re-establish subscriptions as a temporary workaround.
 - **Apple TV vs. HomePod mini**: Apple TV (4K) generally handles larger bridges better than HomePod mini due to more CPU/RAM. If you have many devices, prefer Apple TV as your primary Home Hub.
 

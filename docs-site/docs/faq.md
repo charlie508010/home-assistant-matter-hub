@@ -2,15 +2,15 @@
 
 ## I've got connectivity issues, what can I do?
 
-Please follow the [troubleshooting guide](./Guides/Connectivity%20Issues.md).
+Please follow the [troubleshooting guide](./guides/connectivity-issues.md).
 
 ## I'd like to connect my bridge to multiple assistants
 
-Please follow the [multi-fabric guide](./Guides/Connect%20Multiple%20Fabrics.md).
+Please follow the [multi-fabric guide](./guides/connect-multiple-fabrics.md).
 
 ## I'm running HAMH as a docker image and want to access it via a reverse proxy
 
-Please follow the [reverse proxy guide](./Guides/Reverse%20Proxy.md).
+Please follow the [reverse proxy guide](./guides/reverse-proxy.md).
 
 ## Changes on names and labels in Home Assistant have no effect in HAMH
 
@@ -38,7 +38,7 @@ If you just can't get it working with your labels, try to delete your label and 
 2. **Update all Home Hubs** — Ensure **all** home hubs are updated to **iOS/tvOS/AudioOS 18.4** or later. If **any** hub is below 18.4, the vacuum won't show up.
 3. **Re-pair** — After enabling Server Mode, remove the old accessory and pair the new bridge.
 
-See the [Robot Vacuum Guide](./Devices/Robot%20Vacuum.md) for full setup instructions.
+See the [Robot Vacuum Guide](./devices/robot-vacuum.md) for full setup instructions.
 
 ## How do I access the Health Dashboard?
 
@@ -70,7 +70,7 @@ Currently supported sensor types:
 - Illuminance (Light)
 - Air Quality (AQI, PM2.5, PM10, CO2, TVOC)
 
-See [Temperature & Humidity Sensor](./Devices/Temperature%20Humidity%20Sensor.md) for details on combining temperature, humidity, pressure, and battery into a single device.
+See [Temperature & Humidity Sensor](./devices/temperature-humidity-sensor.md) for details on combining temperature, humidity, pressure, and battery into a single device.
 
 ## The app keeps crashing or restarting on my HA Yellow / Raspberry Pi / VM
 
@@ -94,7 +94,7 @@ This is typically caused by stale sessions — Alexa goes offline but the bridge
 
 1. Update to the latest version
 2. Remove and re-pair the bridge in the Alexa app
-3. Check your network for multicast/mDNS issues (see [Connectivity Issues](./Guides/Connectivity%20Issues.md))
+3. Check your network for multicast/mDNS issues (see [Connectivity Issues](./guides/connectivity-issues.md))
 
 See [#105](https://github.com/RiDDiX/home-assistant-matter-hub/issues/105) for details.
 
@@ -164,7 +164,7 @@ Media players now support Play, Pause, Stop, Next Track, and Previous Track cont
 
 HAMH needs a **cleaning mode select entity** to switch between modes. Dreame and Ecovacs vacuums have one auto-detected. For Roborock and others that don't expose one, you can create a Home Assistant **template select entity** with an automation that applies the correct fan speed and mop intensity settings.
 
-See [Creating a Cleaning Mode Helper](./Devices/Robot%20Vacuum.md#creating-a-cleaning-mode-helper-roborock--others) in the Robot Vacuum guide for step-by-step instructions.
+See [Creating a Cleaning Mode Helper](./devices/robot-vacuum.md#creating-a-cleaning-mode-helper-roborock--others) in the Robot Vacuum guide for step-by-step instructions.
 
 ## Why does Apple Home show the same intensity options (Quiet / Automatic / Max) for both Vacuum and Mop mode?
 
@@ -172,7 +172,7 @@ This is an Apple Home limitation. Apple renders intensity labels based on Matter
 
 ## My vacuum's mop intensity doesn't show in Apple Home
 
-Mop intensity requires a **cleaning mode entity** to be configured. Without one, HAMH cannot determine when the vacuum is in Mop mode. If your integration doesn't provide a cleaning mode entity natively, create one using the [Cleaning Mode Helper](./Devices/Robot%20Vacuum.md#creating-a-cleaning-mode-helper-roborock--others) approach.
+Mop intensity requires a **cleaning mode entity** to be configured. Without one, HAMH cannot determine when the vacuum is in Mop mode. If your integration doesn't provide a cleaning mode entity natively, create one using the [Cleaning Mode Helper](./devices/robot-vacuum.md#creating-a-cleaning-mode-helper-roborock--others) approach.
 
 Also ensure you've set the **Mop Intensity Entity** in the Entity Mapping for your vacuum.
 
@@ -208,7 +208,7 @@ Fixed in v2.0.27. Devices with only `heat_cool` mode (no explicit `heat` or `coo
 - **Stable** (v2.0.30): Production-ready, recommended for daily use
 - **Alpha**: New features for testing, may contain bugs
 
-See the [Alpha Features Guide](./Guides/Alpha%20Features.md) for details on alpha features.
+See the [Alpha Features Guide](./guides/alpha-features.md) for details on alpha features.
 
 ## How do I report an Alpha bug?
 

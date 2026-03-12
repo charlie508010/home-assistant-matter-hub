@@ -24,7 +24,7 @@ This project does not yet support all available device types in the matter speci
 In addition, controllers like Alexa or Google Home do not support all device types, too.
 
 To check which types are supported, please review the
-[list of supported device types](./Supported%20Device%20Types.md).
+[list of supported device types](./supported-device-types.md).
 
 ### Alexa
 
@@ -48,7 +48,7 @@ manufacturers built their controllers to be compatible with IPv4, too, but this 
 
 Many users report connection issues when using VLANs or firewalls, where HAMH and the assistant devices (Alexa, Google
 Home, ...) are not placed in the same network segment. Please make sure to review the
-[common connectivity issues](./Guides/Connectivity%20Issues.md).
+[common connectivity issues](./guides/connectivity-issues.md).
 
 ## What's New
 
@@ -76,7 +76,7 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 <details>
 <summary><strong>🧪 Alpha (v2.1.0-alpha.x)</strong></summary>
 
-All previously alpha-only features have been promoted to stable. New alpha features will appear here as development continues. See the [Alpha Features Guide](./Guides/Alpha%20Features.md) for installation instructions.
+All previously alpha-only features have been promoted to stable. New alpha features will appear here as development continues. See the [Alpha Features Guide](./guides/alpha-features.md) for installation instructions.
 
 </details>
 
@@ -117,7 +117,7 @@ Health Monitoring, Bridge Wizard, AirQuality sensors, Fan control, Media playbac
 
 ## Getting started
 
-To get things up and running, please follow the [installation guide](./Getting%20Started/Installation.md).
+To get things up and running, please follow the [installation guide](./getting-started/installation.md).
 
 ## Additional Resources
 

@@ -27,7 +27,7 @@ You can access the bridge configuration by opening the web UI:
 
 > [!NOTE]
 > You can use **one** bridge to connect to **multiple** controllers.
-> See [this guide](../Guides/Connect%20Multiple%20Fabrics.md) for details how to set this up.
+> See [this guide](../guides/connect-multiple-fabrics.md) for details how to set this up.
 
 > [!WARNING]
 > Alexa only supports port `5540`. Therefore, you cannot create multiple bridges to connect with Alexa.
