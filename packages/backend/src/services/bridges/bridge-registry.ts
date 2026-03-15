@@ -514,6 +514,13 @@ export class BridgeRegistry {
 
       const rooms: CleanAreaRoom[] = [];
       for (const haAreaId of Object.keys(areaMapping)) {
+        const segments = areaMapping[haAreaId];
+        if (!segments || segments.length === 0) {
+          BridgeRegistry.cleanAreaLogger.debug(
+            `${entityId}: Skipping HA area ${haAreaId} — no segments mapped`,
+          );
+          continue;
+        }
         const areaName = this.registry.areas.get(haAreaId) ?? haAreaId;
         rooms.push({
           areaId: hashAreaId(haAreaId),
