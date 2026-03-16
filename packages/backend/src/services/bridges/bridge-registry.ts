@@ -512,12 +512,47 @@ export class BridgeRegistry {
         return [];
       }
 
+      // Fetch the vacuum's current segments to detect stale area_mapping
+      // entries whose segment IDs no longer exist on the device.
+      let validSegmentIds: Set<string> | undefined;
+      try {
+        const segmentsResponse =
+          await this.client.connection.sendMessagePromise<
+            { id: string; name: string; group?: string | null }[]
+          >({
+            type: "vacuum/get_segments",
+            entity_id: entityId,
+          });
+        if (Array.isArray(segmentsResponse)) {
+          validSegmentIds = new Set(segmentsResponse.map((s) => s.id));
+          BridgeRegistry.cleanAreaLogger.debug(
+            `${entityId}: Current vacuum segments: ${[...validSegmentIds].join(", ")}`,
+          );
+        }
+      } catch {
+        // Older HA versions may not have the vacuum/get_segments endpoint.
+        BridgeRegistry.cleanAreaLogger.debug(
+          `${entityId}: vacuum/get_segments not available, skipping stale entry detection`,
+        );
+      }
+
       const rooms: CleanAreaRoom[] = [];
       for (const haAreaId of Object.keys(areaMapping)) {
         const segments = areaMapping[haAreaId];
         if (!segments || segments.length === 0) {
           BridgeRegistry.cleanAreaLogger.debug(
             `${entityId}: Skipping HA area ${haAreaId} — no segments mapped`,
+          );
+          continue;
+        }
+        // Skip entries where none of the segment IDs exist on the vacuum.
+        if (
+          validSegmentIds &&
+          !segments.some((sid) => validSegmentIds!.has(sid))
+        ) {
+          const areaName = this.registry.areas.get(haAreaId) ?? haAreaId;
+          BridgeRegistry.cleanAreaLogger.info(
+            `${entityId}: Skipping stale HA area "${areaName}" (${haAreaId}) — segments [${segments.join(", ")}] no longer exist on vacuum`,
           );
           continue;
         }
