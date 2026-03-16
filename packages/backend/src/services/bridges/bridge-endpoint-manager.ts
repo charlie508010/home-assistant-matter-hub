@@ -490,6 +490,13 @@ export class BridgeEndpointManager extends Service {
         continue;
       }
 
+      if (
+        this.registry.isAutoComposedDevicesEnabled() &&
+        this.registry.isComposedSubEntityUsed(entityId)
+      ) {
+        continue;
+      }
+
       if (entityId.length > MAX_ENTITY_ID_LENGTH) {
         const reason = `Entity ID too long (${entityId.length} chars, max ${MAX_ENTITY_ID_LENGTH}). This would cause filesystem errors.`;
         this.log.warn(`Skipping entity: ${entityId}. Reason: ${reason}`);
