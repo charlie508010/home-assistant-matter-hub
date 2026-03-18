@@ -375,9 +375,12 @@ export class Bridge {
       for (const s of [...sessionManager.sessions]) {
         if (s.id === sessionId && !s.isClosing && s.subscriptions.size === 0) {
           this.log.warn(
-            `Force-closing stale session ${s.id} (peer ${s.peerNodeId}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
+            `Closing stale session ${s.id} (peer ${s.peerNodeId}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
           );
-          s.initiateForceClose().catch(() => {});
+          s.initiateClose().catch(() => {
+            // Graceful close failed (peer unreachable), force-close locally
+            s.initiateForceClose().catch(() => {});
+          });
           break;
         }
       }
@@ -393,9 +396,12 @@ export class Bridge {
       for (const s of sessions) {
         if (!s.isClosing && s.subscriptions.size === 0) {
           this.log.warn(
-            `Force-closing dead session ${s.id} (peer ${s.peerNodeId}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
+            `Closing dead session ${s.id} (peer ${s.peerNodeId}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
           );
-          s.initiateForceClose().catch(() => {});
+          s.initiateClose().catch(() => {
+            // Graceful close failed (peer unreachable), force-close locally
+            s.initiateForceClose().catch(() => {});
+          });
         }
       }
     } catch {
