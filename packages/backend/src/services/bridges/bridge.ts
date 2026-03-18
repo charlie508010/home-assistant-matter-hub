@@ -27,7 +27,7 @@ const AUTO_FORCE_SYNC_INTERVAL_MS = 90_000;
 // long before force-closing the dead sessions. This breaks the deadlock
 // where the controller holds a stale CASE session and never re-subscribes
 // because it doesn't know the server canceled its subscriptions (#266).
-const DEAD_SESSION_TIMEOUT_MS = 3 * 60 * 1000;
+const DEAD_SESSION_TIMEOUT_MS = 60_000;
 
 export class Bridge {
   private readonly log: Logger;
@@ -45,6 +45,7 @@ export class Bridge {
 
   private autoForceSyncTimer: ReturnType<typeof setInterval> | null = null;
   private deadSessionTimer: ReturnType<typeof setTimeout> | null = null;
+  private staleSessionTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
   // Tracks the last synced state JSON per entity to avoid pushing unchanged states.
   // Key: entity_id, Value: JSON.stringify of entity.state
@@ -300,6 +301,28 @@ export class Bridge {
             "Subscriptions recovered, canceled dead session cleanup",
           );
         }
+
+        // Per-session stale tracking: schedule cleanup for individual
+        // sessions that lose all subscriptions even when the bridge
+        // as a whole still has active subscriptions from other peers.
+        if (
+          session.subscriptions.size === 0 &&
+          !this.staleSessionTimers.has(session.id)
+        ) {
+          this.staleSessionTimers.set(
+            session.id,
+            setTimeout(() => {
+              this.staleSessionTimers.delete(session.id);
+              this.closeStaleSession(session.id);
+            }, DEAD_SESSION_TIMEOUT_MS),
+          );
+        } else if (
+          session.subscriptions.size > 0 &&
+          this.staleSessionTimers.has(session.id)
+        ) {
+          clearTimeout(this.staleSessionTimers.get(session.id)!);
+          this.staleSessionTimers.delete(session.id);
+        }
       };
       sessionManager.subscriptionsChanged.on(this.sessionDiagHandler);
 
@@ -346,6 +369,23 @@ export class Bridge {
     }
   }
 
+  private closeStaleSession(sessionId: number) {
+    try {
+      const sessionManager = this.server.env.get(SessionManager);
+      for (const s of [...sessionManager.sessions]) {
+        if (s.id === sessionId && !s.isClosing && s.subscriptions.size === 0) {
+          this.log.warn(
+            `Force-closing stale session ${s.id} (peer ${s.peerNodeId}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
+          );
+          s.initiateForceClose().catch(() => {});
+          break;
+        }
+      }
+    } catch {
+      // SessionManager may be disposed
+    }
+  }
+
   private closeDeadSessions() {
     try {
       const sessionManager = this.server.env.get(SessionManager);
@@ -385,6 +425,10 @@ export class Bridge {
       clearTimeout(this.deadSessionTimer);
       this.deadSessionTimer = null;
     }
+    for (const timer of this.staleSessionTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.staleSessionTimers.clear();
   }
 
   private stopAutoForceSync() {
