@@ -3,11 +3,13 @@ import type {
   HomeAssistantEntityState,
 } from "@home-assistant-matter-hub/common";
 import { Logger } from "@matter/general";
+import type { Agent } from "@matter/main";
 import { OnOffServer as Base } from "@matter/main/behaviors";
+import type { HomeAssistantAction } from "../../services/home-assistant/home-assistant-actions.js";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 import { notifyLightTurnedOn } from "./level-control-server.js";
-import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
+import type { ValueGetter } from "./utils/cluster-config.js";
 
 const logger = Logger.get("OnOffServer");
 
@@ -23,10 +25,15 @@ interface OptimisticOnOffState {
 const optimisticOnOffState = new Map<string, OptimisticOnOffState>();
 const OPTIMISTIC_TIMEOUT_MS = 3000;
 
+type OnOffCallback = (
+  value: undefined,
+  agent: Agent,
+) => HomeAssistantAction | undefined;
+
 export interface OnOffConfig {
   isOn?: ValueGetter<boolean>;
-  turnOn?: ValueSetter<void> | null;
-  turnOff?: ValueSetter<void> | null;
+  turnOn?: OnOffCallback | null;
+  turnOff?: OnOffCallback | null;
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: Biome thinks this is unused, but it's used by the function below
@@ -72,16 +79,21 @@ class OnOffServerBase extends Base {
       return;
     }
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    const action = turnOn?.(void 0, this.agent) ?? {
-      action: "homeassistant.turn_on",
-    };
-    logger.info(`[${homeAssistant.entityId}] Turning ON -> ${action.action}`);
-    // Notify LevelControlServer about turn-on for Alexa brightness workaround
-    notifyLightTurnedOn(homeAssistant.entityId);
+    const action = turnOn
+      ? turnOn(void 0, this.agent)
+      : { action: "homeassistant.turn_on" as const };
     // Set onOff immediately so the controller gets instant feedback in the
     // command response. Without this, Apple Home shows "Turning on..." until
     // the async HA WebSocket state update arrives.
     applyPatchState(this.state, { onOff: true });
+    if (!action) {
+      // Callback explicitly returned undefined = skip HA action
+      // (e.g., climate already on — no need to send turn_on)
+      return;
+    }
+    logger.info(`[${homeAssistant.entityId}] Turning ON -> ${action.action}`);
+    // Notify LevelControlServer about turn-on for Alexa brightness workaround
+    notifyLightTurnedOn(homeAssistant.entityId);
     optimisticOnOffState.set(homeAssistant.entityId, {
       expectedOnOff: true,
       timestamp: Date.now(),
@@ -101,14 +113,17 @@ class OnOffServerBase extends Base {
       return;
     }
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-    const action = turnOff?.(void 0, this.agent) ?? {
-      action: "homeassistant.turn_off",
-    };
-    logger.info(`[${homeAssistant.entityId}] Turning OFF -> ${action.action}`);
+    const action = turnOff
+      ? turnOff(void 0, this.agent)
+      : { action: "homeassistant.turn_off" as const };
     // Set onOff immediately so the controller gets instant feedback in the
     // command response. Without this, Apple Home shows "Turning off..." until
     // the async HA WebSocket state update arrives (#219).
     applyPatchState(this.state, { onOff: false });
+    if (!action) {
+      return;
+    }
+    logger.info(`[${homeAssistant.entityId}] Turning OFF -> ${action.action}`);
     optimisticOnOffState.set(homeAssistant.entityId, {
       expectedOnOff: false,
       timestamp: Date.now(),
