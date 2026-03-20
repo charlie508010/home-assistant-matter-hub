@@ -27,7 +27,7 @@ import Select from "@mui/material/Select";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { EntityAutocomplete } from "./EntityAutocomplete.tsx";
 
@@ -78,9 +78,10 @@ export function EntityMappingDialog({
   >([]);
   const [valetudoIdentifier, setValetudoIdentifier] = useState("");
   const [coverSwapOpenClose, setCoverSwapOpenClose] = useState(false);
-  const [composedEntities, setComposedEntities] = useState<ComposedSubEntity[]>(
-    [],
-  );
+  const composedKeyRef = useRef(0);
+  const [composedEntities, setComposedEntities] = useState<
+    (ComposedSubEntity & { _key: number })[]
+  >([]);
   const [availableButtons, setAvailableButtons] = useState<RelatedButton[]>([]);
   const [loadingButtons, setLoadingButtons] = useState(false);
 
@@ -122,7 +123,13 @@ export function EntityMappingDialog({
       setCustomServiceAreas(currentMapping?.customServiceAreas || []);
       setValetudoIdentifier(currentMapping?.valetudoIdentifier || "");
       setCoverSwapOpenClose(currentMapping?.coverSwapOpenClose || false);
-      setComposedEntities(currentMapping?.composedEntities || []);
+      composedKeyRef.current = 0;
+      setComposedEntities(
+        (currentMapping?.composedEntities || []).map((e) => ({
+          ...e,
+          _key: composedKeyRef.current++,
+        })),
+      );
       setAvailableButtons([]);
       setCustomFanSpeedTagsList(
         Object.entries(currentMapping?.customFanSpeedTags || {}).map(
@@ -198,7 +205,9 @@ export function EntityMappingDialog({
       coverSwapOpenClose: coverSwapOpenClose || undefined,
       composedEntities:
         composedEntities.filter((e) => e.entityId?.trim()).length > 0
-          ? composedEntities.filter((e) => e.entityId?.trim())
+          ? composedEntities
+              .filter((e) => e.entityId?.trim())
+              .map(({ _key: _, ...rest }) => rest)
           : undefined,
     });
   }, [
@@ -738,7 +747,7 @@ export function EntityMappingDialog({
           </Typography>
           {composedEntities.map((sub, index) => (
             <Box
-              key={`composed-${index}`}
+              key={sub._key}
               sx={{
                 display: "flex",
                 gap: 1,
@@ -806,7 +815,10 @@ export function EntityMappingDialog({
             size="small"
             startIcon={<AddCircleOutlineIcon />}
             onClick={() =>
-              setComposedEntities([...composedEntities, { entityId: "" }])
+              setComposedEntities([
+                ...composedEntities,
+                { entityId: "", _key: composedKeyRef.current++ },
+              ])
             }
           >
             Add Sub-Entity
