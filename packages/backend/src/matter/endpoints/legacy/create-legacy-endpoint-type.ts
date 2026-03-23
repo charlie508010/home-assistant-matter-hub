@@ -4,6 +4,7 @@ import type {
   HomeAssistantEntityInformation,
   MatterDeviceType,
 } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import type { EndpointType } from "@matter/main";
 import { FixedLabelServer } from "@matter/main/behaviors";
 import type { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-entity-behavior.js";
@@ -64,12 +65,16 @@ import { VacuumDevice } from "./vacuum/index.js";
 import { ValveDevice } from "./valve/index.js";
 import { WaterHeaterDevice } from "./water-heater/index.js";
 
+const legacyLogger = Logger.get("LegacyEndpointType");
+
 /**
  * @deprecated
  */
 export interface LegacyEndpointOptions {
   vacuumOnOff?: boolean;
   cleaningModeOptions?: string[];
+  /** Domain mappings registered by plugins (domain → MatterDeviceType key) */
+  pluginDomainMappings?: Map<string, string>;
 }
 
 export function createLegacyEndpointType(
@@ -100,10 +105,21 @@ export function createLegacyEndpointType(
       );
     } else {
       const factory = deviceCtrs[domain];
-      if (!factory) {
+      if (factory) {
+        type = factory({ entity, customName, mapping });
+      } else if (options?.pluginDomainMappings?.has(domain)) {
+        const mappedType = options.pluginDomainMappings.get(domain)!;
+        const mappedFactory =
+          matterDeviceTypeFactories[mappedType as MatterDeviceType];
+        if (mappedFactory) {
+          legacyLogger.info(
+            `Using plugin domain mapping for "${domain}" → "${mappedType}"`,
+          );
+          type = mappedFactory({ entity, customName, mapping });
+        }
+      } else {
         return undefined;
       }
-      type = factory({ entity, customName, mapping });
     }
   }
 

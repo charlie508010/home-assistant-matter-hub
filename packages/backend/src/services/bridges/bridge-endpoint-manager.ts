@@ -308,6 +308,17 @@ export class BridgeEndpointManager extends Service {
     }
   }
 
+  private getPluginDomainMappings(): Map<string, string> | undefined {
+    if (!this.pluginManager) return undefined;
+    const mappings = this.pluginManager.getDomainMappings();
+    if (mappings.size === 0) return undefined;
+    const result = new Map<string, string>();
+    for (const [domain, mapping] of mappings) {
+      result.set(domain, mapping.matterDeviceType);
+    }
+    return result;
+  }
+
   private getEntityMapping(entityId: string): EntityMappingConfig | undefined {
     return this.mappingStorage.getMapping(this.bridgeId, entityId);
   }
@@ -521,10 +532,12 @@ export class BridgeEndpointManager extends Service {
       let endpoint = existingEndpoints.find((e) => e.entityId === entityId);
       if (!endpoint) {
         try {
+          const domainMappings = this.getPluginDomainMappings();
           endpoint = await LegacyEndpoint.create(
             this.registry,
             entityId,
             mapping,
+            domainMappings,
           );
         } catch (e) {
           // Handle all endpoint creation errors gracefully to prevent boot crashes

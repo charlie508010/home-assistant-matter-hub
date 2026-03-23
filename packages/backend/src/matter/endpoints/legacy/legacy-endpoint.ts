@@ -35,6 +35,7 @@ export class LegacyEndpoint extends EntityEndpoint {
     registry: BridgeRegistry,
     entityId: string,
     mapping?: EntityMappingConfig,
+    pluginDomainMappings?: Map<string, string>,
   ): Promise<LegacyEndpoint | undefined> {
     const deviceRegistry = registry.deviceOf(entityId);
     let state = registry.initialState(entityId);
@@ -451,6 +452,7 @@ export class LegacyEndpoint extends EntityEndpoint {
     const type = createLegacyEndpointType(payload, effectiveMapping, areaName, {
       vacuumOnOff: registry.isVacuumOnOffEnabled(),
       cleaningModeOptions,
+      pluginDomainMappings,
     });
     if (!type) {
       return;
