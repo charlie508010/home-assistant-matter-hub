@@ -67,7 +67,7 @@ export default class BrokenPlugin {
         break;
 
       default:
-        context.log.info("Unknown fail mode: " + this.#failMode);
+        context.log.info(`Unknown fail mode: ${this.#failMode}`);
     }
   }
 

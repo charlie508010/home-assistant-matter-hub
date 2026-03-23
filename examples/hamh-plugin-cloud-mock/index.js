@@ -67,7 +67,7 @@ class MockCloudApi {
     return { ...device.state };
   }
 
-  async sendCommand(deviceId, command, value) {
+  async sendCommand(deviceId, command, _value) {
     const device = this.#devices.get(deviceId);
     if (!device) throw new Error(`Device ${deviceId} not found`);
 
@@ -158,8 +158,7 @@ export default class CloudMockPlugin {
   async onStart(context) {
     this.#context = context;
     this.#api = new MockCloudApi();
-    this.#pollInterval =
-      (await context.storage.get("pollInterval")) ?? 30_000;
+    this.#pollInterval = (await context.storage.get("pollInterval")) ?? 30_000;
 
     // Retrieve stored token (never log tokens)
     let token = await context.storage.get("apiToken");
@@ -170,7 +169,7 @@ export default class CloudMockPlugin {
 
     try {
       await this.#api.authenticate(token);
-    } catch (err) {
+    } catch (_err) {
       context.log.error("Authentication failed");
       return;
     }
@@ -224,21 +223,15 @@ export default class CloudMockPlugin {
         clusterId === "onOff" &&
         attribute === "onOff"
       ) {
-        await this.#api.sendCommand(
-          deviceId,
-          value ? "turn_on" : "turn_off",
-        );
+        await this.#api.sendCommand(deviceId, value ? "turn_on" : "turn_off");
       } else if (
         deviceType === "lock" &&
         clusterId === "doorLock" &&
         attribute === "lockState"
       ) {
-        await this.#api.sendCommand(
-          deviceId,
-          value === 1 ? "lock" : "unlock",
-        );
+        await this.#api.sendCommand(deviceId, value === 1 ? "lock" : "unlock");
       }
-    } catch (err) {
+    } catch (_err) {
       this.#context?.log.error(`Command failed for ${deviceId}`);
     }
   }
