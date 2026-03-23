@@ -92,7 +92,9 @@ export class DiagnosticService {
           }
         }
 
-        const entities = this.collectEntities(bridge.aggregator);
+        const entities = bridge.aggregator
+          ? this.collectEntities(bridge.aggregator)
+          : [];
 
         return {
           bridgeId: data.id,
