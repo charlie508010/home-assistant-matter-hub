@@ -417,4 +417,194 @@ export default class TestPlugin {
       expect(onShutdown).not.toHaveBeenCalled();
     });
   });
+
+  describe("domain mappings", () => {
+    it("should register a domain mapping via context", async () => {
+      const pm = new PluginManager("bridge-1", storageDir);
+
+      await pm.registerBuiltIn(
+        createMockPlugin({
+          onStart: async (ctx: PluginContext) => {
+            ctx.registerDomainMapping({
+              domain: "number",
+              matterDeviceType: "dimmable_light",
+            });
+          },
+        }),
+      );
+
+      await pm.startAll();
+
+      const mappings = pm.getDomainMappings();
+      expect(mappings.size).toBe(1);
+      expect(mappings.get("number")?.matterDeviceType).toBe("dimmable_light");
+    });
+
+    it("should overwrite mapping if same domain registered twice", async () => {
+      const pm = new PluginManager("bridge-1", storageDir);
+
+      await pm.registerBuiltIn(
+        createMockPlugin({
+          name: "plugin-a",
+          onStart: async (ctx: PluginContext) => {
+            ctx.registerDomainMapping({
+              domain: "number",
+              matterDeviceType: "dimmable_light",
+            });
+          },
+        }),
+      );
+      await pm.registerBuiltIn(
+        createMockPlugin({
+          name: "plugin-b",
+          onStart: async (ctx: PluginContext) => {
+            ctx.registerDomainMapping({
+              domain: "number",
+              matterDeviceType: "on_off_light",
+            });
+          },
+        }),
+      );
+
+      await pm.startAll();
+
+      const mappings = pm.getDomainMappings();
+      expect(mappings.get("number")?.matterDeviceType).toBe("on_off_light");
+    });
+
+    it("should reject invalid domain mapping", async () => {
+      const pm = new PluginManager("bridge-1", storageDir);
+
+      await pm.registerBuiltIn(
+        createMockPlugin({
+          onStart: async (ctx: PluginContext) => {
+            ctx.registerDomainMapping({
+              domain: "",
+              matterDeviceType: "on_off_light",
+            });
+            ctx.registerDomainMapping({
+              domain: "number",
+              matterDeviceType: "",
+            });
+          },
+        }),
+      );
+
+      await pm.startAll();
+      expect(pm.getDomainMappings().size).toBe(0);
+    });
+
+    it("should return a copy from getDomainMappings", async () => {
+      const pm = new PluginManager("bridge-1", storageDir);
+
+      await pm.registerBuiltIn(
+        createMockPlugin({
+          onStart: async (ctx: PluginContext) => {
+            ctx.registerDomainMapping({
+              domain: "number",
+              matterDeviceType: "dimmable_light",
+            });
+          },
+        }),
+      );
+
+      await pm.startAll();
+
+      const copy = pm.getDomainMappings();
+      copy.delete("number");
+      expect(pm.getDomainMappings().size).toBe(1);
+    });
+  });
+
+  describe("failure isolation", () => {
+    it("should survive plugin that throws on onStart", async () => {
+      const pm = new PluginManager("bridge-1", storageDir);
+
+      await pm.registerBuiltIn(
+        createMockPlugin({
+          name: "bad-plugin",
+          onStart: async () => {
+            throw new Error("crash!");
+          },
+        }),
+      );
+      await pm.registerBuiltIn(
+        createMockPlugin({
+          name: "good-plugin",
+          onStart: async (ctx: PluginContext) => {
+            await ctx.registerDevice({
+              id: "good-dev",
+              name: "Good",
+              deviceType: "on_off_light",
+              clusters: [{ clusterId: "onOff", attributes: { onOff: false } }],
+            });
+          },
+        }),
+      );
+
+      const registered: PluginDevice[] = [];
+      pm.onDeviceRegistered = async (_n, d) => {
+        registered.push(d);
+      };
+
+      await pm.startAll();
+
+      expect(registered).toHaveLength(1);
+      expect(registered[0].id).toBe("good-dev");
+    });
+
+    it("should survive plugin that throws on onConfigure", async () => {
+      const pm = new PluginManager("bridge-1", storageDir);
+
+      await pm.registerBuiltIn(
+        createMockPlugin({
+          name: "bad-configure",
+          onConfigure: async () => {
+            throw new Error("configure crash!");
+          },
+        }),
+      );
+
+      await pm.startAll();
+      await pm.configureAll();
+
+      const meta = pm.getMetadata();
+      expect(meta).toHaveLength(1);
+    });
+
+    it("should handle multiple plugins where one fails", async () => {
+      const pm = new PluginManager("bridge-1", storageDir);
+      const startOrder: string[] = [];
+
+      await pm.registerBuiltIn(
+        createMockPlugin({
+          name: "first",
+          onStart: async () => {
+            startOrder.push("first");
+          },
+        }),
+      );
+      await pm.registerBuiltIn(
+        createMockPlugin({
+          name: "crashing",
+          onStart: async () => {
+            startOrder.push("crashing");
+            throw new Error("boom");
+          },
+        }),
+      );
+      await pm.registerBuiltIn(
+        createMockPlugin({
+          name: "third",
+          onStart: async () => {
+            startOrder.push("third");
+          },
+        }),
+      );
+
+      await pm.startAll();
+
+      expect(startOrder).toEqual(["first", "crashing", "third"]);
+    });
+  });
 });
