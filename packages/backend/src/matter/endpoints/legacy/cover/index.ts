@@ -70,7 +70,10 @@ const CoverDeviceType = (
   ] as const;
 
   if (hasBattery) {
-    return WindowCoveringDevice.with(...baseBehaviors, DefaultPowerSourceServer);
+    return WindowCoveringDevice.with(
+      ...baseBehaviors,
+      DefaultPowerSourceServer,
+    );
   }
   return WindowCoveringDevice.with(...baseBehaviors);
 };
