@@ -288,7 +288,7 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
               <Button
                 variant="outlined"
                 size="small"
-                startIcon={<DownloadIcon />}
+                startIcon={<UploadIcon />}
                 onClick={handleExportClick}
               >
                 {t("common.export")}
@@ -297,7 +297,7 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
             <Button
               variant="outlined"
               size="small"
-              startIcon={<UploadIcon />}
+              startIcon={<DownloadIcon />}
               onClick={handleImportClick}
             >
               {t("common.import")}
@@ -510,7 +510,7 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
             variant="contained"
             onClick={handleExportConfirm}
             disabled={exportSelected.size === 0}
-            startIcon={<DownloadIcon />}
+            startIcon={<UploadIcon />}
           >
             {t("common.export")} {exportSelected.size}
           </Button>

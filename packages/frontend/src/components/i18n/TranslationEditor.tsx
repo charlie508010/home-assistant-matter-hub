@@ -550,7 +550,7 @@ export function TranslationEditor() {
         <Button
           variant="outlined"
           size="small"
-          startIcon={<DownloadIcon />}
+          startIcon={<UploadFileIcon />}
           onClick={handleExport}
         >
           {t("translationEditor.exportJson")}
@@ -558,7 +558,7 @@ export function TranslationEditor() {
         <Button
           variant="outlined"
           size="small"
-          startIcon={<UploadFileIcon />}
+          startIcon={<DownloadIcon />}
           onClick={handleImportJson}
         >
           {t("translationEditor.importJson")}
