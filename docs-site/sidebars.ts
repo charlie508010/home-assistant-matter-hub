@@ -45,7 +45,7 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "Reference",
-      items: ["guides/api-reference"],
+      items: ["guides/api-reference", "guides/controller-compatibility", "guides/mapping-blueprints"],
     },
     {
       type: "category",
