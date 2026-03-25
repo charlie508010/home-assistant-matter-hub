@@ -4,6 +4,14 @@
 
 Please follow the [troubleshooting guide](./guides/connectivity-issues.md).
 
+## Why do I see IPv4 addresses in the logs if Matter requires IPv6?
+
+Seeing an IPv4 address like `udp://[10.0.40.151]:5541` in the pairing log is **normal and expected**. Controllers like Amazon Echo run in a dual-stack environment and may open sessions over IPv4 while still using IPv6 for discovery and fabric communication.
+
+If pairing works and devices remain reachable, everything is functioning correctly. There is no "IPv6 only" indicator in the logs.
+
+**Important for VLAN setups:** If your Home Assistant and IoT devices are on different VLANs, you **must** configure ULA IPv6 addresses (`fd00::/8`) on your router. Link-local IPv6 (`fe80::`) cannot be routed across VLANs. See the [IPv6 section](./guides/connectivity-issues.md#ipv6) in the troubleshooting guide and [Discussion #39](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/39) for details.
+
 ## I'd like to connect my bridge to multiple assistants
 
 Please follow the [multi-fabric guide](./guides/connect-multiple-fabrics.md).
