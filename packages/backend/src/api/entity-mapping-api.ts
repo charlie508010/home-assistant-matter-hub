@@ -35,6 +35,7 @@ export function entityMappingApi(
       disabled: body.disabled,
       filterLifeEntity: body.filterLifeEntity,
       cleaningModeEntity: body.cleaningModeEntity,
+      temperatureEntity: body.temperatureEntity,
       humidityEntity: body.humidityEntity,
       pressureEntity: body.pressureEntity,
       batteryEntity: body.batteryEntity,
@@ -47,6 +48,8 @@ export function entityMappingApi(
       customServiceAreas: body.customServiceAreas,
       customFanSpeedTags: body.customFanSpeedTags,
       valetudoIdentifier: body.valetudoIdentifier,
+      coverSwapOpenClose: body.coverSwapOpenClose,
+      composedEntities: body.composedEntities,
     };
 
     const config = await mappingStorage.setMapping(request);

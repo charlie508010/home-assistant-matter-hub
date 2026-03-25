@@ -1,4 +1,5 @@
 import {
+  type ComposedSubEntity,
   type CustomServiceArea,
   domainToDefaultMatterTypes,
   type EntityMappingConfig,
@@ -26,7 +27,7 @@ import Select from "@mui/material/Select";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { EntityAutocomplete } from "./EntityAutocomplete.tsx";
 
@@ -62,6 +63,7 @@ export function EntityMappingDialog({
   const [disabled, setDisabled] = useState(false);
   const [filterLifeEntity, setFilterLifeEntity] = useState("");
   const [cleaningModeEntity, setCleaningModeEntity] = useState("");
+  const [temperatureEntity, setTemperatureEntity] = useState("");
   const [humidityEntity, setHumidityEntity] = useState("");
   const [pressureEntity, setPressureEntity] = useState("");
   const [batteryEntity, setBatteryEntity] = useState("");
@@ -75,6 +77,11 @@ export function EntityMappingDialog({
     CustomServiceArea[]
   >([]);
   const [valetudoIdentifier, setValetudoIdentifier] = useState("");
+  const [coverSwapOpenClose, setCoverSwapOpenClose] = useState(false);
+  const composedKeyRef = useRef(0);
+  const [composedEntities, setComposedEntities] = useState<
+    (ComposedSubEntity & { _key: number })[]
+  >([]);
   const [availableButtons, setAvailableButtons] = useState<RelatedButton[]>([]);
   const [loadingButtons, setLoadingButtons] = useState(false);
 
@@ -103,6 +110,7 @@ export function EntityMappingDialog({
       setDisabled(currentMapping?.disabled || false);
       setFilterLifeEntity(currentMapping?.filterLifeEntity || "");
       setCleaningModeEntity(currentMapping?.cleaningModeEntity || "");
+      setTemperatureEntity(currentMapping?.temperatureEntity || "");
       setHumidityEntity(currentMapping?.humidityEntity || "");
       setPressureEntity(currentMapping?.pressureEntity || "");
       setBatteryEntity(currentMapping?.batteryEntity || "");
@@ -114,6 +122,14 @@ export function EntityMappingDialog({
       setMopIntensityEntity(currentMapping?.mopIntensityEntity || "");
       setCustomServiceAreas(currentMapping?.customServiceAreas || []);
       setValetudoIdentifier(currentMapping?.valetudoIdentifier || "");
+      setCoverSwapOpenClose(currentMapping?.coverSwapOpenClose || false);
+      composedKeyRef.current = 0;
+      setComposedEntities(
+        (currentMapping?.composedEntities || []).map((e) => ({
+          ...e,
+          _key: composedKeyRef.current++,
+        })),
+      );
       setAvailableButtons([]);
       setCustomFanSpeedTagsList(
         Object.entries(currentMapping?.customFanSpeedTags || {}).map(
@@ -169,6 +185,7 @@ export function EntityMappingDialog({
       disabled,
       filterLifeEntity: filterLifeEntity.trim() || undefined,
       cleaningModeEntity: cleaningModeEntity.trim() || undefined,
+      temperatureEntity: temperatureEntity.trim() || undefined,
       humidityEntity: humidityEntity.trim() || undefined,
       pressureEntity: pressureEntity.trim() || undefined,
       batteryEntity: batteryEntity.trim() || undefined,
@@ -185,6 +202,13 @@ export function EntityMappingDialog({
           ? customFanSpeedTags
           : undefined,
       valetudoIdentifier: valetudoIdentifier.trim() || undefined,
+      coverSwapOpenClose: coverSwapOpenClose || undefined,
+      composedEntities:
+        composedEntities.filter((e) => e.entityId?.trim()).length > 0
+          ? composedEntities
+              .filter((e) => e.entityId?.trim())
+              .map(({ _key: _, ...rest }) => rest)
+          : undefined,
     });
   }, [
     editEntityId,
@@ -193,6 +217,7 @@ export function EntityMappingDialog({
     disabled,
     filterLifeEntity,
     cleaningModeEntity,
+    temperatureEntity,
     humidityEntity,
     pressureEntity,
     batteryEntity,
@@ -205,6 +230,8 @@ export function EntityMappingDialog({
     customServiceAreas,
     customFanSpeedTagsList,
     valetudoIdentifier,
+    coverSwapOpenClose,
+    composedEntities,
     onSave,
   ]);
 
@@ -227,6 +254,13 @@ export function EntityMappingDialog({
   const showHumidityBatteryFields =
     matterDeviceType === "temperature_sensor" ||
     (currentDomain === "sensor" && !matterDeviceType);
+
+  // Show temperature/humidity entity fields for air purifiers (manual sensor mapping)
+  const showAirPurifierSensorFields = matterDeviceType === "air_purifier";
+
+  // Show swap open/close option for covers
+  const showCoverSwapField =
+    matterDeviceType === "window_covering" || currentDomain === "cover";
 
   // Show PIN disable option for locks
   const showLockPinField =
@@ -540,6 +574,27 @@ export function EntityMappingDialog({
           </>
         )}
 
+        {showAirPurifierSensorFields && (
+          <>
+            <EntityAutocomplete
+              value={temperatureEntity}
+              onChange={setTemperatureEntity}
+              label="Temperature Sensor (optional)"
+              placeholder="sensor.air_purifier_temperature"
+              helperText="Add temperature measurement to this air purifier from a separate sensor entity"
+              domain="sensor"
+            />
+            <EntityAutocomplete
+              value={humidityEntity}
+              onChange={setHumidityEntity}
+              label="Humidity Sensor (optional)"
+              placeholder="sensor.air_purifier_humidity"
+              helperText="Add humidity measurement to this air purifier from a separate sensor entity"
+              domain="sensor"
+            />
+          </>
+        )}
+
         {showEnergyFields && (
           <>
             <EntityAutocomplete
@@ -651,6 +706,19 @@ export function EntityMappingDialog({
           </Box>
         )}
 
+        {showCoverSwapField && (
+          <FormControlLabel
+            control={
+              <Switch
+                checked={coverSwapOpenClose}
+                onChange={(e) => setCoverSwapOpenClose(e.target.checked)}
+              />
+            }
+            label="Swap open/close commands (for awnings and similar covers)"
+            sx={{ mt: 1, display: "block" }}
+          />
+        )}
+
         {showLockPinField && (
           <FormControlLabel
             control={
@@ -663,6 +731,99 @@ export function EntityMappingDialog({
             sx={{ mt: 1, display: "block" }}
           />
         )}
+
+        <Box sx={{ mt: 2, mb: 1 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Composed Sub-Entities
+          </Typography>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ mb: 1, display: "block" }}
+          >
+            Group additional HA entities into this device. Each entity becomes a
+            sub-endpoint under a shared Matter device. Requires the
+            autoComposedDevices feature flag.
+          </Typography>
+          {composedEntities.map((sub, index) => (
+            <Box
+              key={sub._key}
+              sx={{
+                display: "flex",
+                gap: 1,
+                mb: 1,
+                alignItems: "flex-start",
+              }}
+            >
+              <Box sx={{ flex: 2 }}>
+                <EntityAutocomplete
+                  value={sub.entityId}
+                  onChange={(val) => {
+                    const updated = [...composedEntities];
+                    updated[index] = { ...sub, entityId: val };
+                    setComposedEntities(updated);
+                  }}
+                  label="Entity ID"
+                  placeholder="sensor.temperature"
+                />
+              </Box>
+              <FormControl size="small" sx={{ flex: 1, mt: 1 }}>
+                <InputLabel>Device Type</InputLabel>
+                <Select
+                  value={sub.matterDeviceType || ""}
+                  label="Device Type"
+                  onChange={(e) => {
+                    const updated = [...composedEntities];
+                    updated[index] = {
+                      ...sub,
+                      matterDeviceType:
+                        (e.target.value as MatterDeviceType) || undefined,
+                    };
+                    setComposedEntities(updated);
+                  }}
+                >
+                  <MenuItem value="">
+                    <em>Auto-detect</em>
+                  </MenuItem>
+                  {(
+                    Object.entries(matterDeviceTypeLabels) as [
+                      MatterDeviceType,
+                      string,
+                    ][]
+                  ).map(([key, label]) => (
+                    <MenuItem key={key} value={key}>
+                      {label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <IconButton
+                size="small"
+                color="error"
+                sx={{ mt: 1.5 }}
+                onClick={() => {
+                  setComposedEntities(
+                    composedEntities.filter((_, i) => i !== index),
+                  );
+                }}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          ))}
+          <Button
+            size="small"
+            startIcon={<AddCircleOutlineIcon />}
+            onClick={() =>
+              setComposedEntities([
+                ...composedEntities,
+                { entityId: "", _key: composedKeyRef.current++ },
+              ])
+            }
+          >
+            Add Sub-Entity
+          </Button>
+        </Box>
 
         <FormControlLabel
           control={

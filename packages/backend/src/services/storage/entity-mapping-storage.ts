@@ -110,6 +110,7 @@ export class EntityMappingStorage extends Service {
       disabled: request.disabled,
       filterLifeEntity: request.filterLifeEntity?.trim() || undefined,
       cleaningModeEntity: request.cleaningModeEntity?.trim() || undefined,
+      temperatureEntity: request.temperatureEntity?.trim() || undefined,
       humidityEntity: request.humidityEntity?.trim() || undefined,
       batteryEntity: request.batteryEntity?.trim() || undefined,
       roomEntities: roomEntities.length > 0 ? roomEntities : undefined,
@@ -129,6 +130,10 @@ export class EntityMappingStorage extends Service {
           ? request.customFanSpeedTags
           : undefined,
       valetudoIdentifier: request.valetudoIdentifier?.trim() || undefined,
+      coverSwapOpenClose: request.coverSwapOpenClose || undefined,
+      composedEntities:
+        request.composedEntities?.filter((e) => e.entityId?.trim()) ??
+        undefined,
     };
 
     if (
@@ -137,6 +142,7 @@ export class EntityMappingStorage extends Service {
       config.disabled !== true &&
       !config.filterLifeEntity &&
       !config.cleaningModeEntity &&
+      !config.temperatureEntity &&
       !config.humidityEntity &&
       !config.batteryEntity &&
       !config.roomEntities &&
@@ -149,7 +155,9 @@ export class EntityMappingStorage extends Service {
       (!config.customServiceAreas || config.customServiceAreas.length === 0) &&
       (!config.customFanSpeedTags ||
         Object.keys(config.customFanSpeedTags).length === 0) &&
-      !config.valetudoIdentifier
+      !config.valetudoIdentifier &&
+      !config.coverSwapOpenClose &&
+      (!config.composedEntities || config.composedEntities.length === 0)
     ) {
       bridgeMap.delete(request.entityId);
     } else {

@@ -22,6 +22,7 @@ function configToProfileEntry(
     disabled: config.disabled,
     filterLifeEntity: config.filterLifeEntity,
     cleaningModeEntity: config.cleaningModeEntity,
+    temperatureEntity: config.temperatureEntity,
     humidityEntity: config.humidityEntity,
     pressureEntity: config.pressureEntity,
     batteryEntity: config.batteryEntity,
@@ -34,6 +35,7 @@ function configToProfileEntry(
     customServiceAreas: config.customServiceAreas,
     customFanSpeedTags: config.customFanSpeedTags,
     valetudoIdentifier: config.valetudoIdentifier,
+    coverSwapOpenClose: config.coverSwapOpenClose,
   };
 }
 
@@ -177,6 +179,7 @@ export function mappingProfileApi(
           disabled: entry.disabled,
           filterLifeEntity: entry.filterLifeEntity,
           cleaningModeEntity: entry.cleaningModeEntity,
+          temperatureEntity: entry.temperatureEntity,
           humidityEntity: entry.humidityEntity,
           pressureEntity: entry.pressureEntity,
           batteryEntity: entry.batteryEntity,
@@ -189,6 +192,7 @@ export function mappingProfileApi(
           customServiceAreas: entry.customServiceAreas,
           customFanSpeedTags: entry.customFanSpeedTags,
           valetudoIdentifier: entry.valetudoIdentifier,
+          coverSwapOpenClose: entry.coverSwapOpenClose,
         });
         applied++;
       } catch (e) {

@@ -62,6 +62,20 @@ export interface PluginStorage {
 }
 
 /**
+ * A domain-to-device-type mapping registered by a plugin.
+ * Allows plugins to tell HAMH how to handle HA domains that
+ * are not natively supported, or to override existing mappings.
+ */
+export interface PluginDomainMapping {
+  /** Home Assistant domain (e.g., "number", "timer") */
+  domain: string;
+  /** Matter device type key (must be in the supported device types list) */
+  matterDeviceType: string;
+  /** Default cluster state for newly created endpoints */
+  defaultClusters?: PluginClusterConfig[];
+}
+
+/**
  * Context provided to plugins during their lifecycle.
  * This is the primary API surface for plugin authors.
  */
@@ -76,6 +90,13 @@ export interface PluginContext {
     clusterId: string,
     attributes: Record<string, unknown>,
   ): void;
+
+  /**
+   * Register a domain mapping so HAMH maps HA entities of the given
+   * domain to the specified Matter device type. This is checked before
+   * the built-in domain mapping table.
+   */
+  registerDomainMapping(mapping: PluginDomainMapping): void;
 
   /** Persistent storage scoped to this plugin */
   storage: PluginStorage;

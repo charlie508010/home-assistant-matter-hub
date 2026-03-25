@@ -43,6 +43,7 @@ export function getMappedEntityIds(mapping?: EntityMappingConfig): string[] {
   if (!mapping) return [];
   const ids: string[] = [];
   if (mapping.batteryEntity) ids.push(mapping.batteryEntity);
+  if (mapping.temperatureEntity) ids.push(mapping.temperatureEntity);
   if (mapping.humidityEntity) ids.push(mapping.humidityEntity);
   if (mapping.pressureEntity) ids.push(mapping.pressureEntity);
   if (mapping.cleaningModeEntity) ids.push(mapping.cleaningModeEntity);
@@ -51,5 +52,10 @@ export function getMappedEntityIds(mapping?: EntityMappingConfig): string[] {
   if (mapping.filterLifeEntity) ids.push(mapping.filterLifeEntity);
   if (mapping.powerEntity) ids.push(mapping.powerEntity);
   if (mapping.energyEntity) ids.push(mapping.energyEntity);
+  if (mapping.composedEntities) {
+    for (const sub of mapping.composedEntities) {
+      if (sub.entityId) ids.push(sub.entityId);
+    }
+  }
   return ids;
 }

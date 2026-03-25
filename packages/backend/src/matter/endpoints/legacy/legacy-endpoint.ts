@@ -21,6 +21,7 @@ import {
 } from "../../endpoints/entity-endpoint.js";
 import { ComposedAirPurifierEndpoint } from "../composed/composed-air-purifier-endpoint.js";
 import { ComposedSensorEndpoint } from "../composed/composed-sensor-endpoint.js";
+import { UserComposedEndpoint } from "../composed/user-composed-endpoint.js";
 import { createLegacyEndpointType } from "./create-legacy-endpoint-type.js";
 import { supportsCleaningModes } from "./vacuum/behaviors/vacuum-rvc-clean-mode-server.js";
 
@@ -34,6 +35,7 @@ export class LegacyEndpoint extends EntityEndpoint {
     registry: BridgeRegistry,
     entityId: string,
     mapping?: EntityMappingConfig,
+    pluginDomainMappings?: Map<string, string>,
   ): Promise<LegacyEndpoint | undefined> {
     const deviceRegistry = registry.deviceOf(entityId);
     let state = registry.initialState(entityId);
@@ -319,6 +321,32 @@ export class LegacyEndpoint extends EntityEndpoint {
       }
     }
 
+    // User-defined composed device: when composedEntities is configured,
+    // group the primary entity with additional entities into a single
+    // Matter composed device under a BridgedNodeEndpoint parent.
+    if (
+      registry.isAutoComposedDevicesEnabled() &&
+      effectiveMapping?.composedEntities &&
+      effectiveMapping.composedEntities.length > 0
+    ) {
+      const composedAreaName = registry.getAreaName(entityId);
+      const composed = await UserComposedEndpoint.create({
+        registry,
+        primaryEntityId: entityId,
+        mapping: effectiveMapping,
+        composedEntities: effectiveMapping.composedEntities,
+        customName: effectiveMapping?.customName,
+        areaName: composedAreaName,
+      });
+      if (composed) {
+        return composed as unknown as LegacyEndpoint;
+      }
+      // Fallback to standalone if composed creation fails
+      logger.warn(
+        `User composed device creation failed for ${entityId}, falling back to standalone`,
+      );
+    }
+
     // When autoComposedDevices is enabled and this is a temperature sensor
     // with auto-mapped humidity/pressure, create a real Matter Composed Device
     // instead of a flat endpoint with extra clusters.
@@ -346,18 +374,23 @@ export class LegacyEndpoint extends EntityEndpoint {
       }
 
       // When this is a fan entity mapped as air_purifier, create a composed
-      // device with sensor/thermostat sub-endpoints from related entities on
-      // the same HA device (Matter spec 9.4.4).
+      // device with sensor clusters from related entities on the same HA
+      // device or from manually mapped sensor entities (Matter spec 9.4.4).
       const resolvedMatterType =
         mapping?.matterDeviceType ??
         (entityId.startsWith("fan.") ? "fan" : undefined);
-      if (resolvedMatterType === "air_purifier" && entity.device_id) {
-        const temperatureEntityId = registry.findTemperatureEntityForDevice(
-          entity.device_id,
-        );
-        const humidityEntityId = registry.findHumidityEntityForDevice(
-          entity.device_id,
-        );
+      if (resolvedMatterType === "air_purifier") {
+        // Manual mapping takes priority over auto-discovery
+        const temperatureEntityId =
+          effectiveMapping?.temperatureEntity ||
+          (entity.device_id
+            ? registry.findTemperatureEntityForDevice(entity.device_id)
+            : undefined);
+        const humidityEntityId =
+          effectiveMapping?.humidityEntity ||
+          (entity.device_id
+            ? registry.findHumidityEntityForDevice(entity.device_id)
+            : undefined);
         // Only compose if at least one sensor sub-entity is available.
         // Climate entities stay standalone — ThermostatDevice competes with
         // the parent for Apple Home's primary tile selection.
@@ -419,6 +452,7 @@ export class LegacyEndpoint extends EntityEndpoint {
     const type = createLegacyEndpointType(payload, effectiveMapping, areaName, {
       vacuumOnOff: registry.isVacuumOnOffEnabled(),
       cleaningModeOptions,
+      pluginDomainMappings,
     });
     if (!type) {
       return;

@@ -308,6 +308,17 @@ export class BridgeEndpointManager extends Service {
     }
   }
 
+  private getPluginDomainMappings(): Map<string, string> | undefined {
+    if (!this.pluginManager) return undefined;
+    const mappings = this.pluginManager.getDomainMappings();
+    if (mappings.size === 0) return undefined;
+    const result = new Map<string, string>();
+    for (const [domain, mapping] of mappings) {
+      result.set(domain, mapping.matterDeviceType);
+    }
+    return result;
+  }
+
   private getEntityMapping(entityId: string): EntityMappingConfig | undefined {
     return this.mappingStorage.getMapping(this.bridgeId, entityId);
   }
@@ -379,20 +390,37 @@ export class BridgeEndpointManager extends Service {
     const endpoints = this.root.parts.map((p) => p as EntityEndpoint);
     this.entityIds = this.registry.entityIds;
 
-    // Pre-calculate composed air purifier sub-entities so they get skipped
+    // Pre-calculate composed sub-entities so they get skipped
     // during individual endpoint creation (requires mapping access).
     if (this.registry.isAutoComposedDevicesEnabled()) {
       for (const eid of this.entityIds) {
-        if (!eid.startsWith("fan.")) continue;
         const m = this.getEntityMapping(eid);
+
+        // User-defined composed entities (#220)
+        if (m?.composedEntities) {
+          for (const sub of m.composedEntities) {
+            if (sub.entityId) {
+              this.registry.markComposedSubEntityUsed(sub.entityId);
+            }
+          }
+        }
+
+        // Auto-composed air purifier sub-entities
+        if (!eid.startsWith("fan.")) continue;
         const matterType = m?.matterDeviceType ?? "fan";
         if (matterType !== "air_purifier") continue;
         const ent = this.registry.entity(eid);
-        if (!ent?.device_id) continue;
-        const tempId = this.registry.findTemperatureEntityForDevice(
-          ent.device_id,
-        );
-        const humId = this.registry.findHumidityEntityForDevice(ent.device_id);
+        // Manual mapping takes priority over auto-discovery
+        const tempId =
+          m?.temperatureEntity ||
+          (ent?.device_id
+            ? this.registry.findTemperatureEntityForDevice(ent.device_id)
+            : undefined);
+        const humId =
+          m?.humidityEntity ||
+          (ent?.device_id
+            ? this.registry.findHumidityEntityForDevice(ent.device_id)
+            : undefined);
         if (tempId) this.registry.markComposedSubEntityUsed(tempId);
         if (humId) this.registry.markComposedSubEntityUsed(humId);
       }
@@ -484,6 +512,16 @@ export class BridgeEndpointManager extends Service {
         continue;
       }
 
+      if (
+        this.registry.isAutoComposedDevicesEnabled() &&
+        this.registry.isComposedSubEntityUsed(entityId)
+      ) {
+        this.log.debug(
+          `Skipping ${entityId} — already part of a composed device`,
+        );
+        continue;
+      }
+
       if (entityId.length > MAX_ENTITY_ID_LENGTH) {
         const reason = `Entity ID too long (${entityId.length} chars, max ${MAX_ENTITY_ID_LENGTH}). This would cause filesystem errors.`;
         this.log.warn(`Skipping entity: ${entityId}. Reason: ${reason}`);
@@ -494,10 +532,12 @@ export class BridgeEndpointManager extends Service {
       let endpoint = existingEndpoints.find((e) => e.entityId === entityId);
       if (!endpoint) {
         try {
+          const domainMappings = this.getPluginDomainMappings();
           endpoint = await LegacyEndpoint.create(
             this.registry,
             entityId,
             mapping,
+            domainMappings,
           );
         } catch (e) {
           // Handle all endpoint creation errors gracefully to prevent boot crashes

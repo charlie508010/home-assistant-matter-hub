@@ -14,6 +14,7 @@ export type {
   PluginConfigSchema,
   PluginContext,
   PluginDevice,
+  PluginDomainMapping,
   PluginMetadata,
   PluginStorage,
 } from "./types.js";

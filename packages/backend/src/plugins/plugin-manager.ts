@@ -13,6 +13,7 @@ import type {
   PluginConfigSchema,
   PluginContext,
   PluginDevice,
+  PluginDomainMapping,
   PluginMetadata,
 } from "./types.js";
 
@@ -63,6 +64,7 @@ interface PluginInstance {
  */
 export class PluginManager {
   private readonly instances = new Map<string, PluginInstance>();
+  private readonly domainMappings = new Map<string, PluginDomainMapping>();
   private readonly storageDir: string;
   private readonly bridgeId: string;
   private readonly runner = new SafePluginRunner();
@@ -242,6 +244,27 @@ export class PluginManager {
           attributes,
         );
       },
+
+      registerDomainMapping: (mapping: PluginDomainMapping) => {
+        if (
+          !mapping.domain ||
+          typeof mapping.domain !== "string" ||
+          !mapping.matterDeviceType ||
+          typeof mapping.matterDeviceType !== "string"
+        ) {
+          pluginLogger.warn("Invalid domain mapping, skipping");
+          return;
+        }
+        if (this.domainMappings.has(mapping.domain)) {
+          pluginLogger.warn(
+            `Domain "${mapping.domain}" already mapped by another plugin, overwriting`,
+          );
+        }
+        this.domainMappings.set(mapping.domain, mapping);
+        pluginLogger.info(
+          `Registered domain mapping: ${mapping.domain} → ${mapping.matterDeviceType}`,
+        );
+      },
     };
 
     this.instances.set(plugin.name, {
@@ -372,6 +395,10 @@ export class PluginManager {
     const instance = this.instances.get(pluginName);
     if (!instance) return undefined;
     return instance.plugin.getConfigSchema?.();
+  }
+
+  getDomainMappings(): Map<string, PluginDomainMapping> {
+    return new Map(this.domainMappings);
   }
 
   async updateConfig(

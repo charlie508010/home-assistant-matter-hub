@@ -45,11 +45,23 @@ export type MatterDeviceType =
   | "water_valve"
   | "window_covering";
 
+export interface ComposedSubEntity {
+  readonly entityId: string;
+  readonly matterDeviceType?: MatterDeviceType;
+}
+
 export interface EntityMappingConfig {
   readonly entityId: string;
   readonly matterDeviceType?: MatterDeviceType;
   readonly customName?: string;
   readonly disabled?: boolean;
+  /**
+   * Optional: Array of additional entities to compose into this device.
+   * Each entry becomes a sub-endpoint under a shared BridgedNodeEndpoint.
+   * Requires the autoComposedDevices feature flag.
+   * Example: [{ entityId: "sensor.temperature", matterDeviceType: "temperature_sensor" }]
+   */
+  readonly composedEntities?: ComposedSubEntity[];
   /**
    * Optional: Entity ID of a sensor that provides filter life percentage (0-100).
    * Used for Air Purifiers to show HEPA filter life in Matter controllers.
@@ -64,8 +76,14 @@ export interface EntityMappingConfig {
    */
   readonly cleaningModeEntity?: string;
   /**
-   * Optional: Entity ID of a humidity sensor to combine with a temperature sensor.
-   * Creates a combined Temperature+Humidity sensor in Matter instead of separate devices.
+   * Optional: Entity ID of a temperature sensor to combine with a fan or air purifier.
+   * Adds TemperatureMeasurement cluster to the air purifier in Matter controllers.
+   * Example: "sensor.air_purifier_temperature"
+   */
+  readonly temperatureEntity?: string;
+  /**
+   * Optional: Entity ID of a humidity sensor to combine with a temperature sensor
+   * or a fan/air purifier. Creates a combined device in Matter controllers.
    * Example: "sensor.h_t_bad_humidity"
    */
   readonly humidityEntity?: string;
@@ -146,6 +164,13 @@ export interface EntityMappingConfig {
    */
   readonly valetudoIdentifier?: string;
   /**
+   * Optional: Swap open/close commands for this individual cover entity.
+   * Useful for awnings where HA "open" means extending outward but Matter
+   * controllers interpret "open" as going up. Overrides the bridge-level
+   * coverSwapOpenClose feature flag for this entity only.
+   */
+  readonly coverSwapOpenClose?: boolean;
+  /**
    * Auto-populated at runtime when the vacuum supports HA 2026.3 CLEAN_AREA.
    * Maps HA areas (from the user's segment-to-area mapping in HA) to Matter
    * ServiceArea area IDs. When set, vacuum.clean_area is used instead of
@@ -173,6 +198,7 @@ export interface EntityMappingRequest {
   readonly disabled?: boolean;
   readonly filterLifeEntity?: string;
   readonly cleaningModeEntity?: string;
+  readonly temperatureEntity?: string;
   readonly humidityEntity?: string;
   readonly pressureEntity?: string;
   readonly batteryEntity?: string;
@@ -185,6 +211,8 @@ export interface EntityMappingRequest {
   readonly customServiceAreas?: CustomServiceArea[];
   readonly customFanSpeedTags?: Record<string, number>;
   readonly valetudoIdentifier?: string;
+  readonly coverSwapOpenClose?: boolean;
+  readonly composedEntities?: ComposedSubEntity[];
 }
 
 export interface EntityMappingResponse {

@@ -135,6 +135,8 @@ const BUILT_IN_LANGUAGES = [
   { code: "zh", name: "中文" },
   { code: "th", name: "ไทย" },
   { code: "sv", name: "Svenska" },
+  { code: "tr", name: "Türkçe" },
+  { code: "ru", name: "Русский" },
 ];
 
 export function TranslationEditor() {
@@ -549,7 +551,7 @@ export function TranslationEditor() {
         <Button
           variant="outlined"
           size="small"
-          startIcon={<DownloadIcon />}
+          startIcon={<UploadFileIcon />}
           onClick={handleExport}
         >
           {t("translationEditor.exportJson")}
@@ -557,7 +559,7 @@ export function TranslationEditor() {
         <Button
           variant="outlined"
           size="small"
-          startIcon={<UploadFileIcon />}
+          startIcon={<DownloadIcon />}
           onClick={handleImportJson}
         >
           {t("translationEditor.importJson")}

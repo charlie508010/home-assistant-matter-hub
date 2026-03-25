@@ -10,6 +10,37 @@ Alexa, follow this guide to address common problems.
 - Ensure **IPv6** is properly configured across your router, host, docker, and (if used) virtual machines. Misconfigured
   IPv6 settings can lead to connectivity issues.
 
+:::warning ULA IPv6 required for VLAN setups
+
+Matter requires IPv6 for device discovery and communication. There are two types of IPv6 addresses relevant here:
+
+- **Link-local** (`fe80::/64`) — Auto-assigned on every interface. **Cannot be routed across VLANs or subnets.** Only works when all devices are on the same Layer 2 segment.
+- **ULA (Unique Local Address)** (`fd00::/8`) — Routable across VLANs within your local network. This is what you need if your Home Assistant and IoT devices are on different VLANs.
+
+If you run a VLAN setup (e.g. Home Assistant in a "Server" VLAN and IoT devices in an "IoT" VLAN), **you must configure ULA IPv6 addresses** on your router. Link-local alone will not work across VLANs.
+
+**How to set up ULA on common routers:**
+
+- **UniFi**: Settings → Networks → (your network) → IPv6 → Enable IPv6 with a `fd00::/48` prefix (Prefix Delegation from WAN is optional and not required for local operation)
+- **pfSense / OPNsense**: Interfaces → (your VLAN) → IPv6 Configuration Type → "Track Interface" or "Static IPv6" with a `fd00::/64` prefix
+- **Generic routers**: Enable IPv6 with a ULA prefix in your LAN/VLAN settings. Consult your router's documentation.
+
+**Quick verification:**
+
+```bash
+# On your Home Assistant host, check for a ULA address (starts with fd):
+ip -6 addr show | grep "fd"
+
+# Ping a device on another VLAN using its ULA address:
+ping6 fd10::30:xxxx:xxxx:xxxx:xxxx
+```
+
+If you only see `fe80::` addresses and no `fd` prefixes, ULA is not configured.
+
+See [Discussion #39](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/39) for a detailed explanation of IPv6 behavior with Matter.
+
+:::
+
 ### Firewall & VLAN
 
 UDP, including mDNS, is typically not routed across segmented networks. To ensure proper functionality, UDP traffic must
@@ -81,7 +112,7 @@ Common interface names:
 - **Keep the path simple**: Avoid placing access points or managed switches between your Matter bridge (Home Assistant) and your Home Hub (HomePod/Apple TV)
 - **Use wired connections** where possible for Home Hubs and the Home Assistant host
 - **Same subnet**: All Matter devices, controllers, and the bridge **must** be on the same Layer 2 network / subnet
-- **IPv6 enabled**: Matter uses IPv6 link-local addresses — do not disable IPv6
+- **IPv6 enabled**: Matter requires IPv6 — do not disable it. For VLAN setups, configure **ULA addresses** (`fd00::/8`), not just link-local (`fe80::`). See [IPv6 section](#ipv6) above.
 
 ## 3. Ecosystem and Device Compatibility / Requirements
 

@@ -12,9 +12,6 @@ import type { MdnsOptions } from "./mdns.js";
 import type { StorageOptions } from "./storage.js";
 
 function resolveAppVersion(): string {
-  if (process.env.APP_VERSION) {
-    return process.env.APP_VERSION;
-  }
   try {
     const require = createRequire(import.meta.url);
     // When installed globally via npm, this resolves to the published package.json
@@ -22,11 +19,14 @@ function resolveAppVersion(): string {
     const pkg = require("home-assistant-matter-hub/package.json") as {
       version?: string;
     };
-    if (pkg.version) {
+    if (pkg.version && pkg.version !== "0.0.0") {
       return pkg.version;
     }
   } catch {
-    // ignore
+    // ignore — fall through to env var
+  }
+  if (process.env.APP_VERSION) {
+    return process.env.APP_VERSION;
   }
   return "0.0.0-dev";
 }

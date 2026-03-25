@@ -218,6 +218,7 @@ export function backupApi(
                     disabled: config.disabled,
                     filterLifeEntity: config.filterLifeEntity,
                     cleaningModeEntity: config.cleaningModeEntity,
+                    temperatureEntity: config.temperatureEntity,
                     humidityEntity: config.humidityEntity,
                     pressureEntity: config.pressureEntity,
                     batteryEntity: config.batteryEntity,
@@ -228,6 +229,7 @@ export function backupApi(
                     suctionLevelEntity: config.suctionLevelEntity,
                     mopIntensityEntity: config.mopIntensityEntity,
                     valetudoIdentifier: config.valetudoIdentifier,
+                    coverSwapOpenClose: config.coverSwapOpenClose,
                   });
                   mappingsRestored++;
                 }

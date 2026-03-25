@@ -31,6 +31,7 @@ const sidebars: SidebarsConfig = {
       label: "Guides",
       items: [
         "guides/connect-multiple-fabrics",
+        "guides/alexa-bulk-delete-devices",
         "guides/reverse-proxy",
         "guides/alpha-features",
         "guides/testing-features",
