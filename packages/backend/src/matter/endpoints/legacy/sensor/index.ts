@@ -4,8 +4,8 @@ import {
 } from "@home-assistant-matter-hub/common";
 import type { EndpointType } from "@matter/main";
 import { DeviceTypeId } from "@matter/main/types";
-import type { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { diagnosticEventBus } from "../../../../services/diagnostics/diagnostic-event-bus.js";
+import type { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { AirQualitySensorType } from "./devices/air-quality-sensor.js";
 import { BatterySensorType } from "./devices/battery-sensor.js";
 import { CarbonMonoxideSensorType } from "./devices/carbon-monoxide-sensor.js";

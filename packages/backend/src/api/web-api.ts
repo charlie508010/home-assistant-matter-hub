@@ -28,11 +28,11 @@ import { logsApi } from "./logs-api.js";
 import { mappingProfileApi } from "./mapping-profile-api.js";
 import { matterApi } from "./matter-api.js";
 import { metricsApi } from "./metrics-api.js";
+import { networkDiagnosticApi } from "./network-diagnostic-api.js";
 import { pluginApi } from "./plugin-api.js";
 import { supportIngress, supportProxyLocation } from "./proxy-support.js";
 import { settingsApi } from "./settings-api.js";
 import { systemApi } from "./system-api.js";
-import { networkDiagnosticApi } from "./network-diagnostic-api.js";
 import { webUi } from "./web-ui.js";
 import { WebSocketApi } from "./websocket-api.js";
 

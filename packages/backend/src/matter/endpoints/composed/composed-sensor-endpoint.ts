@@ -199,12 +199,8 @@ export class ComposedSensorEndpoint extends Endpoint {
       ...(config.batteryEntityId
         ? { batteryEntity: config.batteryEntityId }
         : {}),
-      ...(config.powerEntityId
-        ? { powerEntity: config.powerEntityId }
-        : {}),
-      ...(config.energyEntityId
-        ? { energyEntity: config.energyEntityId }
-        : {}),
+      ...(config.powerEntityId ? { powerEntity: config.powerEntityId } : {}),
+      ...(config.energyEntityId ? { energyEntity: config.energyEntityId } : {}),
     };
 
     if (config.batteryEntityId) {
@@ -313,7 +309,6 @@ export class ComposedSensorEndpoint extends Endpoint {
     logger.info(
       `Created composed sensor ${primaryEntityId} with ${parts.length} sub-endpoint(s): ` +
         `T${humSub ? "+H" : ""}${pressSub ? "+P" : ""}${config.batteryEntityId ? "+Bat" : ""}${config.powerEntityId ? "+Pwr" : ""}${config.energyEntityId ? "+Nrg" : ""}`,
-
     );
 
     return endpoint;

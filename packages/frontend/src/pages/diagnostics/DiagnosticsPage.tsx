@@ -2,8 +2,8 @@ import type {
   DiagnosticBridgeInfo,
   DiagnosticEventType,
 } from "@home-assistant-matter-hub/common";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import TimelineIcon from "@mui/icons-material/Timeline";

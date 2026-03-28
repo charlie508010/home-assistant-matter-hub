@@ -253,12 +253,8 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
       ...(config.batteryEntityId
         ? { batteryEntity: config.batteryEntityId }
         : {}),
-      ...(config.powerEntityId
-        ? { powerEntity: config.powerEntityId }
-        : {}),
-      ...(config.energyEntityId
-        ? { energyEntity: config.energyEntityId }
-        : {}),
+      ...(config.powerEntityId ? { powerEntity: config.powerEntityId } : {}),
+      ...(config.energyEntityId ? { energyEntity: config.energyEntityId } : {}),
     };
 
     if (config.batteryEntityId) {

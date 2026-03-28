@@ -166,9 +166,7 @@ export function NetworkDiagnosticCard() {
             onClick={() => setExpanded(!expanded)}
             sx={{ mt: 0.5 }}
           >
-            {expanded
-              ? t("health.hideDetails")
-              : t("health.showDetails")}
+            {expanded ? t("health.hideDetails") : t("health.showDetails")}
           </Button>
 
           <Collapse in={expanded}>
@@ -231,9 +229,7 @@ export function NetworkDiagnosticCard() {
                   .map((iface) => (
                     <TableRow key={iface.name}>
                       <TableCell>{iface.name}</TableCell>
-                      <TableCell>
-                        {iface.ipv4.join(", ") || "-"}
-                      </TableCell>
+                      <TableCell>{iface.ipv4.join(", ") || "-"}</TableCell>
                       <TableCell>
                         <Typography
                           variant="body2"
