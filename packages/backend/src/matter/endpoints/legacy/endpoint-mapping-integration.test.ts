@@ -474,6 +474,17 @@ describe("endpoint mapping integration", () => {
       expect(type.behaviors).toHaveProperty("windowCovering");
     });
 
+    it("garage cover has windowCovering behavior (discrete mode)", () => {
+      const entity = createEntity<
+        CoverDeviceAttributes & { device_class: string }
+      >("cover.garage1", "closed", {
+        supported_features: 3,
+        device_class: "garage",
+      });
+      const { type } = createAndValidate(entity);
+      expect(type.behaviors).toHaveProperty("windowCovering");
+    });
+
     it("lock has doorLock behavior", () => {
       const entity = createEntity("lock.beh6", "locked");
       const { type } = createAndValidate(entity);
