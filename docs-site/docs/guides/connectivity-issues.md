@@ -37,6 +37,8 @@ ping6 fd10::30:xxxx:xxxx:xxxx:xxxx
 
 If you only see `fe80::` addresses and no `fd` prefixes, ULA is not configured.
 
+**After changing IPv6 settings** on your router or Home Assistant host, **reboot HAOS** (not just the add-on). The mDNS service reads network addresses at startup and Docker containers may not see interface changes until the host restarts.
+
 See [Discussion #39](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/39) for a detailed explanation of IPv6 behavior with Matter.
 
 :::
@@ -126,6 +128,7 @@ Common interface names:
 
 ### Alexa
 
+- **IPv6 Address Type (GUA vs ULA)**: Alexa requires a locally reachable IPv6 address. If your Home Assistant host has both a **GUA** (Global Unicast, `2xxx::/3`) and a **ULA** (`fd00::/8`) IPv6 address, mDNS may advertise the GUA which Alexa cannot reach on the local network. Remove the GUA from the interface or ensure ULA is configured, then **reboot HAOS** (not just the add-on) so the mDNS service picks up the correct addresses. See [#283](https://github.com/RiDDiX/home-assistant-matter-hub/issues/283).
 - **Device Limitations**: Alexa cannot pair with a bridge if too many devices (around 80-100) are already attached.
   Remove unused devices to resolve this limitation.
 - **Amazon Device Requirement**: Ensure at least one Amazon device supporting Matter is connected. Third-party
