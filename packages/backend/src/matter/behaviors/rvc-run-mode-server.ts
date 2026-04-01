@@ -113,11 +113,12 @@ class RvcRunModeServerBase extends Base {
 
   /**
    * Update progress entries to reflect the current operating area.
-   * - null: mark all Operating/Pending entries as Completed (cleaning done)
-   * - areaId: mark that area as Operating
+   * - null: mark all areas as Completed (cleaning done)
+   * - areaId: mark that area as Operating, others as Pending
    *
-   * Note: progress is available because our ServiceAreaServerBase enables
-   * ProgressReporting, but the base ServiceAreaBehavior type doesn't expose it.
+   * Rebuilds progress from selectedAreas (plain number array) instead of
+   * reading managed state progress entries, which avoids infinite recursion
+   * in matter.js property getters during transaction pre-commit.
    */
   private updateProgress(
     serviceArea: InstanceType<typeof ServiceAreaBehavior>,
@@ -126,25 +127,24 @@ class RvcRunModeServerBase extends Base {
     const state = serviceArea.state as typeof serviceArea.state & {
       progress?: ServiceArea.Progress[];
     };
-    const progress = state.progress;
-    if (!progress || progress.length === 0) return;
+    const selectedAreas = serviceArea.state.selectedAreas;
+    if (!selectedAreas || selectedAreas.length === 0) return;
 
     if (areaId === null) {
-      // Cleaning finished — mark remaining Operating/Pending as Completed
-      state.progress = progress.map((p: ServiceArea.Progress) =>
-        p.status === ServiceArea.OperationalStatus.Operating ||
-        p.status === ServiceArea.OperationalStatus.Pending
-          ? { ...p, status: ServiceArea.OperationalStatus.Completed }
-          : p,
-      );
+      // Cleaning finished — mark all selected areas as Completed
+      state.progress = selectedAreas.map((id: number) => ({
+        areaId: id,
+        status: ServiceArea.OperationalStatus.Completed,
+      }));
     } else {
-      // Mark the target area as Operating
-      state.progress = progress.map((p: ServiceArea.Progress) =>
-        p.areaId === areaId &&
-        p.status === ServiceArea.OperationalStatus.Pending
-          ? { ...p, status: ServiceArea.OperationalStatus.Operating }
-          : p,
-      );
+      // Mark the target area as Operating, others stay Pending
+      state.progress = selectedAreas.map((id: number) => ({
+        areaId: id,
+        status:
+          id === areaId
+            ? ServiceArea.OperationalStatus.Operating
+            : ServiceArea.OperationalStatus.Pending,
+      }));
     }
   }
 
