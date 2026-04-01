@@ -115,6 +115,19 @@ export class ServerModeVacuumEndpoint extends EntityEndpoint {
           `${entityId}: Auto-assigned mopIntensity ${vacuumEntities.mopIntensityEntity}`,
         );
       }
+      if (
+        !effectiveMapping?.currentRoomEntity &&
+        vacuumEntities.currentRoomEntity
+      ) {
+        effectiveMapping = {
+          ...effectiveMapping,
+          entityId: effectiveMapping?.entityId ?? entityId,
+          currentRoomEntity: vacuumEntities.currentRoomEntity,
+        };
+        logger.info(
+          `${entityId}: Auto-assigned currentRoom ${vacuumEntities.currentRoomEntity}`,
+        );
+      }
 
       // HA 2026.3 CLEAN_AREA: resolve HA area mapping before vendor-specific room detection.
       // When CLEAN_AREA is supported and area_mapping is configured, this takes priority

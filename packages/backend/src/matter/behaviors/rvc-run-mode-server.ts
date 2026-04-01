@@ -7,6 +7,7 @@ import {
 import { ServiceArea } from "@matter/main/clusters";
 import { ModeBase } from "@matter/main/clusters/mode-base";
 import { RvcRunMode } from "@matter/main/clusters/rvc-run-mode";
+import { EntityStateProvider } from "../../services/bridges/entity-state-provider.js";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
@@ -46,6 +47,11 @@ export function isRoomMode(mode: number): boolean {
 class RvcRunModeServerBase extends Base {
   declare state: RvcRunModeServerBase.State;
 
+  /** Areas that the vacuum has already finished cleaning in this session */
+  private completedAreas = new Set<number>();
+  /** Last known currentArea — used to detect room transitions */
+  private lastCurrentArea: number | null = null;
+
   override async initialize() {
     // supportedModes and currentMode are set via .set() BEFORE initialize is called
     // This ensures Matter.js has the modes at pairing time
@@ -73,6 +79,8 @@ class RvcRunModeServerBase extends Base {
     if (previousMode !== newMode) {
       if (newMode === RvcSupportedRunMode.Idle) {
         // Reset currentArea when vacuum transitions to Idle (cleaning finished)
+        this.completedAreas.clear();
+        this.lastCurrentArea = null;
         this.trySetCurrentArea(null);
       } else if (newMode === RvcSupportedRunMode.Cleaning) {
         // Restore currentArea when HA reports cleaning (e.g. after a brief
@@ -89,6 +97,75 @@ class RvcRunModeServerBase extends Base {
           // ServiceArea not available
         }
       }
+    }
+
+    // Dynamic room tracking: when cleaning and a currentRoomEntity is
+    // configured, read the sensor to update currentArea in real time.
+    if (newMode === RvcSupportedRunMode.Cleaning) {
+      this.updateCurrentRoomFromSensor();
+    }
+  }
+
+  /**
+   * Read the currentRoomEntity sensor and update currentArea + progress
+   * to reflect which room the vacuum is actually in right now.
+   */
+  private updateCurrentRoomFromSensor() {
+    try {
+      const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+      const currentRoomEntityId =
+        homeAssistant.state.mapping?.currentRoomEntity;
+      if (!currentRoomEntityId) return;
+
+      const stateProvider = this.agent.env.get(EntityStateProvider);
+      const roomState = stateProvider.getState(currentRoomEntityId);
+      if (!roomState || !roomState.state) return;
+
+      const serviceArea = this.agent.get(ServiceAreaBehavior);
+      const selectedAreas = serviceArea.state.selectedAreas;
+      if (!selectedAreas || selectedAreas.length === 0) return;
+
+      // Match by segment_id attribute (numeric, preferred) or by room name
+      const segmentId = (roomState.attributes as { segment_id?: number })
+        ?.segment_id;
+      const roomName = roomState.state;
+
+      let matchedAreaId: number | null = null;
+      if (segmentId != null) {
+        // segment_id maps directly to areaId for numeric room IDs
+        if (selectedAreas.includes(segmentId)) {
+          matchedAreaId = segmentId;
+        }
+      }
+      if (matchedAreaId === null && roomName) {
+        // Fallback: match by location name in supportedAreas
+        const area = serviceArea.state.supportedAreas.find(
+          (a) =>
+            a.areaInfo.locationInfo?.locationName?.toLowerCase() ===
+            roomName.toLowerCase(),
+        );
+        if (area && selectedAreas.includes(area.areaId)) {
+          matchedAreaId = area.areaId;
+        }
+      }
+
+      if (matchedAreaId === null) return;
+      if (matchedAreaId === this.lastCurrentArea) return;
+
+      // Room transition detected — mark previous area as completed
+      if (this.lastCurrentArea !== null) {
+        this.completedAreas.add(this.lastCurrentArea);
+      }
+      this.lastCurrentArea = matchedAreaId;
+
+      logger.debug(
+        `currentRoom sensor: area ${matchedAreaId} ("${roomName}"), ` +
+          `completed: [${[...this.completedAreas].join(", ")}]`,
+      );
+
+      this.trySetCurrentArea(matchedAreaId);
+    } catch {
+      // EntityStateProvider or ServiceArea not available
     }
   }
 
@@ -137,13 +214,16 @@ class RvcRunModeServerBase extends Base {
         status: ServiceArea.OperationalStatus.Completed,
       }));
     } else {
-      // Mark the target area as Operating, others stay Pending
+      // Mark current area as Operating, completed areas as Completed,
+      // remaining areas as Pending.
       state.progress = selectedAreas.map((id: number) => ({
         areaId: id,
         status:
           id === areaId
             ? ServiceArea.OperationalStatus.Operating
-            : ServiceArea.OperationalStatus.Pending,
+            : this.completedAreas.has(id)
+              ? ServiceArea.OperationalStatus.Completed
+              : ServiceArea.OperationalStatus.Pending,
       }));
     }
   }

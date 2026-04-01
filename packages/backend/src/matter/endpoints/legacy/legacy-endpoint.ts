@@ -251,6 +251,19 @@ export class LegacyEndpoint extends EntityEndpoint {
             `Auto-assigned mopIntensity ${vacuumEntities.mopIntensityEntity} to ${entityId}`,
           );
         }
+        if (
+          !effectiveMapping?.currentRoomEntity &&
+          vacuumEntities.currentRoomEntity
+        ) {
+          effectiveMapping = {
+            ...effectiveMapping,
+            entityId: effectiveMapping?.entityId ?? entityId,
+            currentRoomEntity: vacuumEntities.currentRoomEntity,
+          };
+          logger.debug(
+            `Auto-assigned currentRoom ${vacuumEntities.currentRoomEntity} to ${entityId}`,
+          );
+        }
 
         // HA 2026.3 CLEAN_AREA: resolve HA area mapping before vendor-specific room detection
         const supportedFeatures =

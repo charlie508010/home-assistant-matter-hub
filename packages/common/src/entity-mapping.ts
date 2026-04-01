@@ -157,6 +157,14 @@ export interface EntityMappingConfig {
    */
   readonly customFanSpeedTags?: Record<string, number>;
   /**
+   * Optional: Entity ID of a sensor that reports the room the vacuum is currently in.
+   * Used for Dreame vacuums (Tasshack integration) which expose sensor.*_current_room.
+   * When configured, the vacuum's currentArea and progress are updated dynamically
+   * as the vacuum moves between rooms during multi-room cleaning.
+   * Example: "sensor.dreame_l10s_current_room"
+   */
+  readonly currentRoomEntity?: string;
+  /**
    * Optional: Valetudo MQTT identifier for segment cleaning.
    * HA lowercases entity IDs, but the MQTT topic needs the exact identifier
    * shown in Valetudo under Connectivity → MQTT (e.g., "GentleFinishedSpider").
@@ -210,6 +218,7 @@ export interface EntityMappingRequest {
   readonly mopIntensityEntity?: string;
   readonly customServiceAreas?: CustomServiceArea[];
   readonly customFanSpeedTags?: Record<string, number>;
+  readonly currentRoomEntity?: string;
   readonly valetudoIdentifier?: string;
   readonly coverSwapOpenClose?: boolean;
   readonly composedEntities?: ComposedSubEntity[];

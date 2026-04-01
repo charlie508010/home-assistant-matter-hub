@@ -302,6 +302,7 @@ export class BridgeRegistry {
     cleaningModeEntity?: string;
     suctionLevelEntity?: string;
     mopIntensityEntity?: string;
+    currentRoomEntity?: string;
   } {
     const entities = values(this.registry.entities);
     const sameDevice = entities.filter(
@@ -361,7 +362,25 @@ export class BridgeRegistry {
       }
     }
 
-    return { cleaningModeEntity, suctionLevelEntity, mopIntensityEntity };
+    // Current room sensor: Dreame (Tasshack) exposes sensor.*_current_room
+    // which reports the room name the vacuum is currently in.
+    let currentRoomEntity: string | undefined;
+    const sameDeviceSensors = entities.filter(
+      (e) => e.device_id === deviceId && e.entity_id.startsWith("sensor."),
+    );
+    for (const entity of sameDeviceSensors) {
+      if (entity.entity_id.toLowerCase().endsWith("_current_room")) {
+        currentRoomEntity = entity.entity_id;
+        break;
+      }
+    }
+
+    return {
+      cleaningModeEntity,
+      suctionLevelEntity,
+      mopIntensityEntity,
+      currentRoomEntity,
+    };
   }
 
   private static readonly valetudoLogger = Logger.get("ValetudoRooms");

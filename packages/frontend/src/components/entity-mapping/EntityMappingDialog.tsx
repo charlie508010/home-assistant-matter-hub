@@ -73,6 +73,7 @@ export function EntityMappingDialog({
   const [energyEntity, setEnergyEntity] = useState("");
   const [suctionLevelEntity, setSuctionLevelEntity] = useState("");
   const [mopIntensityEntity, setMopIntensityEntity] = useState("");
+  const [currentRoomEntity, setCurrentRoomEntity] = useState("");
   const [customServiceAreas, setCustomServiceAreas] = useState<
     CustomServiceArea[]
   >([]);
@@ -120,6 +121,7 @@ export function EntityMappingDialog({
       setEnergyEntity(currentMapping?.energyEntity || "");
       setSuctionLevelEntity(currentMapping?.suctionLevelEntity || "");
       setMopIntensityEntity(currentMapping?.mopIntensityEntity || "");
+      setCurrentRoomEntity(currentMapping?.currentRoomEntity || "");
       setCustomServiceAreas(currentMapping?.customServiceAreas || []);
       setValetudoIdentifier(currentMapping?.valetudoIdentifier || "");
       setCoverSwapOpenClose(currentMapping?.coverSwapOpenClose || false);
@@ -197,6 +199,7 @@ export function EntityMappingDialog({
       energyEntity: energyEntity.trim() || undefined,
       suctionLevelEntity: suctionLevelEntity.trim() || undefined,
       mopIntensityEntity: mopIntensityEntity.trim() || undefined,
+      currentRoomEntity: currentRoomEntity.trim() || undefined,
       customFanSpeedTags:
         Object.keys(customFanSpeedTags).length > 0
           ? customFanSpeedTags
@@ -227,6 +230,7 @@ export function EntityMappingDialog({
     energyEntity,
     suctionLevelEntity,
     mopIntensityEntity,
+    currentRoomEntity,
     customServiceAreas,
     customFanSpeedTagsList,
     valetudoIdentifier,
@@ -382,6 +386,14 @@ export function EntityMappingDialog({
               placeholder="select.vacuum_mop_pad_humidity"
               helperText="Select entity that controls mop water level / intensity. Adds intensity options when mopping in Apple Home."
               domain="select"
+            />
+            <EntityAutocomplete
+              value={currentRoomEntity}
+              onChange={setCurrentRoomEntity}
+              label="Current Room Entity (optional)"
+              placeholder="sensor.vacuum_current_room"
+              helperText="Sensor that reports which room the vacuum is currently in (e.g. Dreame current_room sensor). Enables dynamic room progress tracking during multi-room cleaning."
+              domain="sensor"
             />
             {showValetudoIdentifierField && (
               <TextField

@@ -91,6 +91,11 @@ const extractHaDiagnostics = (
         label: "Suction Level",
         entity: mapping.suctionLevelEntity,
       });
+    if (typeof mapping.currentRoomEntity === "string")
+      mappings.push({
+        label: "Current Room",
+        entity: mapping.currentRoomEntity,
+      });
     if (Array.isArray(mapping.roomEntities) && mapping.roomEntities.length > 0)
       mappings.push({
         label: "Rooms",
