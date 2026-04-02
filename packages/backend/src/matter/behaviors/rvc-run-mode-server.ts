@@ -91,10 +91,7 @@ class RvcRunModeServerBase extends Base {
       } else if (newMode === RvcSupportedRunMode.Cleaning) {
         // Restore currentArea when HA reports cleaning (e.g. after a brief
         // docked state between command dispatch and vacuum actually starting)
-        if (
-          this.activeAreas.length > 0 &&
-          this.lastCurrentArea === null
-        ) {
+        if (this.activeAreas.length > 0 && this.lastCurrentArea === null) {
           this.trySetCurrentArea(this.activeAreas[0]);
         }
       }
