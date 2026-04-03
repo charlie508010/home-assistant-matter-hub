@@ -23,6 +23,7 @@ This document provides comprehensive information about all device types supporte
 | `select`, `input_select` | Mode Select |
 | `alarm_control_panel` | Mode Select |
 | `event` | Generic Switch |
+| `siren` | On/Off Plug-in Unit |
 | `humidifier` | Fan (with humidity control) |
 
 > [!NOTE]
@@ -503,6 +504,48 @@ Mapped to **OnOffPlugInUnit**.
 
 ---
 
+### Sirens (`siren`)
+
+Mapped to **OnOffPlugInUnit**.
+
+**Supported Actions:**
+- Turn on → `siren.turn_on`
+- Turn off → `siren.turn_off`
+
+**Behavior:**
+- State reflects the siren entity's on/off state in HA
+- Appears as a simple on/off device in all controllers
+
+**Controller Notes:**
+- Supported by all major controllers (Apple Home, Google Home, Alexa, SmartThings) as a standard on/off device
+
+---
+
+### Dishwashers (Entity Mapping Override)
+
+Available as a **device type override** for `switch` entities via the Entity Mapping UI. Maps to the Matter **Dishwasher** device type with OperationalState and OnOff clusters.
+
+**HA State → Matter OperationalState Mapping:**
+| HA State | Matter State |
+|----------|-------------|
+| `off`, `idle`, `standby`, `complete`, `finished` | Stopped |
+| `on`, `running`, `active`, `drying`, `washing` | Running |
+| `paused` | Paused |
+
+**Supported Commands:**
+- **Start** → `homeassistant.turn_on`
+- **Stop** → `homeassistant.turn_off`
+- **Resume** → `homeassistant.turn_on`
+- **Pause** → Not supported (returns error)
+
+**Controller Notes:**
+- **Google Home**: Supported
+- **Amazon Alexa**: Supported
+- **Samsung SmartThings**: Supported
+- **Apple Home**: Not supported (Apple does not support the Dishwasher device type)
+
+---
+
 ## Entity Mapping Customization
 
 You can override the default device type mapping per entity using the Entity Mapping UI.
@@ -527,6 +570,7 @@ You can override the default device type mapping per entity using the Entity Map
 - AirQualitySensor, BatteryStorage, TVOCSensor
 - WaterValve, Pump
 - WaterHeater
+- Dishwasher
 - GenericSwitch
 - SmokeCO Alarm, Water Leak Detector, Water Freeze Detector
 
@@ -534,6 +578,7 @@ You can override the default device type mapping per entity using the Entity Map
 - Map a `media_player` to OnOffPlugInUnit for simple on/off switch in Alexa
 - Map a `fan` to Air Purifier type for HEPA filter monitoring
 - Map a `switch` to Pump type
+- Map a `switch` to Dishwasher type for OperationalState support (Google/Alexa/SmartThings)
 - Force a specific light type
 
 > **Note:** Since v2.0.25, entity mapping changes take effect automatically within ~30 seconds. No bridge restart is required.
