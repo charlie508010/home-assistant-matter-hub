@@ -2,7 +2,7 @@
 
 # Home-Assistant-Matter-Hub
 
-!["Home-Assistant-Matter-Hub"](./docs/assets/hamh-logo-small.png)
+!["Home-Assistant-Matter-Hub"](./docs-site/static/img/hamh-logo-small.png)
 
 **Expose your Home Assistant devices to Matter controllers like Apple Home, Google Home, and Alexa**
 
@@ -197,7 +197,7 @@ Matter Bridge, Multi-Fabric support, Health Monitoring, Bridge Wizard, AirQualit
 | `water_heater` | Thermostat (Heating) | |
 | `automation`, `script`, `scene` | On/Off Switch | |
 
-> 📖 See [Supported Device Types Documentation](https://riddix.github.io/home-assistant-matter-hub/Supported%20Device%20Types/) for details
+> 📖 See [Supported Device Types Documentation](https://riddix.github.io/home-assistant-matter-hub/supported-device-types) for details
 
 ---
 
@@ -236,7 +236,7 @@ This is because these platforms expect robot vacuums to be **standalone Matter d
 
 ### Documentation
 
-For more details, see the [Robot Vacuum Documentation](https://riddix.github.io/home-assistant-matter-hub/Devices/Robot%20Vacuum/).
+For more details, see the [Robot Vacuum Documentation](https://riddix.github.io/home-assistant-matter-hub/devices/robot-vacuum).
 
 </details>
 
@@ -272,7 +272,7 @@ docker run -d \
 ```
 
 > **Note:** All environment variables require the `HAMH_` prefix.
-> See the [Installation Guide](docs/Getting%20Started/Installation.md) for all available options.
+> See the [Installation Guide](https://riddix.github.io/home-assistant-matter-hub/getting-started/installation) for all available options.
 
 For alpha versions, use tag `alpha` instead of `latest`.
 
