@@ -44,6 +44,22 @@ export interface RvcOperationalStateServerConfig {
 class RvcOperationalStateServerBase extends Base {
   declare state: RvcOperationalStateServerBase.State;
 
+  /**
+   * Alternating nonce that forces a structural difference in operationalError
+   * on every update call.  matter.js's Datasource uses isDeepEqual to detect
+   * attribute changes — writing the same value is silently ignored, so no
+   * subscription report is generated.  By toggling errorStateDetails between
+   * absent and "" (an optional, semantically meaningless field when
+   * errorStateId is NoError), we guarantee the struct is never deep-equal to
+   * its predecessor, which makes matter.js emit attrsChanged and produce a
+   * subscription report.
+   *
+   * This works around a matter.js 0.16.x bug where the subscription
+   * heartbeat timer (sendInterval) fails to fire for certain sessions,
+   * causing Apple Home (iOS via Apple TV proxy) to show "Updating...".
+   */
+  private keepaliveNonce = false;
+
   override async initialize() {
     // Set initial operationalStateList BEFORE super.initialize().
     // Use the explicit list of well-known states to avoid advertising
@@ -70,16 +86,25 @@ class RvcOperationalStateServerBase extends Base {
     );
     const previousState = this.state.operationalState;
 
+    // Toggle nonce so operationalError is structurally different each call.
+    this.keepaliveNonce = !this.keepaliveNonce;
+    const errorStateId =
+      newState === OperationalState.Error
+        ? ErrorState.Stuck
+        : ErrorState.NoError;
+    const operationalError: {
+      errorStateId: number;
+      errorStateDetails?: string;
+    } = { errorStateId };
+    if (this.keepaliveNonce) {
+      operationalError.errorStateDetails = "";
+    }
+
     applyPatchState(
       this.state,
       {
         operationalState: newState,
-        operationalError: {
-          errorStateId:
-            newState === OperationalState.Error
-              ? ErrorState.Stuck
-              : ErrorState.NoError,
-        },
+        operationalError,
       },
       { force: true },
     );
