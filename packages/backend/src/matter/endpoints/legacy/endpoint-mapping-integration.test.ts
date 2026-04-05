@@ -6,6 +6,7 @@ import {
   ClimateHvacMode,
   type CoverDeviceAttributes,
   type FanDeviceAttributes,
+  FanDeviceFeature,
   type HomeAssistantEntityInformation,
   type HomeAssistantEntityRegistry,
   type HomeAssistantEntityState,
@@ -499,6 +500,51 @@ describe("endpoint mapping integration", () => {
       });
       const { type } = createAndValidate(entity);
       expect(type.behaviors).toHaveProperty("fanControl");
+    });
+
+    it("fan with DIRECTION bit exposes AirflowDirection feature (#272)", () => {
+      const withDirection = createEntity<FanDeviceAttributes>(
+        "fan.beh7_dir",
+        "on",
+        {
+          supported_features:
+            FanDeviceFeature.SET_SPEED | FanDeviceFeature.DIRECTION,
+          percentage: 50,
+          percentage_step: 33.33,
+        },
+      );
+      const { type: typeWithDirection } = createAndValidate(withDirection);
+      const fanControlWithDirection = (
+        typeWithDirection.behaviors as Record<
+          string,
+          { cluster?: { supportedFeatures?: { airflowDirection?: boolean } } }
+        >
+      ).fanControl;
+      expect(
+        fanControlWithDirection?.cluster?.supportedFeatures?.airflowDirection,
+      ).toBe(true);
+
+      const withoutDirection = createEntity<FanDeviceAttributes>(
+        "fan.beh7_nodir",
+        "on",
+        {
+          supported_features: FanDeviceFeature.SET_SPEED,
+          percentage: 50,
+          percentage_step: 33.33,
+        },
+      );
+      const { type: typeWithoutDirection } =
+        createAndValidate(withoutDirection);
+      const fanControlWithoutDirection = (
+        typeWithoutDirection.behaviors as Record<
+          string,
+          { cluster?: { supportedFeatures?: { airflowDirection?: boolean } } }
+        >
+      ).fanControl;
+      expect(
+        fanControlWithoutDirection?.cluster?.supportedFeatures
+          ?.airflowDirection,
+      ).toBe(false);
     });
 
     it("temperature sensor has temperatureMeasurement behavior", () => {
