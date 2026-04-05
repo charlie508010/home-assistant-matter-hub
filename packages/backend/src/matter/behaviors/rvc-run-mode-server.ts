@@ -56,6 +56,11 @@ class RvcRunModeServerBase extends Base {
    *  dispatching the HA action to prevent re-dispatch, but progress
    *  tracking needs the original list for the entire cleaning session. */
   private activeAreas: number[] = [];
+  /** Diagnostic short-circuit reasons already logged this session.
+   *  updateCurrentRoomFromSensor() is called on every HA state event;
+   *  without this guard a failing path would flood the log. Cleared
+   *  when the vacuum returns to Idle. */
+  private loggedShortCircuits = new Set<string>();
 
   override async initialize() {
     // supportedModes and currentMode are set via .set() BEFORE initialize is called
@@ -95,6 +100,7 @@ class RvcRunModeServerBase extends Base {
         this.trySetCurrentArea(null);
         this.completedAreas.clear();
         this.lastCurrentArea = null;
+        this.loggedShortCircuits.clear();
       } else if (newMode === RvcSupportedRunMode.Cleaning) {
         // Restore currentArea when HA reports cleaning (e.g. after a brief
         // docked state between command dispatch and vacuum actually starting,
@@ -113,6 +119,17 @@ class RvcRunModeServerBase extends Base {
   }
 
   /**
+   * Emit a diagnostic INFO log exactly once per cleaning session for a
+   * given short-circuit reason. Prevents log flooding while still
+   * surfacing the silent paths that would otherwise be invisible.
+   */
+  private logShortCircuitOnce(reason: string, message: string) {
+    if (this.loggedShortCircuits.has(reason)) return;
+    this.loggedShortCircuits.add(reason);
+    logger.info(message);
+  }
+
+  /**
    * Read the currentRoomEntity sensor and update currentArea + progress
    * to reflect which room the vacuum is actually in right now.
    */
@@ -121,13 +138,33 @@ class RvcRunModeServerBase extends Base {
       const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
       const currentRoomEntityId =
         homeAssistant.state.mapping?.currentRoomEntity;
-      if (!currentRoomEntityId) return;
+      if (!currentRoomEntityId) {
+        this.logShortCircuitOnce(
+          "no-mapping",
+          "currentRoom sensor: no currentRoomEntity in mapping — " +
+            "auto-detect did not run or sensor not on same HA device",
+        );
+        return;
+      }
 
       const stateProvider = this.agent.env.get(EntityStateProvider);
       const roomState = stateProvider.getState(currentRoomEntityId);
-      if (!roomState || !roomState.state) return;
+      if (!roomState || !roomState.state) {
+        this.logShortCircuitOnce(
+          "no-state",
+          `currentRoom sensor: no state available for ${currentRoomEntityId}`,
+        );
+        return;
+      }
 
-      if (this.activeAreas.length === 0) return;
+      if (this.activeAreas.length === 0) {
+        this.logShortCircuitOnce(
+          "no-active-areas",
+          `currentRoom sensor: activeAreas empty while cleaning — ` +
+            `sensor=${currentRoomEntityId} state="${roomState.state}"`,
+        );
+        return;
+      }
 
       const serviceArea = this.agent.get(ServiceAreaBehavior);
 

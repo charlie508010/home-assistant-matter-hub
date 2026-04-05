@@ -221,7 +221,7 @@ export class LegacyEndpoint extends EntityEndpoint {
             entityId: effectiveMapping?.entityId ?? entityId,
             cleaningModeEntity: vacuumEntities.cleaningModeEntity,
           };
-          logger.debug(
+          logger.info(
             `Auto-assigned cleaningMode ${vacuumEntities.cleaningModeEntity} to ${entityId}`,
           );
         }
@@ -234,7 +234,7 @@ export class LegacyEndpoint extends EntityEndpoint {
             entityId: effectiveMapping?.entityId ?? entityId,
             suctionLevelEntity: vacuumEntities.suctionLevelEntity,
           };
-          logger.debug(
+          logger.info(
             `Auto-assigned suctionLevel ${vacuumEntities.suctionLevelEntity} to ${entityId}`,
           );
         }
@@ -247,7 +247,7 @@ export class LegacyEndpoint extends EntityEndpoint {
             entityId: effectiveMapping?.entityId ?? entityId,
             mopIntensityEntity: vacuumEntities.mopIntensityEntity,
           };
-          logger.debug(
+          logger.info(
             `Auto-assigned mopIntensity ${vacuumEntities.mopIntensityEntity} to ${entityId}`,
           );
         }
@@ -260,7 +260,7 @@ export class LegacyEndpoint extends EntityEndpoint {
             entityId: effectiveMapping?.entityId ?? entityId,
             currentRoomEntity: vacuumEntities.currentRoomEntity,
           };
-          logger.debug(
+          logger.info(
             `Auto-assigned currentRoom ${vacuumEntities.currentRoomEntity} to ${entityId}`,
           );
         }
@@ -278,7 +278,7 @@ export class LegacyEndpoint extends EntityEndpoint {
             entityId: effectiveMapping?.entityId ?? entityId,
             cleanAreaRooms,
           };
-          logger.debug(
+          logger.info(
             `Using ${cleanAreaRooms.length} HA areas via CLEAN_AREA for ${entityId}`,
           );
         }
