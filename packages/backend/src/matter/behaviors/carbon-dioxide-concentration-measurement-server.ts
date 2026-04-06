@@ -41,7 +41,7 @@ export class CarbonDioxideConcentrationMeasurementServer extends CarbonDioxideCo
   }
 
   private update(entity: HomeAssistantEntityInformation) {
-    if (!entity.state) {
+    if (!entity.state || !entity.state.attributes) {
       return;
     }
     const state = entity.state.state;

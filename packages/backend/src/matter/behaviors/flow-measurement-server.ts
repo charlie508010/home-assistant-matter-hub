@@ -22,7 +22,7 @@ export class FlowMeasurementServerBase extends Base {
   }
 
   private update(entity: HomeAssistantEntityInformation) {
-    if (!entity.state) {
+    if (!entity.state || !entity.state.attributes) {
       return;
     }
     applyPatchState(this.state, {

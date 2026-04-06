@@ -23,7 +23,7 @@ class ValveConfigurationAndControlServerBase extends Base {
   }
 
   private update(entity: HomeAssistantEntityInformation) {
-    if (!entity.state) {
+    if (!entity.state || !entity.state.attributes) {
       return;
     }
     const config = this.state.config;

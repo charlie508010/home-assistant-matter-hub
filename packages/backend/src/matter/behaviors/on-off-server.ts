@@ -47,7 +47,11 @@ class OnOffServerBase extends Base {
     this.reactTo(homeAssistant.onChange, this.update);
   }
 
-  protected update({ state }: HomeAssistantEntityInformation) {
+  protected update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state || !entity.state.attributes) {
+      return;
+    }
+    const { state } = entity;
     const onOff = this.isOn(state);
     const entityId = this.agent.get(HomeAssistantEntityBehavior).entity
       .entity_id;
