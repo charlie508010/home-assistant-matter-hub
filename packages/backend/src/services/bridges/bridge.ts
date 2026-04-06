@@ -321,6 +321,20 @@ export class Bridge {
         this.log.info(
           `Session ${session.id} (peer ${session.peerNodeId}): subscriptions=${session.subscriptions.size} | total: sessions=${sessions.length} subscriptions=${totalSubs}`,
         );
+        diagnosticEventBus.emit(
+          "subscription_changed",
+          `Session ${session.id}: ${session.subscriptions.size} subs (total ${totalSubs})`,
+          {
+            bridgeId: this.data.id,
+            bridgeName: this.data.name,
+            details: {
+              sessionId: session.id,
+              sessionSubs: session.subscriptions.size,
+              totalSessions: sessions.length,
+              totalSubs,
+            },
+          },
+        );
         if (totalSubs === 0 && sessions.length > 0) {
           this.log.warn(
             `All subscriptions lost — ${sessions.length} session(s) still active, waiting for controller to re-subscribe`,
@@ -374,6 +388,15 @@ export class Bridge {
         this.log.info(
           `Session opened: id=${newSession.id} peer=${newSession.peerNodeId}`,
         );
+        diagnosticEventBus.emit(
+          "session_opened",
+          `Session ${newSession.id} opened (peer ${newSession.peerNodeId})`,
+          {
+            bridgeId: this.data.id,
+            bridgeName: this.data.name,
+            details: { sessionId: newSession.id },
+          },
+        );
         // Clean up stale sessions from the same peer that have lost all
         // subscriptions. matter.js 0.16.10 CaseServer does not close
         // previous sessions when establishing a new CASE session, causing
@@ -400,6 +423,18 @@ export class Bridge {
         const sessions = [...sessionManager.sessions];
         this.log.warn(
           `Session closed: id=${session.id} peer=${session.peerNodeId} | remaining sessions=${sessions.length}`,
+        );
+        diagnosticEventBus.emit(
+          "session_closed",
+          `Session ${session.id} closed (peer ${session.peerNodeId})`,
+          {
+            bridgeId: this.data.id,
+            bridgeName: this.data.name,
+            details: {
+              sessionId: session.id,
+              remainingSessions: sessions.length,
+            },
+          },
         );
       };
       sessionManager.sessions.added.on(this.sessionAddedHandler);

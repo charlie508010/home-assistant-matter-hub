@@ -14,6 +14,7 @@ import type { PluginManager } from "../../plugins/plugin-manager.js";
 import type { PluginRegistry } from "../../plugins/plugin-registry.js";
 import type { PluginDevice, PluginMetadata } from "../../plugins/types.js";
 import { isHeapUnderPressure } from "../../utils/log-memory.js";
+import { diagnosticEventBus } from "../diagnostics/diagnostic-event-bus.js";
 import { subscribeEntities } from "../home-assistant/api/subscribe-entities.js";
 import type { HomeAssistantClient } from "../home-assistant/home-assistant-client.js";
 import type { HomeAssistantStates } from "../home-assistant/home-assistant-registry.js";
@@ -598,11 +599,21 @@ export class BridgeEndpointManager extends Service {
     }
 
     const latencyMs = Math.round((performance.now() - startMs) * 100) / 100;
-    if (latencyMs > 200) {
-      this.log.warn(
-        `Slow state update: ${endpoints.length} endpoints in ${latencyMs}ms` +
-          (failedCount > 0 ? ` (${failedCount} failed)` : ""),
-      );
+    if (latencyMs > 200 || failedCount > 0) {
+      const msg =
+        `State update: ${endpoints.length} endpoints in ${latencyMs}ms` +
+        (failedCount > 0 ? ` (${failedCount} failed)` : "");
+      if (latencyMs > 200) {
+        this.log.warn(`Slow ${msg}`);
+      }
+      diagnosticEventBus.emit("state_update", msg, {
+        bridgeId: this.bridgeId,
+        details: {
+          endpointCount: endpoints.length,
+          failedCount,
+          latencyMs,
+        },
+      });
     }
   }
 

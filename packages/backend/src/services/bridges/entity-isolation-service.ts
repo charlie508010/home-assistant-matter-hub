@@ -1,5 +1,6 @@
 import type { FailedEntity } from "@home-assistant-matter-hub/common";
 import { Logger } from "@matter/general";
+import { diagnosticEventBus } from "../diagnostics/diagnostic-event-bus.js";
 
 const logger = Logger.get("EntityIsolation");
 
@@ -114,6 +115,11 @@ class EntityIsolationServiceImpl {
     logger.warn(
       `Isolating entity "${entityName}" from bridge ${bridgeId} due to: ${reason}`,
     );
+    diagnosticEventBus.emit("entity_error", `Entity isolated: ${entityName}`, {
+      bridgeId,
+      entityId: entityName,
+      details: { reason: classification },
+    });
 
     try {
       await callback(entityName);
