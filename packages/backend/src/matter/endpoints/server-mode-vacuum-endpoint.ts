@@ -315,9 +315,12 @@ export class ServerModeVacuumEndpoint extends EntityEndpoint {
 
   /**
    * Write directly to the RvcOperationalState cluster in a fresh
-   * transaction.  Each call produces a unique errorStateLabel value
+   * transaction.  Each call produces a unique errorStateDetails value
    * so the struct is never deep-equal to its predecessor,
    * guaranteeing matter.js emits attrsChanged → subscription report.
+   *
+   * errorStateDetails (id 2) has conformance "O" (always optional)
+   * unlike errorStateLabel (id 1) which requires errorStateId 128-191.
    */
   private async pushKeepalive() {
     try {
@@ -327,12 +330,9 @@ export class ServerModeVacuumEndpoint extends EntityEndpoint {
       await this.act("vacuum-keepalive", async (agent) => {
         const opState = agent.get(RvcOpStateBehavior);
         const errorStateId = opState.state.operationalError.errorStateId;
-        // Use a counter-based label so the struct is always unique.
-        // errorStateLabel is an optional string that controllers
-        // typically ignore when errorStateId is NoError (0).
         opState.state.operationalError = {
           errorStateId,
-          errorStateLabel: `k${counter}`,
+          errorStateDetails: `k${counter}`,
         };
       });
       logger.info(`Keepalive #${counter} committed for ${this.entityId}`);
