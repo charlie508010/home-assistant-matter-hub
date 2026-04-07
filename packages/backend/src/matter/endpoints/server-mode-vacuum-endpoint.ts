@@ -314,10 +314,9 @@ export class ServerModeVacuumEndpoint extends EntityEndpoint {
   }
 
   /**
-   * Write directly to the RvcOperationalState cluster in a fresh
-   * transaction.  Each call produces a unique errorStateDetails value
-   * so the struct is never deep-equal to its predecessor,
-   * guaranteeing matter.js emits attrsChanged → subscription report.
+   * Force a non-empty subscription report by writing a unique
+   * errorStateDetails to the RvcOperationalState cluster via
+   * setStateOf (the same path used by all matter.js state updates).
    *
    * errorStateDetails (id 2) has conformance "O" (always optional)
    * unlike errorStateLabel (id 1) which requires errorStateId 128-191.
@@ -327,13 +326,15 @@ export class ServerModeVacuumEndpoint extends EntityEndpoint {
       this.keepaliveCounter++;
       const counter = this.keepaliveCounter;
       logger.info(`Keepalive #${counter} for ${this.entityId}`);
-      await this.act("vacuum-keepalive", async (agent) => {
-        const opState = agent.get(RvcOpStateBehavior);
-        const errorStateId = opState.state.operationalError.errorStateId;
-        opState.state.operationalError = {
-          errorStateId,
+
+      // Read current operationalError to preserve errorStateId
+      const currentError = this.stateOf(RvcOpStateBehavior).operationalError;
+
+      await this.setStateOf(RvcOpStateBehavior, {
+        operationalError: {
+          errorStateId: currentError.errorStateId,
           errorStateDetails: `k${counter}`,
-        };
+        },
       });
       logger.info(`Keepalive #${counter} committed for ${this.entityId}`);
     } catch (e: unknown) {
