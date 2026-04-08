@@ -73,8 +73,8 @@ interface CleaningSession {
 
 const cleaningSessions = new WeakMap<object, CleaningSession>();
 
-function getSession(agent: object): CleaningSession {
-  let session = cleaningSessions.get(agent);
+function getSession(endpoint: object): CleaningSession {
+  let session = cleaningSessions.get(endpoint);
   if (!session) {
     session = {
       completedAreas: new Set(),
@@ -82,7 +82,7 @@ function getSession(agent: object): CleaningSession {
       activeAreas: [],
       loggedShortCircuits: new Set(),
     };
-    cleaningSessions.set(agent, session);
+    cleaningSessions.set(endpoint, session);
   }
   return session;
 }
@@ -104,7 +104,7 @@ class RvcRunModeServerBase extends Base {
     if (!entity.state || !entity.state.attributes) {
       return;
     }
-    const s = getSession(this.agent);
+    const s = getSession(this.endpoint);
     const previousMode = this.state.currentMode;
     const newMode = this.state.config.getCurrentMode(entity.state, this.agent);
 
@@ -154,7 +154,7 @@ class RvcRunModeServerBase extends Base {
    * surfacing the silent paths that would otherwise be invisible.
    */
   private logShortCircuitOnce(reason: string, message: string) {
-    const s = getSession(this.agent);
+    const s = getSession(this.endpoint);
     if (s.loggedShortCircuits.has(reason)) return;
     s.loggedShortCircuits.add(reason);
     logger.info(message);
@@ -166,7 +166,7 @@ class RvcRunModeServerBase extends Base {
    */
   private updateCurrentRoomFromSensor() {
     try {
-      const s = getSession(this.agent);
+      const s = getSession(this.endpoint);
       const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
       const currentRoomEntityId =
         homeAssistant.state.mapping?.currentRoomEntity;
@@ -313,7 +313,7 @@ class RvcRunModeServerBase extends Base {
     serviceArea: InstanceType<typeof ServiceAreaBehavior>,
     areaId: number | null,
   ) {
-    const s = getSession(this.agent);
+    const s = getSession(this.endpoint);
     if (s.activeAreas.length === 0) return;
 
     const state = serviceArea.state as typeof serviceArea.state & {
@@ -363,7 +363,7 @@ class RvcRunModeServerBase extends Base {
   override changeToMode(
     request: ModeBase.ChangeToModeRequest,
   ): ModeBase.ChangeToModeResponse {
-    const s = getSession(this.agent);
+    const s = getSession(this.endpoint);
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const { newMode } = request;
 
