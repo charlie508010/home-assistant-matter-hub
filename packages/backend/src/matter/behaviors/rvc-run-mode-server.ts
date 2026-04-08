@@ -43,24 +43,53 @@ export function isRoomMode(mode: number): boolean {
   return mode >= ROOM_MODE_BASE;
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: Biome thinks this is unused, but it's used by the function below
-class RvcRunModeServerBase extends Base {
-  declare state: RvcRunModeServerBase.State;
-
+/**
+ * Per-endpoint cleaning session state.
+ *
+ * Stored in a module-level WeakMap keyed by Agent (stable per endpoint)
+ * instead of as private instance properties on the behavior class.
+ *
+ * matter.js behavior methods run on transient proxy instances — private
+ * fields reset to their initial value on every invocation.  A WeakMap
+ * keyed by the stable Agent identity survives across calls and is
+ * automatically cleaned up when the endpoint is garbage-collected.
+ */
+interface CleaningSession {
   /** Areas that the vacuum has already finished cleaning in this session */
-  private completedAreas = new Set<number>();
+  completedAreas: Set<number>;
   /** Last known currentArea — used to detect room transitions */
-  private lastCurrentArea: number | null = null;
+  lastCurrentArea: number | null;
   /** Snapshot of selectedAreas taken when cleaning starts.
    *  The start handler clears serviceArea.state.selectedAreas after
    *  dispatching the HA action to prevent re-dispatch, but progress
    *  tracking needs the original list for the entire cleaning session. */
-  private activeAreas: number[] = [];
+  activeAreas: number[];
   /** Diagnostic short-circuit reasons already logged this session.
    *  updateCurrentRoomFromSensor() is called on every HA state event;
    *  without this guard a failing path would flood the log. Cleared
    *  when the vacuum returns to Idle. */
-  private loggedShortCircuits = new Set<string>();
+  loggedShortCircuits: Set<string>;
+}
+
+const cleaningSessions = new WeakMap<object, CleaningSession>();
+
+function getSession(agent: object): CleaningSession {
+  let session = cleaningSessions.get(agent);
+  if (!session) {
+    session = {
+      completedAreas: new Set(),
+      lastCurrentArea: null,
+      activeAreas: [],
+      loggedShortCircuits: new Set(),
+    };
+    cleaningSessions.set(agent, session);
+  }
+  return session;
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: Biome thinks this is unused, but it's used by the function below
+class RvcRunModeServerBase extends Base {
+  declare state: RvcRunModeServerBase.State;
 
   override async initialize() {
     // supportedModes and currentMode are set via .set() BEFORE initialize is called
@@ -75,6 +104,7 @@ class RvcRunModeServerBase extends Base {
     if (!entity.state || !entity.state.attributes) {
       return;
     }
+    const s = getSession(this.agent);
     const previousMode = this.state.currentMode;
     const newMode = this.state.config.getCurrentMode(entity.state, this.agent);
 
@@ -98,15 +128,15 @@ class RvcRunModeServerBase extends Base {
         // Cleaning restore below needs activeAreas to recover.
         // activeAreas is overwritten on the next changeToMode call.
         this.trySetCurrentArea(null);
-        this.completedAreas.clear();
-        this.lastCurrentArea = null;
-        this.loggedShortCircuits.clear();
+        s.completedAreas.clear();
+        s.lastCurrentArea = null;
+        s.loggedShortCircuits.clear();
       } else if (newMode === RvcSupportedRunMode.Cleaning) {
         // Restore currentArea when HA reports cleaning (e.g. after a brief
         // docked state between command dispatch and vacuum actually starting,
         // or when the vacuum transitions between rooms via a non-cleaning state)
-        if (this.activeAreas.length > 0 && this.lastCurrentArea === null) {
-          this.trySetCurrentArea(this.activeAreas[0]);
+        if (s.activeAreas.length > 0 && s.lastCurrentArea === null) {
+          this.trySetCurrentArea(s.activeAreas[0]);
         }
       }
     }
@@ -124,8 +154,9 @@ class RvcRunModeServerBase extends Base {
    * surfacing the silent paths that would otherwise be invisible.
    */
   private logShortCircuitOnce(reason: string, message: string) {
-    if (this.loggedShortCircuits.has(reason)) return;
-    this.loggedShortCircuits.add(reason);
+    const s = getSession(this.agent);
+    if (s.loggedShortCircuits.has(reason)) return;
+    s.loggedShortCircuits.add(reason);
     logger.info(message);
   }
 
@@ -135,6 +166,7 @@ class RvcRunModeServerBase extends Base {
    */
   private updateCurrentRoomFromSensor() {
     try {
+      const s = getSession(this.agent);
       const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
       const currentRoomEntityId =
         homeAssistant.state.mapping?.currentRoomEntity;
@@ -157,7 +189,7 @@ class RvcRunModeServerBase extends Base {
         return;
       }
 
-      if (this.activeAreas.length === 0) {
+      if (s.activeAreas.length === 0) {
         this.logShortCircuitOnce(
           "no-active-areas",
           `currentRoom sensor: activeAreas empty while cleaning — ` +
@@ -182,7 +214,7 @@ class RvcRunModeServerBase extends Base {
       // Strategy 1: Direct segmentId → activeAreas match.
       // Works when areaId === room_id (e.g. Dreame floor 0).
       if (segmentId != null) {
-        if (this.activeAreas.includes(segmentId)) {
+        if (s.activeAreas.includes(segmentId)) {
           matchedAreaId = segmentId;
         }
       }
@@ -197,7 +229,7 @@ class RvcRunModeServerBase extends Base {
           // areaId % 10000 recovers the original per-floor room_id
           // for Dreame multi-floor; for single-floor, areaId === room_id.
           if (
-            this.activeAreas.includes(area.areaId) &&
+            s.activeAreas.includes(area.areaId) &&
             area.areaId % 10000 === segmentId
           ) {
             matchedAreaId = area.areaId;
@@ -213,7 +245,7 @@ class RvcRunModeServerBase extends Base {
             a.areaInfo.locationInfo?.locationName?.toLowerCase() ===
             roomName.toLowerCase(),
         );
-        if (area && this.activeAreas.includes(area.areaId)) {
+        if (area && s.activeAreas.includes(area.areaId)) {
           matchedAreaId = area.areaId;
         }
       }
@@ -221,22 +253,22 @@ class RvcRunModeServerBase extends Base {
       if (matchedAreaId === null) {
         logger.info(
           `currentRoom sensor: no match for "${roomName}" (segmentId=${segmentId}), ` +
-            `activeAreas=[${this.activeAreas.join(", ")}], ` +
+            `activeAreas=[${s.activeAreas.join(", ")}], ` +
             `supportedAreas=[${serviceArea.state.supportedAreas.map((a) => `${a.areaId}:${a.areaInfo.locationInfo?.locationName}`).join(", ")}]`,
         );
         return;
       }
-      if (matchedAreaId === this.lastCurrentArea) return;
+      if (matchedAreaId === s.lastCurrentArea) return;
 
       // Room transition detected — mark previous area as completed
-      if (this.lastCurrentArea !== null) {
-        this.completedAreas.add(this.lastCurrentArea);
+      if (s.lastCurrentArea !== null) {
+        s.completedAreas.add(s.lastCurrentArea);
       }
-      this.lastCurrentArea = matchedAreaId;
+      s.lastCurrentArea = matchedAreaId;
 
       logger.info(
         `currentRoom sensor: transition to area ${matchedAreaId} ("${roomName}"), ` +
-          `completed: [${[...this.completedAreas].join(", ")}]`,
+          `completed: [${[...s.completedAreas].join(", ")}]`,
       );
 
       this.trySetCurrentArea(matchedAreaId);
@@ -281,7 +313,8 @@ class RvcRunModeServerBase extends Base {
     serviceArea: InstanceType<typeof ServiceAreaBehavior>,
     areaId: number | null,
   ) {
-    if (this.activeAreas.length === 0) return;
+    const s = getSession(this.agent);
+    if (s.activeAreas.length === 0) return;
 
     const state = serviceArea.state as typeof serviceArea.state & {
       progress?: ServiceArea.Progress[];
@@ -289,19 +322,19 @@ class RvcRunModeServerBase extends Base {
 
     if (areaId === null) {
       // Cleaning finished — mark all active areas as Completed
-      state.progress = this.activeAreas.map((id) => ({
+      state.progress = s.activeAreas.map((id) => ({
         areaId: id,
         status: ServiceArea.OperationalStatus.Completed,
       }));
     } else {
       // Mark current area as Operating, completed areas as Completed,
       // remaining areas as Pending.
-      state.progress = this.activeAreas.map((id) => ({
+      state.progress = s.activeAreas.map((id) => ({
         areaId: id,
         status:
           id === areaId
             ? ServiceArea.OperationalStatus.Operating
-            : this.completedAreas.has(id)
+            : s.completedAreas.has(id)
               ? ServiceArea.OperationalStatus.Completed
               : ServiceArea.OperationalStatus.Pending,
       }));
@@ -330,6 +363,7 @@ class RvcRunModeServerBase extends Base {
   override changeToMode(
     request: ModeBase.ChangeToModeRequest,
   ): ModeBase.ChangeToModeResponse {
+    const s = getSession(this.agent);
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const { newMode } = request;
 
@@ -352,8 +386,8 @@ class RvcRunModeServerBase extends Base {
         const serviceArea = this.agent.get(ServiceAreaBehavior);
         if (serviceArea.state.selectedAreas?.length > 0) {
           // Snapshot selected areas before the start handler clears them
-          this.activeAreas = [...serviceArea.state.selectedAreas];
-          this.trySetCurrentArea(this.activeAreas[0]);
+          s.activeAreas = [...serviceArea.state.selectedAreas];
+          this.trySetCurrentArea(s.activeAreas[0]);
           homeAssistant.callAction(this.state.config.start(void 0, this.agent));
           this.state.currentMode = newMode;
           return {
@@ -367,7 +401,7 @@ class RvcRunModeServerBase extends Base {
 
       if (this.state.config.cleanRoom) {
         const areaId = this.findAreaIdForMode(newMode);
-        this.activeAreas = areaId !== null ? [areaId] : [];
+        s.activeAreas = areaId !== null ? [areaId] : [];
         this.trySetCurrentArea(areaId);
         homeAssistant.callAction(
           this.state.config.cleanRoom(newMode, this.agent),
@@ -386,8 +420,8 @@ class RvcRunModeServerBase extends Base {
         try {
           const serviceArea = this.agent.get(ServiceAreaBehavior);
           if (serviceArea.state.selectedAreas?.length > 0) {
-            this.activeAreas = [...serviceArea.state.selectedAreas];
-            this.trySetCurrentArea(this.activeAreas[0]);
+            s.activeAreas = [...serviceArea.state.selectedAreas];
+            this.trySetCurrentArea(s.activeAreas[0]);
           }
         } catch {
           // ServiceArea not available
@@ -398,9 +432,9 @@ class RvcRunModeServerBase extends Base {
       case RvcSupportedRunMode.Idle:
         // Explicit user command to stop — clear session state
         this.trySetCurrentArea(null);
-        this.completedAreas.clear();
-        this.lastCurrentArea = null;
-        this.activeAreas = [];
+        s.completedAreas.clear();
+        s.lastCurrentArea = null;
+        s.activeAreas = [];
         homeAssistant.callAction(
           this.state.config.returnToBase(void 0, this.agent),
         );
