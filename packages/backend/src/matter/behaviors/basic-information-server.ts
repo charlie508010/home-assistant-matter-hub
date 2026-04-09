@@ -46,10 +46,9 @@ export class BasicInformationServer extends Base {
         ellipse(32, entity.entity_id),
       reachable:
         entity.state?.state != null && entity.state.state !== "unavailable",
-      // The device serial number is available in `device?.serial_number`, but
-      // we're keeping it as the entity ID for now to avoid breaking existing
-      // deployments.
-      serialNumber: hash(32, entity.entity_id),
+      serialNumber:
+        ellipse(32, mapping?.customSerialNumber) ??
+        hash(32, entity.entity_id),
       // UniqueId helps controllers (especially Alexa) identify devices across
       // multiple fabric connections. Using MD5 hash of entity_id for stability.
       uniqueId: crypto

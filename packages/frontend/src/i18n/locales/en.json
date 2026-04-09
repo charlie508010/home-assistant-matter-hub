@@ -328,6 +328,8 @@
     "customProductNameHelp": "Override the product name (model) reported to Matter controllers. Some controllers (e.g. Aqara) display this as the device name.",
     "customVendorName": "Custom Vendor Name",
     "customVendorNameHelp": "Override the vendor/manufacturer name reported to Matter controllers.",
+    "customSerialNumber": "Custom Serial Number",
+    "customSerialNumberHelp": "Override the serial number reported to Matter controllers.",
     "loadFailed": "Failed to load entity mappings",
     "noMappings": "No custom entity mappings configured. Use mappings to override Matter device types, set custom names, or disable specific entities.",
     "applying": "Applying...",

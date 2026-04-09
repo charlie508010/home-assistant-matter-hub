@@ -109,6 +109,7 @@ export class EntityMappingStorage extends Service {
       customName: request.customName?.trim() || undefined,
       customProductName: request.customProductName?.trim() || undefined,
       customVendorName: request.customVendorName?.trim() || undefined,
+      customSerialNumber: request.customSerialNumber?.trim() || undefined,
       disabled: request.disabled,
       filterLifeEntity: request.filterLifeEntity?.trim() || undefined,
       cleaningModeEntity: request.cleaningModeEntity?.trim() || undefined,
@@ -144,6 +145,7 @@ export class EntityMappingStorage extends Service {
       !config.customName &&
       !config.customProductName &&
       !config.customVendorName &&
+      !config.customSerialNumber &&
       config.disabled !== true &&
       !config.filterLifeEntity &&
       !config.cleaningModeEntity &&

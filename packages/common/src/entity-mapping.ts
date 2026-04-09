@@ -67,6 +67,11 @@ export interface EntityMappingConfig {
    * When set, this takes priority over the HA device registry manufacturer.
    */
   readonly customVendorName?: string;
+  /**
+   * Optional: Override the serialNumber reported to Matter controllers.
+   * When set, this takes priority over the default entity-ID-based hash.
+   */
+  readonly customSerialNumber?: string;
   readonly disabled?: boolean;
   /**
    * Optional: Array of additional entities to compose into this device.
@@ -218,6 +223,7 @@ export interface EntityMappingRequest {
   readonly customName?: string;
   readonly customProductName?: string;
   readonly customVendorName?: string;
+  readonly customSerialNumber?: string;
   readonly disabled?: boolean;
   readonly filterLifeEntity?: string;
   readonly cleaningModeEntity?: string;

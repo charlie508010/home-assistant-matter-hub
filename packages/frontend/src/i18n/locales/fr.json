@@ -281,7 +281,9 @@
     "customProductName": "Custom Product Name",
     "customProductNameHelp": "Override the product name (model) reported to Matter controllers. Some controllers (e.g. Aqara) display this as the device name.",
     "customVendorName": "Custom Vendor Name",
-    "customVendorNameHelp": "Override the vendor/manufacturer name reported to Matter controllers."
+    "customVendorNameHelp": "Override the vendor/manufacturer name reported to Matter controllers.",
+    "customSerialNumber": "Custom Serial Number",
+    "customSerialNumberHelp": "Override the serial number reported to Matter controllers."
   },
   "languageSwitcher": {
     "disclaimer": "Les traductions peuvent être incomplètes.",

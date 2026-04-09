@@ -62,6 +62,7 @@ export function EntityMappingDialog({
   const [customName, setCustomName] = useState("");
   const [customProductName, setCustomProductName] = useState("");
   const [customVendorName, setCustomVendorName] = useState("");
+  const [customSerialNumber, setCustomSerialNumber] = useState("");
   const [disabled, setDisabled] = useState(false);
   const [filterLifeEntity, setFilterLifeEntity] = useState("");
   const [cleaningModeEntity, setCleaningModeEntity] = useState("");
@@ -112,6 +113,7 @@ export function EntityMappingDialog({
       setCustomName(currentMapping?.customName || "");
       setCustomProductName(currentMapping?.customProductName || "");
       setCustomVendorName(currentMapping?.customVendorName || "");
+      setCustomSerialNumber(currentMapping?.customSerialNumber || "");
       setDisabled(currentMapping?.disabled || false);
       setFilterLifeEntity(currentMapping?.filterLifeEntity || "");
       setCleaningModeEntity(currentMapping?.cleaningModeEntity || "");
@@ -190,6 +192,7 @@ export function EntityMappingDialog({
       customName: customName.trim() || undefined,
       customProductName: customProductName.trim() || undefined,
       customVendorName: customVendorName.trim() || undefined,
+      customSerialNumber: customSerialNumber.trim() || undefined,
       disabled,
       filterLifeEntity: filterLifeEntity.trim() || undefined,
       cleaningModeEntity: cleaningModeEntity.trim() || undefined,
@@ -225,6 +228,7 @@ export function EntityMappingDialog({
     customName,
     customProductName,
     customVendorName,
+    customSerialNumber,
     disabled,
     filterLifeEntity,
     cleaningModeEntity,
@@ -374,6 +378,15 @@ export function EntityMappingDialog({
           value={customVendorName}
           onChange={(e) => setCustomVendorName(e.target.value)}
           helperText={t("mapping.customVendorNameHelp")}
+        />
+
+        <TextField
+          fullWidth
+          margin="normal"
+          label={t("mapping.customSerialNumber")}
+          value={customSerialNumber}
+          onChange={(e) => setCustomSerialNumber(e.target.value)}
+          helperText={t("mapping.customSerialNumberHelp")}
         />
 
         {showFilterLifeField && (
