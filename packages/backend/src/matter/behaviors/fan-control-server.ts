@@ -73,6 +73,7 @@ export class FanControlServerBase extends FeaturedBase {
   // Track last non-zero fan speed for restore on turn-on (#225)
   private lastNonZeroPercent = 0;
   private lastNonZeroSpeed = 0;
+  private lastIsAutoMode = false;
 
   override async initialize() {
     // Matter.js defaults: speedMax=0, percentSetting=null, percentCurrent=0
@@ -224,6 +225,7 @@ export class FanControlServerBase extends FeaturedBase {
     if (percentage > 0) {
       this.lastNonZeroPercent = percentage;
       this.lastNonZeroSpeed = speed;
+      this.lastIsAutoMode = config.isInAutoMode(entity.state, this.agent);
     }
 
     try {
@@ -313,6 +315,13 @@ export class FanControlServerBase extends FeaturedBase {
       return;
     }
     if (speed == null) {
+      return;
+    }
+    // When a controller writes percentSetting, matter.js auto-derives
+    // speedSetting. If the derivation floors to 0 while percentSetting is
+    // still non-zero, skip — the percentSetting handler already applied the
+    // correct rounded action (#275).
+    if (speed === 0 && (this.state.percentSetting ?? 0) > 0) {
       return;
     }
     this.agent.asLocalActor(() => {
@@ -524,6 +533,20 @@ export class FanControlServerBase extends FeaturedBase {
           // Transaction conflict — HA state update will set correct values
         }
       });
+      // Also tell HA to turn on at the remembered speed so the fan doesn't
+      // fall back to 100% when a plain OnOff.on() is used (#275).
+      const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+      if (homeAssistant.isAvailable) {
+        if (this.lastIsAutoMode) {
+          homeAssistant.callAction(
+            this.state.config.setAutoMode(void 0, this.agent),
+          );
+        } else {
+          homeAssistant.callAction(
+            this.state.config.turnOn(this.lastNonZeroPercent, this.agent),
+          );
+        }
+      }
     }
   }
 
