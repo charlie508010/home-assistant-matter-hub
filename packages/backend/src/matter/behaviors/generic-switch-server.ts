@@ -8,6 +8,7 @@ const logger = Logger.get("GenericSwitchServer");
 const FeaturedBase = Base.with(
   "MomentarySwitch",
   "MomentarySwitchRelease",
+  "MomentarySwitchLongPress",
   "MomentarySwitchMultiPress",
 );
 
@@ -45,34 +46,58 @@ class GenericSwitchServerBase extends FeaturedBase {
   }
 
   private triggerPress(eventType: string) {
-    // Determine number of presses from event type
-    const pressCount = this.getPressCount(eventType);
+    const lower = eventType.toLowerCase();
 
-    // 1. Initial press
+    // Long press start (e.g. press_long, long_press)
+    if (this.isLongPress(lower)) {
+      this.state.currentPosition = 1;
+      this.events.initialPress?.emit({ newPosition: 1 }, this.context);
+      this.events.longPress?.emit({ newPosition: 1 }, this.context);
+      this.fireBridgeEvent(eventType, 1);
+      return;
+    }
+
+    // Long press release (e.g. press_long_release, long_release)
+    if (this.isLongRelease(lower)) {
+      this.events.longRelease?.emit({ previousPosition: 1 }, this.context);
+      this.state.currentPosition = 0;
+      this.fireBridgeEvent(eventType, 1);
+      return;
+    }
+
+    // Continuous hold (e.g. press_cont) — ignore, longPress already sent
+    if (lower.includes("cont") && lower.includes("press")) {
+      return;
+    }
+
+    // Standard momentary press (short press, single press, multi-press)
+    const pressCount = this.getPressCount(lower);
+
     this.state.currentPosition = 1;
     this.events.initialPress?.emit({ newPosition: 1 }, this.context);
 
-    if (pressCount > 1) {
-      // Multi-press: emit multiPressComplete with totalNumberOfPressesCounted
-      this.events.multiPressComplete?.emit(
-        {
-          previousPosition: 0,
-          totalNumberOfPressesCounted: pressCount,
-        },
-        this.context,
-      );
-    }
-
-    // Release after a short delay
+    // Spec requires shortRelease before multiPressComplete
     setTimeout(
       this.callback(() => {
         this.events.shortRelease?.emit({ previousPosition: 1 }, this.context);
         this.state.currentPosition = 0;
+
+        // MSM requires multiPressComplete for ALL presses, including single
+        this.events.multiPressComplete?.emit(
+          {
+            previousPosition: 0,
+            totalNumberOfPressesCounted: pressCount,
+          },
+          this.context,
+        );
       }),
       100,
     );
 
-    // Bridge the Matter event back to HA as a fired event
+    this.fireBridgeEvent(eventType, pressCount);
+  }
+
+  private fireBridgeEvent(eventType: string, pressCount: number) {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     homeAssistant.fireEvent("hamh_action", {
       action: "press",
@@ -82,10 +107,17 @@ class GenericSwitchServerBase extends FeaturedBase {
     });
   }
 
-  private getPressCount(eventType: string): number {
-    const lower = eventType.toLowerCase();
+  private isLongPress(lower: string): boolean {
+    return (
+      (lower.includes("long") && !lower.includes("release")) || lower === "hold"
+    );
+  }
 
-    // Common multi-press patterns
+  private isLongRelease(lower: string): boolean {
+    return lower.includes("long") && lower.includes("release");
+  }
+
+  private getPressCount(lower: string): number {
     if (
       lower.includes("triple") ||
       lower.includes("3_press") ||
@@ -101,8 +133,6 @@ class GenericSwitchServerBase extends FeaturedBase {
     ) {
       return 2;
     }
-
-    // Single press (default)
     return 1;
   }
 }
