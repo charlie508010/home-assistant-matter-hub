@@ -1,4 +1,4 @@
-import { pbkdf2Sync, randomBytes } from "node:crypto";
+import { pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
 import type {
   LockCredential,
   LockCredentialLegacy,
@@ -113,8 +113,15 @@ export class LockCredentialStorage extends Service {
     if (!credential?.enabled) {
       return false;
     }
-    const hash = this.hashPin(pin, credential.pinCodeSalt);
-    return hash === credential.pinCodeHash;
+    const computed = Buffer.from(
+      this.hashPin(pin, credential.pinCodeSalt),
+      "hex",
+    );
+    const expected = Buffer.from(credential.pinCodeHash, "hex");
+    if (computed.length !== expected.length) {
+      return false;
+    }
+    return timingSafeEqual(computed, expected);
   }
 
   /**
