@@ -25,6 +25,7 @@ const BUILT_IN_LANGUAGES: LanguageOption[] = [
   { code: "es", flag: "🇪🇸", name: "Español" },
   { code: "it", flag: "🇮🇹", name: "Italiano" },
   { code: "zh", flag: "🇨🇳", name: "中文" },
+  { code: "zh-TW", flag: "🇹🇼", name: "繁體中文" },
   { code: "th", flag: "🇹🇭", name: "ไทย" },
   { code: "sv", flag: "🇸🇪", name: "Svenska" },
   { code: "tr", flag: "🇹🇷", name: "Türkçe" },
@@ -57,7 +58,10 @@ export function FloatingLanguageSwitcher() {
     [],
   );
 
-  const currentLang = i18n.language?.split("-")[0] ?? "en";
+  const rawLang = i18n.language ?? "en";
+  const currentLang = languages.some((l) => l.code === rawLang)
+    ? rawLang
+    : (rawLang.split("-")[0] ?? "en");
 
   const handleToggle = useCallback(() => {
     setOpen((prev) => !prev);

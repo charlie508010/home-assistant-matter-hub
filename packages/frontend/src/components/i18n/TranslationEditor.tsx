@@ -133,6 +133,7 @@ const BUILT_IN_LANGUAGES = [
   { code: "es", name: "Español" },
   { code: "it", name: "Italiano" },
   { code: "zh", name: "中文" },
+  { code: "zh-TW", name: "繁體中文" },
   { code: "th", name: "ไทย" },
   { code: "sv", name: "Svenska" },
   { code: "tr", name: "Türkçe" },
@@ -141,7 +142,10 @@ const BUILT_IN_LANGUAGES = [
 
 export function TranslationEditor() {
   const { t, i18n } = useTranslation();
-  const currentLang = i18n.language?.split("-")[0] ?? "en";
+  const rawLang = i18n.language ?? "en";
+  const currentLang = BUILT_IN_LANGUAGES.some((l) => l.code === rawLang)
+    ? rawLang
+    : (rawLang.split("-")[0] ?? "en");
 
   const [editLang, setEditLang] = useState(() =>
     currentLang === "en" ? "de" : currentLang,

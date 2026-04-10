@@ -12,6 +12,7 @@ import sv from "./locales/sv.json";
 import th from "./locales/th.json";
 import tr from "./locales/tr.json";
 import zh from "./locales/zh.json";
+import zhTW from "./locales/zh-tw.json";
 
 const STORAGE_KEY = "hamh-translation-overrides";
 const CUSTOM_LANGS_KEY = "hamh-custom-languages";
@@ -99,6 +100,7 @@ i18n
       it: { translation: it },
       es: { translation: es },
       zh: { translation: zh },
+      "zh-TW": { translation: zhTW },
       th: { translation: th },
       sv: { translation: sv },
       tr: { translation: tr },
