@@ -213,16 +213,28 @@ export class WebApi extends Service {
   }
 
   private createDynamicAuthMiddleware(): express.RequestHandler {
+    const envAuth = this.props.auth;
+    const envMiddleware = envAuth
+      ? basicAuth({
+          users: { [envAuth.username]: envAuth.password },
+          challenge: true,
+          realm: "Home Assistant Matter Hub",
+        })
+      : undefined;
+    const storageMiddleware = basicAuth({
+      authorizer: (username: string, password: string) =>
+        this.settingsStorage.verifyAuth(username, password),
+      challenge: true,
+      realm: "Home Assistant Matter Hub",
+    });
     return (req, res, next) => {
-      const auth = this.props.auth ?? this.settingsStorage.auth;
-      if (!auth) {
+      if (envMiddleware) {
+        return envMiddleware(req, res, next);
+      }
+      if (!this.settingsStorage.auth) {
         return next();
       }
-      return basicAuth({
-        users: { [auth.username]: auth.password },
-        challenge: true,
-        realm: "Home Assistant Matter Hub",
-      })(req, res, next);
+      return storageMiddleware(req, res, next);
     };
   }
 
