@@ -58,7 +58,12 @@ class RvcOperationalStateServerBase extends Base {
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
 
     this.update(homeAssistant.entity);
-    this.reactTo(homeAssistant.onChange, this.update);
+    // offline: true makes the reactor run in its own LocalActorContext
+    // with a fresh transaction, instead of the parent's postCommit phase.
+    // Without this, reactor writes are buffered but never produce
+    // subscription reports (the parent transaction has already finalized),
+    // so controllers like Apple Home never see state transitions.
+    this.reactTo(homeAssistant.onChange, this.update, { offline: true });
   }
 
   private update(entity: HomeAssistantEntityInformation) {
