@@ -162,7 +162,7 @@ export const AreaBridgeSetupPage = () => {
           include: [
             {
               type: HomeAssistantMatcherType.Area,
-              value: area.name,
+              value: area.area_id,
             },
           ],
           exclude: [],
