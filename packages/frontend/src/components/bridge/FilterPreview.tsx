@@ -55,6 +55,9 @@ const domainToMatterType: Record<string, string> = {
   remote: "On/Off",
   water_heater: "Water Heater",
   input_boolean: "On/Off Plug-in Unit",
+  select: "Mode Select",
+  input_select: "Mode Select",
+  siren: "On/Off Plug-in Unit",
 };
 
 const tryParseJson = (text: string): unknown => {
