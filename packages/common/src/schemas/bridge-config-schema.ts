@@ -228,6 +228,18 @@ const featureFlagSchema: JSONSchema7 = {
       default: false,
     },
 
+    preferEntityRegistryName: {
+      title: "Prefer Entity Registry Name (HA 2026.4 workaround)",
+      description:
+        "Use the entity registry name (or original_name) as nodeLabel instead of the composed friendly_name. " +
+        "Since Home Assistant 2026.4, friendly_name is prefixed with the device name, which breaks voice " +
+        "commands that relied on the short entity name. " +
+        "Resolution order: customName → registry name → registry original_name → friendly_name → entity_id. " +
+        "Matter has no alias concept — this only changes which single name is reported.",
+      type: "boolean",
+      default: false,
+    },
+
     vacuumOnOff: {
       title: "Vacuum: Include OnOff Cluster (Alexa)",
       description:

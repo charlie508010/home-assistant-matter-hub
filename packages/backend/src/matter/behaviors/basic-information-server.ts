@@ -24,8 +24,12 @@ export class BasicInformationServer extends Base {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const device = entity.deviceRegistry;
     const mapping = homeAssistant.state.mapping;
+    const registryName = featureFlags?.preferEntityRegistryName
+      ? (entity.registry?.name ?? entity.registry?.original_name)
+      : undefined;
     const nodeLabel =
       ellipse(32, homeAssistant.state.customName) ??
+      ellipse(32, registryName) ??
       ellipse(32, entity.state?.attributes?.friendly_name) ??
       ellipse(32, entity.entity_id);
     const productNameFromNodeLabel =

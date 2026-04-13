@@ -59,6 +59,18 @@ interface AllBridgeFeatureFlags {
    */
   readonly productNameFromNodeLabel: boolean;
   /**
+   * Prefer Entity Registry Name: Use the entity registry name (or original_name)
+   * as nodeLabel instead of the composed friendly_name. Since Home Assistant
+   * 2026.4, friendly_name is prefixed with the device name, which breaks voice
+   * commands that relied on the short entity name. With this flag enabled,
+   * nodeLabel resolves as customName → registry.name → registry.original_name →
+   * friendly_name → entity_id. A per-entity customName still takes precedence.
+   * Matter has no alias concept, so multiple names per endpoint cannot be
+   * exposed — this only controls which single name is reported.
+   * Default: false (disabled)
+   */
+  readonly preferEntityRegistryName: boolean;
+  /**
    * Vacuum OnOff Cluster: Add an OnOff cluster to robot vacuum endpoints.
    * Amazon Alexa REQUIRES PowerController (mapped from OnOff) for robotic vacuums.
    * Without it, the vacuum commissions but never appears in the Alexa app.
