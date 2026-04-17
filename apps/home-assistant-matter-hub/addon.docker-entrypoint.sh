@@ -49,6 +49,7 @@ fi
 
 bashio::log.info "Memory: total=${total_mem_mb:-?}MB, available=${avail_mem_mb:-?}MB, cgroup=${cgroup_limit_mb:-none}MB → using ${mem_source} (${effective_mem}MB) → heap: ${heap_size}MB"
 export NODE_OPTIONS="--max-old-space-size=${heap_size}"
+export APP_VERSION="${APP_VERSION:-$(bashio::addon.version)}"
 
 exec home-assistant-matter-hub start \
   --log-level=$(bashio::config 'app_log_level') \
