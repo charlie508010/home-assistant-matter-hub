@@ -49,6 +49,11 @@ export class ServerModeServerNode extends ServerNode {
         serialNumber: `server-${bridgeData.id}`.substring(0, 32),
         hardwareVersion: bridgeData.basicInformation.hardwareVersion,
         softwareVersion: bridgeData.basicInformation.softwareVersion,
+        hardwareVersionString:
+          bridgeData.basicInformation.hardwareVersionString,
+        softwareVersionString:
+          bridgeData.basicInformation.softwareVersionString ??
+          String(bridgeData.basicInformation.softwareVersion),
         ...(bridgeData.countryCode ? { location: bridgeData.countryCode } : {}),
       },
       subscriptions: {

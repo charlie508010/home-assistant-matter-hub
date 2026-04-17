@@ -108,6 +108,7 @@ export class Options {
         productLabel: "Home Assistant Matter Hub",
         hardwareVersion: new Date().getFullYear(),
         softwareVersion: new Date().getFullYear(),
+        softwareVersionString: resolveAppVersion(),
       },
     };
   }

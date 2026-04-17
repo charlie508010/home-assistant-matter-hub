@@ -142,6 +142,8 @@ export interface BridgeBasicInformation {
   productLabel: string;
   hardwareVersion: number;
   softwareVersion: number;
+  hardwareVersionString?: string;
+  softwareVersionString?: string;
 }
 
 export interface BridgeData extends BridgeConfig {

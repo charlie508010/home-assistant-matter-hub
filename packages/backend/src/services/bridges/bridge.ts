@@ -2,11 +2,11 @@ import {
   BridgeStatus,
   type UpdateBridgeRequest,
 } from "@home-assistant-matter-hub/common";
-import type { Environment, Logger } from "@matter/general";
+import type { Environment } from "@matter/general";
 import type { Endpoint } from "@matter/main";
 import { CommissioningServer } from "@matter/main/node";
 import { DeviceAdvertiser, SessionManager } from "@matter/main/protocol";
-import type { LoggerService } from "../../core/app/logger.js";
+import type { BetterLogger, LoggerService } from "../../core/app/logger.js";
 import { BridgeServerNode } from "../../matter/endpoints/bridge-server-node.js";
 import { ensureCommissioningConfig } from "../../utils/ensure-commissioning-config.js";
 import { logMemoryUsage } from "../../utils/log-memory.js";
@@ -30,7 +30,7 @@ const AUTO_FORCE_SYNC_INTERVAL_MS = 90_000;
 const DEAD_SESSION_TIMEOUT_MS = 60_000;
 
 export class Bridge {
-  private readonly log: Logger;
+  private readonly log: BetterLogger;
   readonly server: BridgeServerNode;
 
   private status: BridgeServerStatus = {
@@ -184,6 +184,16 @@ export class Bridge {
       this.dataProvider,
       this.endpointManager.root,
     );
+    const { basicInformation } = this.dataProvider;
+    this.log.debugCtx("Root bridge BasicInformation configured", {
+      vendorName: basicInformation.vendorName,
+      productName: basicInformation.productName,
+      productLabel: basicInformation.productLabel,
+      hardwareVersion: basicInformation.hardwareVersion,
+      hardwareVersionString: basicInformation.hardwareVersionString,
+      softwareVersion: basicInformation.softwareVersion,
+      softwareVersionString: basicInformation.softwareVersionString,
+    });
   }
 
   async initialize(): Promise<void> {

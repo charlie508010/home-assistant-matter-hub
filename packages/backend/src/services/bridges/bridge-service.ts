@@ -41,11 +41,31 @@ export class BridgeService extends Service {
 
   protected override async initialize() {
     for (const data of this.bridgeStorage.bridges) {
-      await this.addBridge(data);
+      const normalized = this.normalizeBridgeData(data);
+      await this.bridgeStorage.add(normalized);
+      await this.addBridge(normalized);
     }
     if (this.autoRecoveryEnabled) {
       this.startAutoRecovery();
     }
+  }
+
+  private normalizeBridgeData(bridgeData: BridgeData): BridgeData {
+    const { basicInformation } = bridgeData;
+    return {
+      ...bridgeData,
+      basicInformation: {
+        ...basicInformation,
+        hardwareVersionString:
+          basicInformation.hardwareVersionString ??
+          this.props.basicInformation.hardwareVersionString ??
+          String(basicInformation.hardwareVersion),
+        softwareVersionString:
+          basicInformation.softwareVersionString ??
+          this.props.basicInformation.softwareVersionString ??
+          String(basicInformation.softwareVersion),
+      },
+    };
   }
 
   private startAutoRecovery() {
