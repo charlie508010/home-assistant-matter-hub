@@ -251,6 +251,18 @@ const featureFlagSchema: JSONSchema7 = {
         "Enabling this may break Apple Home (shows 'Updating') and Google Home.",
       type: "boolean",
     },
+
+    alexaPreserveBrightnessOnTurnOn: {
+      title: "Alexa: Preserve Brightness on Turn-On",
+      description:
+        "Workaround for Alexa resetting light brightness to 100% after subscription renewal. " +
+        "When enabled, the bridge ignores brightness commands that set lights to 100% within " +
+        "200ms of a turn-on command for the same light. " +
+        "WARNING: breaks Apple Home's 'set room to 100%' Siri commands, which use the same " +
+        "on() + moveToLevel(254) pattern. Only enable on Alexa-only bridges.",
+      type: "boolean",
+      default: false,
+    },
   },
 };
 

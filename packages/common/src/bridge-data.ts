@@ -85,6 +85,18 @@ interface AllBridgeFeatureFlags {
    * default-to-true logic in isServerModeVacuumOnOffEnabled().
    */
   readonly vacuumOnOff: boolean;
+  /**
+   * Alexa Preserve Brightness on Turn-On: workaround for Alexa resetting
+   * light brightness to 100% after subscription renewal by emitting
+   * on() followed by moveToLevel(254) within ~50ms (#142).
+   * When enabled, the bridge ignores moveToLevel commands at maxLevel
+   * that arrive within 200ms of a turn-on for the same entity.
+   * WARNING: breaks Apple Home's room-level "set to 100%" Siri commands,
+   * which use the same on() + moveToLevel(254) pattern (#306).
+   * Only enable on Alexa-only bridges.
+   * Default: false (disabled).
+   */
+  readonly alexaPreserveBrightnessOnTurnOn: boolean;
 }
 
 export type BridgeFeatureFlags = Partial<AllBridgeFeatureFlags>;

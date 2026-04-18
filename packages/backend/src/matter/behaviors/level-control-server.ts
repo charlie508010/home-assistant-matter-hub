@@ -2,6 +2,7 @@ import type { HomeAssistantEntityInformation } from "@home-assistant-matter-hub/
 import { Logger } from "@matter/general";
 import { LevelControlServer as Base } from "@matter/main/behaviors";
 import type { LevelControl } from "@matter/main/clusters/level-control";
+import { BridgeDataProvider } from "../../services/bridges/bridge-data-provider.js";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import type { FeatureSelection } from "../../utils/feature-selection.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
@@ -164,20 +165,22 @@ export class LevelControlServerBase extends FeaturedBase {
     const levelRange = this.maxLevel - this.minLevel;
     const levelPercent = (level - this.minLevel) / levelRange;
 
-    // Alexa workaround: After subscription renewal, Alexa sends on() followed by
-    // moveToLevel(254) within ~50ms, resetting brightness to 100%. Ignore max
-    // brightness commands that come shortly after turn-on. This is always active
-    // because the 200ms window is too short for intentional human interaction.
-    const lastTurnOn = lastTurnOnTimestamps.get(entityId);
-    const timeSinceTurnOn = lastTurnOn ? Date.now() - lastTurnOn : Infinity;
-    const isMaxBrightness = level >= this.maxLevel;
-
-    if (isMaxBrightness && timeSinceTurnOn < 200) {
-      logger.debug(
-        `[${entityId}] Ignoring moveToLevel(${level}) - Alexa brightness reset detected ` +
-          `(${timeSinceTurnOn}ms after turn-on)`,
-      );
-      return;
+    // Alexa workaround (#142, opt-in): after subscription renewal Alexa sends
+    // on() followed by moveToLevel(254) within ~50ms, resetting brightness to
+    // 100%. Apple Home's room-level "set to 100%" Siri command uses the same
+    // on() + moveToLevel(254) pattern (#306), so this has to stay behind a
+    // feature flag — dropping the command by default breaks Apple Home.
+    const { featureFlags } = this.env.get(BridgeDataProvider);
+    if (featureFlags?.alexaPreserveBrightnessOnTurnOn === true) {
+      const lastTurnOn = lastTurnOnTimestamps.get(entityId);
+      const timeSinceTurnOn = lastTurnOn ? Date.now() - lastTurnOn : Infinity;
+      if (level >= this.maxLevel && timeSinceTurnOn < 200) {
+        logger.debug(
+          `[${entityId}] Ignoring moveToLevel(${level}) - Alexa brightness reset detected ` +
+            `(${timeSinceTurnOn}ms after turn-on)`,
+        );
+        return;
+      }
     }
 
     const current = config.getValuePercent(
