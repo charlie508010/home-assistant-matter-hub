@@ -35,10 +35,10 @@ interface AllBridgeFeatureFlags {
    */
   readonly autoPressureMapping: boolean;
   /**
-   * Auto Composed Devices: Master toggle that enables all auto-mapping features at once.
-   * When enabled, related entities from the same Home Assistant device are automatically
-   * combined into single Matter endpoints (battery, humidity, pressure, power, energy).
-   * This provides a cleaner device experience in Matter controllers.
+   * Auto Composed Devices: master toggle for all auto-mapping features.
+   * When enabled, related entities from the same Home Assistant device are
+   * combined into a single Matter endpoint (battery, humidity, pressure,
+   * power, energy) — one device in the controller app instead of five.
    * Default: false (disabled)
    */
   readonly autoComposedDevices: boolean;

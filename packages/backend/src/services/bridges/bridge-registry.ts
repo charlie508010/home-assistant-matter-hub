@@ -145,10 +145,10 @@ export class BridgeRegistry {
   /**
    * Check if auto composed devices mode is enabled.
    * When enabled, temperature sensors with auto-mapped humidity/pressure/battery
-   * create real Matter Composed Devices (BridgedNodeEndpoint with sub-endpoints)
-   * instead of adding extra clusters to a flat TemperatureSensor endpoint.
-   * This ensures Apple Home, Google Home, and Alexa properly display
-   * humidity and pressure readings using their correct device types.
+   * build real Matter Composed Devices (BridgedNodeEndpoint with sub-endpoints)
+   * rather than stacking extra clusters onto a flat TemperatureSensor —
+   * Apple Home, Google Home, and Alexa render each sub-endpoint using its
+   * own device type.
    */
   isAutoComposedDevicesEnabled(): boolean {
     return this.dataProvider.featureFlags?.autoComposedDevices === true;
@@ -781,8 +781,8 @@ export class BridgeRegistry {
         .some((id) => d.id === id),
     );
 
-    // Pre-calculate auto-assignments BEFORE endpoints are created
-    // This ensures entities are marked as "used" regardless of processing order
+    // Pre-calculate auto-assignments before endpoint creation so entities
+    // are marked "used" regardless of the order they're processed later.
     this.preCalculateAutoAssignments();
   }
 

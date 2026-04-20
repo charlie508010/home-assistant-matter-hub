@@ -84,12 +84,10 @@ export class LevelControlServerBase extends FeaturedBase {
     // Apple Home lights jump to 100% on every turn-on (#225).
     this.state.onLevel = null;
 
-    logger.debug(`initialize: calling super.initialize()`);
     try {
       await super.initialize();
-      logger.debug(`initialize: super.initialize() completed successfully`);
     } catch (error) {
-      logger.error(`initialize: super.initialize() FAILED:`, error);
+      logger.error("super.initialize() failed:", error);
       throw error;
     }
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);

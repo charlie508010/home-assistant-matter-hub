@@ -201,9 +201,8 @@ const featureFlagSchema: JSONSchema7 = {
     autoComposedDevices: {
       title: "Auto Composed Devices",
       description:
-        "Master toggle: automatically combine related entities from the same Home Assistant device " +
-        "into single Matter endpoints. Enables battery, humidity, pressure, power, and energy auto-mapping at once. " +
-        "This provides a cleaner device experience in Matter controllers (e.g., a Shelly Plug appears as one device with power monitoring).",
+        "Master toggle: combine related entities from the same Home Assistant device into a single Matter endpoint. " +
+        "Turns on battery, humidity, pressure, power, and energy auto-mapping at once — a Shelly Plug shows up as one device with power monitoring instead of several siblings.",
       type: "boolean",
       default: false,
     },

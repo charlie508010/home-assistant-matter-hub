@@ -362,10 +362,9 @@ export class LegacyEndpoint extends EntityEndpoint {
     }
 
     // When autoComposedDevices is enabled and this is a temperature sensor
-    // with auto-mapped humidity/pressure, create a real Matter Composed Device
-    // instead of a flat endpoint with extra clusters.
-    // This ensures Apple Home, Google Home, and Alexa properly display
-    // humidity and pressure using their correct device types.
+    // with auto-mapped humidity/pressure, build a real Matter Composed Device
+    // instead of a flat endpoint with extra clusters — Apple Home, Google
+    // Home, and Alexa then render each sub-endpoint with its own device type.
     if (registry.isAutoComposedDevicesEnabled()) {
       const attrs = state.attributes as SensorDeviceAttributes;
       if (
