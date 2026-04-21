@@ -4,13 +4,15 @@ import type {
   EntityMappingConfig,
   HomeAssistantDeviceRegistry,
 } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import type { Environment } from "@matter/main";
 import { RoboticVacuumCleanerDevice } from "@matter/main/devices";
 import { type Endpoint, ServerNode } from "@matter/main/node";
 import { DeviceTypeId, VendorId } from "@matter/main/types";
-import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { sanitizeMatterString } from "../../utils/sanitize-matter-string.js";
 import { trimToLength } from "../../utils/trim-to-length.js";
+
+const logger = Logger.get("ServerModeServerNode");
 
 /**
  * ServerModeServerNode exposes a single device directly as the root endpoint.
@@ -92,12 +94,12 @@ export class ServerModeServerNode extends ServerNode {
    * BasicInformation — not the device endpoint's BridgedDeviceBasicInformation.
    * Without this, server-mode devices show bridge defaults (e.g. "riddix" / "MatterHub").
    */
-  updateDeviceIdentity(
+  async updateDeviceIdentity(
     entityId: string,
     device: HomeAssistantDeviceRegistry | undefined,
     mapping: EntityMappingConfig | undefined,
     friendlyName: string | undefined,
-  ): void {
+  ): Promise<void> {
     const nodeLabel =
       trimToLength(mapping?.customName, 32, "...") ??
       trimToLength(friendlyName, 32, "...") ??
@@ -112,7 +114,7 @@ export class ServerModeServerNode extends ServerNode {
       rawSerial && this.serialNumberSuffix
         ? trimToLength(`${rawSerial}${this.serialNumberSuffix}`, 32, "...")
         : rawSerial;
-    applyPatchState(this.state.basicInformation, {
+    const basicInformation = dropUndefined({
       vendorName:
         trimToLength(mapping?.customVendorName, 32, "...") ??
         trimToLength(device?.manufacturer, 32, "..."),
@@ -127,10 +129,31 @@ export class ServerModeServerNode extends ServerNode {
       hardwareVersionString: trimToLength(device?.hw_version, 64, "..."),
       softwareVersionString: trimToLength(device?.sw_version, 64, "..."),
     });
+    if (Object.keys(basicInformation).length === 0) {
+      return;
+    }
+    try {
+      await this.set({ basicInformation });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      logger.warn(
+        `Failed to apply server-mode identity for ${entityId}: ${msg}`,
+      );
+    }
   }
 
   async factoryReset(): Promise<void> {
     await this.cancel();
     await this.erase();
   }
+}
+
+function dropUndefined<T extends object>(obj: T): Partial<T> {
+  const result: Partial<T> = {};
+  for (const key in obj) {
+    if (obj[key] !== undefined) {
+      result[key] = obj[key];
+    }
+  }
+  return result;
 }
