@@ -195,15 +195,16 @@ export function ClimateDevice(
     maxCoolSetpointLimit: toMatterTemp(attributes.max_temp) ?? 5000,
   };
 
-  // AutoMode only when device supports heat_cool (dual setpoint) AND has
-  // explicit heat or cool modes. Devices with only 'auto' (single-setpoint)
-  // must NOT get AutoMode — Apple Home would show Auto and expect dual
-  // setpoints, causing mode flipping. heat_cool-only zones are also excluded
-  // since they lack explicit heat/cool modes (#207).
+  // AutoMode when the device supports heat_cool (dual setpoint) or exposes
+  // HA's single-setpoint 'auto' mode, in both cases alongside explicit heat
+  // or cool. Without one of those, Apple Home drops the Auto option (#309).
+  // heat_cool-only zones stay excluded since they lack explicit heat/cool
+  // modes (#207).
   const autoMode =
     supportsHeating &&
     supportsCooling &&
-    attributes.hvac_modes.includes(ClimateHvacMode.heat_cool) &&
+    (attributes.hvac_modes.includes(ClimateHvacMode.heat_cool) ||
+      attributes.hvac_modes.includes(ClimateHvacMode.auto)) &&
     (attributes.hvac_modes.includes(ClimateHvacMode.heat) ||
       attributes.hvac_modes.includes(ClimateHvacMode.cool));
 

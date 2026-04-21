@@ -167,9 +167,12 @@ const config: ThermostatServerConfig = {
           : Thermostat.SystemMode.Heat;
       }
 
-      // Device supports heat_cool with explicit heat/cool: keep SystemMode.Auto
-      const hasHeatCool = modes.includes(ClimateHvacMode.heat_cool);
-      if (hasHeatCool) {
+      // Device exposes Matter AutoMode via heat_cool or HA auto alongside
+      // explicit heat/cool: keep SystemMode.Auto so Apple shows Auto (#309).
+      const hasMatterAuto =
+        modes.includes(ClimateHvacMode.heat_cool) ||
+        modes.includes(ClimateHvacMode.auto);
+      if (hasMatterAuto) {
         return systemMode;
       }
 
