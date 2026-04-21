@@ -1,0 +1,64 @@
+diff --git a/dist/cjs/certificate/kinds/OperationalBase.js b/dist/cjs/certificate/kinds/OperationalBase.js
+index 76e49221732642f933a1a776af45137c67dab5e2..f9e43bb3bd0d73d5f83c45b70b6ec2f04cab8717 100644
+--- a/dist/cjs/certificate/kinds/OperationalBase.js
++++ b/dist/cjs/certificate/kinds/OperationalBase.js
+@@ -40,10 +40,11 @@ class OperationalBase extends import_Certificate.Certificate {
+    */
+   generalVerify() {
+     const cert = this.cert;
+-    if (cert.serialNumber.byteLength > 20)
+-      throw new import_general.CertificateError(
+-        `Serial number must not be longer then 20 octets. Current serial number has ${cert.serialNumber.byteLength} octets.`
++    if (cert.serialNumber.byteLength > 20) {
++      logger.warn(
++        `Certificate serial number has ${cert.serialNumber.byteLength} octets, exceeds spec maximum of 20 octets.`
+       );
++    }
+     if (cert.signatureAlgorithm !== 1) {
+       throw new import_general.CertificateError(`Unsupported signature algorithm: ${cert.signatureAlgorithm}`);
+     }
+diff --git a/dist/cjs/certificate/kinds/definitions/operational.js b/dist/cjs/certificate/kinds/definitions/operational.js
+index a120669cfd13ebdaf635fc75ad9d232b95703fe7..f0482d7cb39500785832802b8d509b7aa0544e86 100644
+--- a/dist/cjs/certificate/kinds/definitions/operational.js
++++ b/dist/cjs/certificate/kinds/definitions/operational.js
+@@ -97,7 +97,7 @@ var OperationalCertificate;
+   };
+   const BaseMatterCertificate = (matterFields) => (0, import_types.TlvObjectWithMaxSize)(
+     {
+-      serialNumber: (0, import_types.TlvField)(1, import_types.TlvByteString.bound({ maxLength: 20 })),
++      serialNumber: (0, import_types.TlvField)(1, import_types.TlvByteString),
+       signatureAlgorithm: (0, import_types.TlvField)(2, import_types.TlvUInt8),
+       issuer: (0, import_types.TlvField)(
+         3,
+diff --git a/dist/esm/certificate/kinds/OperationalBase.js b/dist/esm/certificate/kinds/OperationalBase.js
+index 59ee05a68e2e26fc19d68587d1476031ac6d46b0..541cee8e40605f312a27f49e9ba5e2311eb61ec9 100644
+--- a/dist/esm/certificate/kinds/OperationalBase.js
++++ b/dist/esm/certificate/kinds/OperationalBase.js
+@@ -17,10 +17,11 @@ class OperationalBase extends Certificate {
+    */
+   generalVerify() {
+     const cert = this.cert;
+-    if (cert.serialNumber.byteLength > 20)
+-      throw new CertificateError(
+-        `Serial number must not be longer then 20 octets. Current serial number has ${cert.serialNumber.byteLength} octets.`
++    if (cert.serialNumber.byteLength > 20) {
++      logger.warn(
++        `Certificate serial number has ${cert.serialNumber.byteLength} octets, exceeds spec maximum of 20 octets.`
+       );
++    }
+     if (cert.signatureAlgorithm !== 1) {
+       throw new CertificateError(`Unsupported signature algorithm: ${cert.signatureAlgorithm}`);
+     }
+diff --git a/dist/esm/certificate/kinds/definitions/operational.js b/dist/esm/certificate/kinds/definitions/operational.js
+index 41a546f5cb99b2bcbb16f978173eff602fdbdd81..1182274d2c0781ab7332e8e50327226d94daa844 100644
+--- a/dist/esm/certificate/kinds/definitions/operational.js
++++ b/dist/esm/certificate/kinds/definitions/operational.js
+@@ -91,7 +91,7 @@ var OperationalCertificate;
+   };
+   const BaseMatterCertificate = (matterFields) => TlvObjectWithMaxSize(
+     {
+-      serialNumber: TlvField(1, TlvByteString.bound({ maxLength: 20 })),
++      serialNumber: TlvField(1, TlvByteString),
+       signatureAlgorithm: TlvField(2, TlvUInt8),
+       issuer: TlvField(
+         3,
