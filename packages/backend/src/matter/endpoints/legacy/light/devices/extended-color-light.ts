@@ -17,7 +17,11 @@ export const ExtendedColorLightType = (
 ) => {
   const features: FeatureSelection<ColorControl.Cluster> = new Set();
   if (supportsColorControl) {
+    // Xy is mandatory for device type ExtendedColorLight (0x010d) per Matter
+    // Device Library § 4.4. HueSaturation is optional but kept for controllers
+    // that prefer it (Apple Home / Alexa).
     features.add("HueSaturation");
+    features.add("Xy");
   }
   if (supportsTemperature) {
     features.add("ColorTemperature");
