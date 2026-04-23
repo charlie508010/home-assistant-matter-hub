@@ -53,7 +53,7 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 ## What's New
 
 <details>
-<summary><strong>📦 Stable (v2.0.38) - Current</strong></summary>
+<summary><strong>📦 Stable (v2.0.41) - Current</strong></summary>
 
 **New in v2.0.38:**
 
