@@ -135,6 +135,33 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 <details>
 <summary><strong>📋 Previous Versions</strong></summary>
 
+### v2.0.40
+Filter preview domain fix — `select`, `input_select`, `siren` now show as supported ([#298](https://github.com/RiDDiX/home-assistant-matter-hub/issues/298))
+
+### v2.0.39
+Node 22 WebSocket crash loop fix ([#297](https://github.com/RiDDiX/home-assistant-matter-hub/issues/297), [#299](https://github.com/RiDDiX/home-assistant-matter-hub/issues/299)), service init error surfacing, registry retry hardening, support link added
+
+### v2.0.37
+Aqara productNameFromNodeLabel flag, Matter.js 0.16.11, Swedish locale update
+
+### v2.0.35
+HA 2026.3 Clean Area Support, Valetudo Identifier Mapping, Plugin System Hardening, Registry Fingerprint Fix, Roomba Battery Fix, Contact Sensor Fix, Script Momentary Fix, Docusaurus Docs
+
+### v2.0.34
+Automatic Backup, Vacuum Battery Auto-Map, Deprecated Feature Flags Fix
+
+### v2.0.33
+Endpoint Number Preservation, Binary Sensor Battery Auto-Map
+
+### v2.0.32
+Multi-Language Support, Plugin System, New Device Types (PIR, Rain, Electrical, AQ Sensors), Cluster Diagnostics, Dashboard Enhancements, Mapping Profile Export/Import, Fan & Air Purifier Fixes, Stale Session Cleanup, KNX Cover Fix
+
+### v2.0.31
+Controller Profiles & Area Setup, Fan Speed/Preset Fix, Optimistic State Fix, Cover Target Fix, Humidity Auto-Mapping Default
+
+### v2.0.30
+Mapped Entity Propagation Fix, API Error Surfacing
+
 ### v2.0.29
 Light currentLevel Fix, Bridge Config Save Fix, Fan Device Feature Fix, Humidity Auto-Mapping Fix
 
@@ -142,28 +169,40 @@ Light currentLevel Fix, Bridge Config Save Fix, Fan Device Feature Fix, Humidity
 Device Image Support, Custom Fan Speed Mapping, TV Source Selection, Reverse Proxy Base Path, On/Off-Only Fans, Light Brightness Fix, Fan Speed Fixes, Composed Air Purifier Fix, Dreame Multi-Floor Fix, Optimistic State Updates, Frontend Improvements
 
 ### v2.0.27
-Valetudo support, Custom Service Areas, ServiceArea Maps, Vacuum Identify/Locate/Charging, Alarm Control Panel, Composed Air Purifier, Dashboard Controls, Vendor Brand Icons, Thermostat fixes
+Valetudo support, Custom Service Areas, ServiceArea Maps, Vacuum Identify/Locate/Charging, Alarm Control Panel, Composed Air Purifier, Dashboard Controls, Vendor Brand Icons, Thermostat fixes, Air Purifier oscillation/wind
 
 ### v2.0.26
-Authentication UI, Select Entity Support, Webhook Event Bridge, Cluster Diagnostics, Matter.js 0.16.10, Docker Node 22
+Authentication UI, Select entity support, Webhook event bridge, Cluster diagnostics, Matter.js 0.16.10, Docker Node 22, vacuum cleaning mode fallback, vacuum entity filter fix
 
 ### v2.0.25
-Vacuum mop intensity, vacuum auto-detection, Roborock room auto-detect, live entity mapping, dynamic heap sizing
+Vacuum mop intensity, vacuum auto-detection, Roborock room auto-detect, live entity mapping, dynamic heap sizing, multi-fabric commissioning, fan speed label fix
 
-### v2.0.17–v2.0.23
-Thermostat overhaul, Lock Unlatch, Vacuum Server Mode, Bridge Templates, Live Filter Preview, Entity Diagnostics, Multi-Bridge Bulk Operations, Power & Energy Measurement, Event domain, Network Map, Mobile UI
+### v2.0.24
+Dashboard landing page, composed devices, bridge wizard feature flags, entity autocomplete, light transitions, live diagnostics, vacuum suction level, thermostat auto-resume, vacuum docked state, memory leak fix
+
+### v2.0.19–v2.0.23
+Bridge templates, live filter preview, entity diagnostics, multi-bridge bulk operations, entity health indicators, diagnostic export, EntityLabel/DeviceLabel filters, Power & Energy Measurement, Event domain (GenericSwitch)
+
+### v2.0.17 / v2.0.18
+Room Label (FixedLabel), thermostat overhaul, lock unlatch/unbolt, binary sensor fix, auto pressure mapping, vacuum fixes, dead session recovery, network map, mobile UI, Labels & Areas page, crash resilience, memory limit
 
 ### v2.0.16
 Force Sync, Lock PIN, Cover/Blinds improvements, Roborock Rooms, Auto Entity Grouping, Water Heater, Vacuum Server Mode, OOM fix
 
+### v1.10.4
+Climate/Thermostat fixes, Cover position fix, Vacuum battery, Humidifier improvements, Entity Mapping, Alexa brightness preserve
+
 ### v1.9.0
-Custom bridge icons, Basic Video Player, Alexa deduplication, Health Check API, WebSocket, Full backup/restore
+Custom bridge icons, Basic Video Player (TV), Alexa deduplication, Auto-only thermostat, Health Check API, WebSocket, Full backup/restore
 
 ### v1.8.x
-Graceful crash handler, PM2.5/PM10 sensors, Water Valve, Smoke/CO Detector, Pressure/Flow sensors
+Graceful crash handler, PM2.5/PM10 sensors, Water Valve, Smoke/CO Detector, Pressure/Flow sensors, Air Purifier, Pump device
+
+### v1.7.x
+Dark Mode toggle, Device list sorting
 
 ### v1.5.x
-Health Monitoring, Bridge Wizard, AirQuality sensors, Fan control, Media playback
+Matter Bridge, Multi-Fabric support, Health Monitoring, Bridge Wizard, AirQuality sensors, Fan control, Media playback
 
 </details>
 

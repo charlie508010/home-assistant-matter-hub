@@ -153,6 +153,12 @@ of port forwarding etc.
 <details>
 <summary><strong>📜 Previous Stable Versions</strong> - Click to expand</summary>
 
+### v2.0.40
+Filter preview domain fix — `select`, `input_select`, `siren` now show as supported ([#298](https://github.com/RiDDiX/home-assistant-matter-hub/issues/298))
+
+### v2.0.39
+Node 22 WebSocket crash loop fix ([#297](https://github.com/RiDDiX/home-assistant-matter-hub/issues/297), [#299](https://github.com/RiDDiX/home-assistant-matter-hub/issues/299)), service init error surfacing, registry retry hardening, support link added
+
 ### v2.0.37
 Aqara productNameFromNodeLabel flag, Matter.js 0.16.11, Swedish locale update
 
