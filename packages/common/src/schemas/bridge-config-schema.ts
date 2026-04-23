@@ -201,9 +201,8 @@ const featureFlagSchema: JSONSchema7 = {
     autoComposedDevices: {
       title: "Auto Composed Devices",
       description:
-        "Master toggle: automatically combine related entities from the same Home Assistant device " +
-        "into single Matter endpoints. Enables battery, humidity, pressure, power, and energy auto-mapping at once. " +
-        "This provides a cleaner device experience in Matter controllers (e.g., a Shelly Plug appears as one device with power monitoring).",
+        "Master toggle: combine related entities from the same Home Assistant device into a single Matter endpoint. " +
+        "Turns on battery, humidity, pressure, power, and energy auto-mapping at once — a Shelly Plug shows up as one device with power monitoring instead of several siblings.",
       type: "boolean",
       default: false,
     },
@@ -228,6 +227,18 @@ const featureFlagSchema: JSONSchema7 = {
       default: false,
     },
 
+    preferEntityRegistryName: {
+      title: "Prefer Entity Registry Name (HA 2026.4 workaround)",
+      description:
+        "Use the entity registry name (or original_name) as nodeLabel instead of the composed friendly_name. " +
+        "Since Home Assistant 2026.4, friendly_name is prefixed with the device name, which breaks voice " +
+        "commands that relied on the short entity name. " +
+        "Resolution order: customName → registry name → registry original_name → friendly_name → entity_id. " +
+        "Matter has no alias concept — this only changes which single name is reported.",
+      type: "boolean",
+      default: false,
+    },
+
     vacuumOnOff: {
       title: "Vacuum: Include OnOff Cluster (Alexa)",
       description:
@@ -238,6 +249,18 @@ const featureFlagSchema: JSONSchema7 = {
         "WARNING: OnOff is NOT part of the Matter RVC device type specification. " +
         "Enabling this may break Apple Home (shows 'Updating') and Google Home.",
       type: "boolean",
+    },
+
+    alexaPreserveBrightnessOnTurnOn: {
+      title: "Alexa: Preserve Brightness on Turn-On",
+      description:
+        "Workaround for Alexa resetting light brightness to 100% after subscription renewal. " +
+        "When enabled, the bridge ignores brightness commands that set lights to 100% within " +
+        "200ms of a turn-on command for the same light. " +
+        "WARNING: breaks Apple Home's 'set room to 100%' Siri commands, which use the same " +
+        "on() + moveToLevel(254) pattern. Only enable on Alexa-only bridges.",
+      type: "boolean",
+      default: false,
     },
   },
 };
@@ -300,6 +323,15 @@ export const bridgeConfigSchema: JSONSchema7 = {
       default: 100,
       minimum: 1,
       maximum: 999,
+    },
+    serialNumberSuffix: {
+      title: "Serial Number Suffix",
+      type: "string",
+      description:
+        "Append a suffix to every entity serial number on this bridge. " +
+        "Useful for forcing controllers like Aqara to treat devices as new " +
+        "and bypass cached device data. Leave empty for default behavior.",
+      maxLength: 16,
     },
     filter: homeAssistantFilterSchema,
     featureFlags: featureFlagSchema,

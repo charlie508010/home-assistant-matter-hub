@@ -40,6 +40,7 @@ export function consumePendingColorStaging(
 
 export type ColorControlMode =
   | ColorControl.ColorMode.CurrentHueAndCurrentSaturation
+  | ColorControl.ColorMode.CurrentXAndCurrentY
   | ColorControl.ColorMode.ColorTemperatureMireds;
 
 export interface ColorControlConfig {
@@ -53,7 +54,7 @@ export interface ColorControlConfig {
   setColor: ValueSetter<ColorInstance>;
 }
 
-const FeaturedBase = Base.with("ColorTemperature", "HueSaturation");
+const FeaturedBase = Base.with("ColorTemperature", "HueSaturation", "Xy");
 
 export class ColorControlServerBase extends FeaturedBase {
   declare state: ColorControlServerBase.State;
@@ -143,6 +144,9 @@ export class ColorControlServerBase extends FeaturedBase {
 
     const color = config.getColor(entity.state, this.agent);
     const [hue, saturation] = color ? ColorConverter.toMatterHS(color) : [0, 0];
+    const [xyX, xyY] = color
+      ? ColorConverter.toMatterXY(color)
+      : [this.state.currentX, this.state.currentY];
 
     const minMireds = Math.floor(
       ColorConverter.temperatureKelvinToMireds(maxKelvin),
@@ -250,13 +254,37 @@ export class ColorControlServerBase extends FeaturedBase {
       });
     }
 
-    // Set colorMode and hueSaturation attributes
+    // Only publish colorMode alongside the cluster values that actually
+    // changed this cycle. When hue/sat is skipped but CT isn't (or vice
+    // versa), writing colorMode without its companion values produced a
+    // mismatched snapshot that controllers read back inconsistently.
+    const writingHueSat = this.features.hueSaturation && !skipHueSat;
+    const writingXy = this.features.xy && !skipHueSat && color != null;
+    const writingColorTemp =
+      !skipColorTemp &&
+      newColorMode === ColorControl.ColorMode.ColorTemperatureMireds;
+    const shouldPublishColorMode =
+      ((writingHueSat || writingXy) &&
+        newColorMode !== ColorControl.ColorMode.ColorTemperatureMireds) ||
+      writingColorTemp;
     applyPatchState(this.state, {
-      ...(skipColorTemp && skipHueSat ? {} : { colorMode: newColorMode }),
-      ...(this.features.hueSaturation && !skipHueSat
+      ...(shouldPublishColorMode
+        ? {
+            colorMode: newColorMode,
+            enhancedColorMode:
+              newColorMode as unknown as ColorControl.EnhancedColorMode,
+          }
+        : {}),
+      ...(writingHueSat
         ? {
             currentHue: hue,
             currentSaturation: saturation,
+          }
+        : {}),
+      ...(writingXy
+        ? {
+            currentX: xyX,
+            currentY: xyY,
           }
         : {}),
     });
@@ -277,6 +305,12 @@ export class ColorControlServerBase extends FeaturedBase {
       this.agent,
     );
     const targetKelvin = ColorConverter.temperatureMiredsToKelvin(targetMireds);
+    if (targetKelvin == null) {
+      // Matter allows colorTemperatureMireds = 0 in some contexts, but HA's
+      // light.turn_on expects a finite kelvin/mireds value. Drop the command
+      // rather than pass Infinity through.
+      return;
+    }
 
     if (currentKelvin === targetKelvin) {
       return;
@@ -287,6 +321,7 @@ export class ColorControlServerBase extends FeaturedBase {
     applyPatchState(this.state, {
       colorTemperatureMireds: targetMireds,
       colorMode: ColorControl.ColorMode.ColorTemperatureMireds,
+      enhancedColorMode: ColorControl.EnhancedColorMode.ColorTemperatureMireds,
     });
     optimisticColorState.set(homeAssistant.entityId, {
       colorTemperatureMireds: targetMireds,
@@ -337,11 +372,40 @@ export class ColorControlServerBase extends FeaturedBase {
       currentHue: targetHue,
       currentSaturation: targetSaturation,
       colorMode: ColorControl.ColorMode.CurrentHueAndCurrentSaturation,
+      enhancedColorMode:
+        ColorControl.EnhancedColorMode.CurrentHueAndCurrentSaturation,
     });
     optimisticColorState.set(homeAssistant.entityId, {
       currentHue: targetHue,
       currentSaturation: targetSaturation,
       timestamp: Date.now(),
+    });
+
+    if (this.isLightOff()) {
+      pendingColorStaging.set(homeAssistant.entityId, action.data ?? {});
+      return;
+    }
+    homeAssistant.callAction(action);
+  }
+
+  override moveToColor(request: ColorControl.MoveToColorRequest) {
+    this.pendingTransitionTime = request.transitionTime;
+    return super.moveToColor(request);
+  }
+
+  override moveToColorLogic(targetX: number, targetY: number) {
+    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+    if (targetX === this.state.currentX && targetY === this.state.currentY) {
+      return;
+    }
+    const color = ColorConverter.fromXY(targetX / 65536, targetY / 65536);
+    const action = this.state.config.setColor(color, this.agent);
+    this.applyTransition(action);
+    applyPatchState(this.state, {
+      currentX: targetX,
+      currentY: targetY,
+      colorMode: ColorControl.ColorMode.CurrentXAndCurrentY,
+      enhancedColorMode: ColorControl.EnhancedColorMode.CurrentXAndCurrentY,
     });
 
     if (this.isLightOff()) {

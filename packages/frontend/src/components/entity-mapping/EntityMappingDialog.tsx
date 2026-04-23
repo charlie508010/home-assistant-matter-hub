@@ -82,6 +82,7 @@ export function EntityMappingDialog({
   >([]);
   const [valetudoIdentifier, setValetudoIdentifier] = useState("");
   const [coverSwapOpenClose, setCoverSwapOpenClose] = useState(false);
+  const [disableClimateOnOff, setDisableClimateOnOff] = useState(false);
   const composedKeyRef = useRef(0);
   const [composedEntities, setComposedEntities] = useState<
     (ComposedSubEntity & { _key: number })[]
@@ -131,6 +132,7 @@ export function EntityMappingDialog({
       setCustomServiceAreas(currentMapping?.customServiceAreas || []);
       setValetudoIdentifier(currentMapping?.valetudoIdentifier || "");
       setCoverSwapOpenClose(currentMapping?.coverSwapOpenClose || false);
+      setDisableClimateOnOff(currentMapping?.disableClimateOnOff || false);
       composedKeyRef.current = 0;
       setComposedEntities(
         (currentMapping?.composedEntities || []).map((e) => ({
@@ -215,6 +217,7 @@ export function EntityMappingDialog({
           : undefined,
       valetudoIdentifier: valetudoIdentifier.trim() || undefined,
       coverSwapOpenClose: coverSwapOpenClose || undefined,
+      disableClimateOnOff: disableClimateOnOff || undefined,
       composedEntities:
         composedEntities.filter((e) => e.entityId?.trim()).length > 0
           ? composedEntities
@@ -247,6 +250,7 @@ export function EntityMappingDialog({
     customFanSpeedTagsList,
     valetudoIdentifier,
     coverSwapOpenClose,
+    disableClimateOnOff,
     composedEntities,
     onSave,
   ]);
@@ -281,6 +285,10 @@ export function EntityMappingDialog({
   // Show PIN disable option for locks
   const showLockPinField =
     matterDeviceType === "door_lock" || currentDomain === "lock";
+
+  // Show OnOff disable option for climate entities
+  const showClimateOnOffField =
+    matterDeviceType === "thermostat" || currentDomain === "climate";
 
   // Show power/energy entity fields for switches, lights, and plugs
   const showEnergyFields =
@@ -779,6 +787,19 @@ export function EntityMappingDialog({
               />
             }
             label="Disable PIN requirement for this lock"
+            sx={{ mt: 1, display: "block" }}
+          />
+        )}
+
+        {showClimateOnOffField && (
+          <FormControlLabel
+            control={
+              <Switch
+                checked={disableClimateOnOff}
+                onChange={(e) => setDisableClimateOnOff(e.target.checked)}
+              />
+            }
+            label="Disable on/off for this climate entity (keeps the thermostat running when a room is turned off by voice)"
             sx={{ mt: 1, display: "block" }}
           />
         )}

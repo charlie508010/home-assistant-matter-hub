@@ -35,10 +35,10 @@ interface AllBridgeFeatureFlags {
    */
   readonly autoPressureMapping: boolean;
   /**
-   * Auto Composed Devices: Master toggle that enables all auto-mapping features at once.
-   * When enabled, related entities from the same Home Assistant device are automatically
-   * combined into single Matter endpoints (battery, humidity, pressure, power, energy).
-   * This provides a cleaner device experience in Matter controllers.
+   * Auto Composed Devices: master toggle for all auto-mapping features.
+   * When enabled, related entities from the same Home Assistant device are
+   * combined into a single Matter endpoint (battery, humidity, pressure,
+   * power, energy) — one device in the controller app instead of five.
    * Default: false (disabled)
    */
   readonly autoComposedDevices: boolean;
@@ -59,6 +59,18 @@ interface AllBridgeFeatureFlags {
    */
   readonly productNameFromNodeLabel: boolean;
   /**
+   * Prefer Entity Registry Name: Use the entity registry name (or original_name)
+   * as nodeLabel instead of the composed friendly_name. Since Home Assistant
+   * 2026.4, friendly_name is prefixed with the device name, which breaks voice
+   * commands that relied on the short entity name. With this flag enabled,
+   * nodeLabel resolves as customName → registry.name → registry.original_name →
+   * friendly_name → entity_id. A per-entity customName still takes precedence.
+   * Matter has no alias concept, so multiple names per endpoint cannot be
+   * exposed — this only controls which single name is reported.
+   * Default: false (disabled)
+   */
+  readonly preferEntityRegistryName: boolean;
+  /**
    * Vacuum OnOff Cluster: Add an OnOff cluster to robot vacuum endpoints.
    * Amazon Alexa REQUIRES PowerController (mapped from OnOff) for robotic vacuums.
    * Without it, the vacuum commissions but never appears in the Alexa app.
@@ -73,6 +85,18 @@ interface AllBridgeFeatureFlags {
    * default-to-true logic in isServerModeVacuumOnOffEnabled().
    */
   readonly vacuumOnOff: boolean;
+  /**
+   * Alexa Preserve Brightness on Turn-On: workaround for Alexa resetting
+   * light brightness to 100% after subscription renewal by emitting
+   * on() followed by moveToLevel(254) within ~50ms (#142).
+   * When enabled, the bridge ignores moveToLevel commands at maxLevel
+   * that arrive within 200ms of a turn-on for the same entity.
+   * WARNING: breaks Apple Home's room-level "set to 100%" Siri commands,
+   * which use the same on() + moveToLevel(254) pattern (#306).
+   * Only enable on Alexa-only bridges.
+   * Default: false (disabled).
+   */
+  readonly alexaPreserveBrightnessOnTurnOn: boolean;
 }
 
 export type BridgeFeatureFlags = Partial<AllBridgeFeatureFlags>;
@@ -108,6 +132,12 @@ export interface BridgeConfig {
   readonly icon?: BridgeIconType;
   /** Startup priority - lower values start first. Default: 100 */
   readonly priority?: number;
+  /**
+   * Append a suffix to every entity serial number on this bridge.
+   * Useful for forcing controllers like Aqara to treat devices as new
+   * and bypass their cached device data.
+   */
+  readonly serialNumberSuffix?: string;
 }
 
 export interface CreateBridgeRequest extends BridgeConfig {}
@@ -124,6 +154,8 @@ export interface BridgeBasicInformation {
   productLabel: string;
   hardwareVersion: number;
   softwareVersion: number;
+  hardwareVersionString?: string;
+  softwareVersionString?: string;
 }
 
 export interface BridgeData extends BridgeConfig {

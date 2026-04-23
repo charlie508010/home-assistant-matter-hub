@@ -136,14 +136,14 @@ export function ClimateDevice(
     attributes.hvac_modes.includes(mode),
   );
   // Treat auto-only thermostats (no heat/cool/heat_cool) as heating devices
-  // This allows simple thermostats that only have "auto" mode to work
+  // so simple "auto"-only thermostats still map onto a Matter mode.
   const isAutoOnly =
     !hasExplicitHeating &&
     !supportsCooling &&
     autoOnlyMode.some((mode) => attributes.hvac_modes.includes(mode));
-  // Treat ventilation-only devices (fan_only/dry, no heat/cool/auto) as heating
-  // devices. This allows CMVs like Ambientika (#130) to be exposed as Matter
-  // thermostats. The actual mode control works via SystemMode.FanOnly/Dry.
+  // Treat ventilation-only devices (fan_only/dry, no heat/cool/auto) as
+  // heating devices so CMVs like Ambientika (#130) still surface as Matter
+  // thermostats. The actual mode control runs through SystemMode.FanOnly/Dry.
   const isVentilationOnly =
     !hasExplicitHeating &&
     !supportsCooling &&
@@ -164,9 +164,12 @@ export function ClimateDevice(
   const supportsHumidity =
     attributes.current_humidity != null ||
     testBit(supportedFeatures, ClimateDeviceFeature.TARGET_HUMIDITY);
+  // Per-entity opt-out: skip OnOff so room-level "off" voice commands don't
+  // turn the thermostat off alongside the lights.
   const supportsOnOff =
     testBit(supportedFeatures, ClimateDeviceFeature.TURN_ON) &&
-    testBit(supportedFeatures, ClimateDeviceFeature.TURN_OFF);
+    testBit(supportedFeatures, ClimateDeviceFeature.TURN_OFF) &&
+    homeAssistantEntity.mapping?.disableClimateOnOff !== true;
   const supportsFanMode = testBit(
     supportedFeatures,
     ClimateDeviceFeature.FAN_MODE,
@@ -195,20 +198,21 @@ export function ClimateDevice(
     maxCoolSetpointLimit: toMatterTemp(attributes.max_temp) ?? 5000,
   };
 
-  // AutoMode only when device supports heat_cool (dual setpoint) AND has
-  // explicit heat or cool modes. Devices with only 'auto' (single-setpoint)
-  // must NOT get AutoMode — Apple Home would show Auto and expect dual
-  // setpoints, causing mode flipping. heat_cool-only zones are also excluded
-  // since they lack explicit heat/cool modes (#207).
+  // AutoMode when the device supports heat_cool (dual setpoint) or exposes
+  // HA's single-setpoint 'auto' mode, in both cases alongside explicit heat
+  // or cool. Without one of those, Apple Home drops the Auto option (#309).
+  // heat_cool-only zones stay excluded since they lack explicit heat/cool
+  // modes (#207).
   const autoMode =
     supportsHeating &&
     supportsCooling &&
-    attributes.hvac_modes.includes(ClimateHvacMode.heat_cool) &&
+    (attributes.hvac_modes.includes(ClimateHvacMode.heat_cool) ||
+      attributes.hvac_modes.includes(ClimateHvacMode.auto)) &&
     (attributes.hvac_modes.includes(ClimateHvacMode.heat) ||
       attributes.hvac_modes.includes(ClimateHvacMode.cool));
 
-  // Pass thermostat state at the endpoint type level using the behavior ID.
-  // This ensures Matter.js's internal validation sees the values.
+  // Pass thermostat state at the endpoint type level using the behavior ID,
+  // so matter.js's internal validation sees the values before initialize.
   // Only include attributes for the features the device actually supports.
   return ClimateDeviceType(
     supportsOnOff,

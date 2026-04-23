@@ -53,6 +53,7 @@ export function entityMappingApi(
       currentRoomEntity: body.currentRoomEntity,
       valetudoIdentifier: body.valetudoIdentifier,
       coverSwapOpenClose: body.coverSwapOpenClose,
+      disableClimateOnOff: body.disableClimateOnOff,
       composedEntities: body.composedEntities,
     };
 

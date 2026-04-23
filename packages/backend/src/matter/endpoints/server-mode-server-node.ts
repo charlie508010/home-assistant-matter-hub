@@ -4,12 +4,15 @@ import type {
   EntityMappingConfig,
   HomeAssistantDeviceRegistry,
 } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import type { Environment } from "@matter/main";
 import { RoboticVacuumCleanerDevice } from "@matter/main/devices";
 import { type Endpoint, ServerNode } from "@matter/main/node";
 import { DeviceTypeId, VendorId } from "@matter/main/types";
-import { applyPatchState } from "../../utils/apply-patch-state.js";
+import { sanitizeMatterString } from "../../utils/sanitize-matter-string.js";
 import { trimToLength } from "../../utils/trim-to-length.js";
+
+const logger = Logger.get("ServerModeServerNode");
 
 /**
  * ServerModeServerNode exposes a single device directly as the root endpoint.
@@ -24,6 +27,7 @@ import { trimToLength } from "../../utils/trim-to-length.js";
 export class ServerModeServerNode extends ServerNode {
   private deviceEndpoint?: Endpoint;
   private readonly featureFlags?: BridgeFeatureFlags;
+  private readonly serialNumberSuffix?: string;
 
   constructor(env: Environment, bridgeData: BridgeData) {
     super({
@@ -47,6 +51,11 @@ export class ServerModeServerNode extends ServerNode {
         serialNumber: `server-${bridgeData.id}`.substring(0, 32),
         hardwareVersion: bridgeData.basicInformation.hardwareVersion,
         softwareVersion: bridgeData.basicInformation.softwareVersion,
+        hardwareVersionString:
+          bridgeData.basicInformation.hardwareVersionString,
+        softwareVersionString:
+          bridgeData.basicInformation.softwareVersionString ??
+          String(bridgeData.basicInformation.softwareVersion),
         ...(bridgeData.countryCode ? { location: bridgeData.countryCode } : {}),
       },
       subscriptions: {
@@ -54,6 +63,7 @@ export class ServerModeServerNode extends ServerNode {
       },
     });
     this.featureFlags = bridgeData.featureFlags;
+    this.serialNumberSuffix = bridgeData.serialNumberSuffix;
   }
 
   /**
@@ -84,21 +94,27 @@ export class ServerModeServerNode extends ServerNode {
    * BasicInformation — not the device endpoint's BridgedDeviceBasicInformation.
    * Without this, server-mode devices show bridge defaults (e.g. "riddix" / "MatterHub").
    */
-  updateDeviceIdentity(
+  async updateDeviceIdentity(
     entityId: string,
     device: HomeAssistantDeviceRegistry | undefined,
     mapping: EntityMappingConfig | undefined,
     friendlyName: string | undefined,
-  ): void {
+  ): Promise<void> {
     const nodeLabel =
       trimToLength(mapping?.customName, 32, "...") ??
       trimToLength(friendlyName, 32, "...") ??
       trimToLength(entityId, 32, "...");
     const productNameFromNodeLabel =
       this.featureFlags?.productNameFromNodeLabel === true
-        ? nodeLabel
+        ? (trimToLength(sanitizeMatterString(nodeLabel ?? ""), 32, "...") ??
+          undefined)
         : undefined;
-    applyPatchState(this.state.basicInformation, {
+    const rawSerial = trimToLength(mapping?.customSerialNumber, 32, "...");
+    const serialNumber =
+      rawSerial && this.serialNumberSuffix
+        ? trimToLength(`${rawSerial}${this.serialNumberSuffix}`, 32, "...")
+        : rawSerial;
+    const basicInformation = dropUndefined({
       vendorName:
         trimToLength(mapping?.customVendorName, 32, "...") ??
         trimToLength(device?.manufacturer, 32, "..."),
@@ -109,14 +125,35 @@ export class ServerModeServerNode extends ServerNode {
         trimToLength(device?.model, 32, "..."),
       productLabel: trimToLength(device?.model, 64, "..."),
       nodeLabel,
-      serialNumber: trimToLength(mapping?.customSerialNumber, 32, "..."),
+      serialNumber,
       hardwareVersionString: trimToLength(device?.hw_version, 64, "..."),
       softwareVersionString: trimToLength(device?.sw_version, 64, "..."),
     });
+    if (Object.keys(basicInformation).length === 0) {
+      return;
+    }
+    try {
+      await this.set({ basicInformation });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      logger.warn(
+        `Failed to apply server-mode identity for ${entityId}: ${msg}`,
+      );
+    }
   }
 
   async factoryReset(): Promise<void> {
     await this.cancel();
     await this.erase();
   }
+}
+
+function dropUndefined<T extends object>(obj: T): Partial<T> {
+  const result: Partial<T> = {};
+  for (const key in obj) {
+    if (obj[key] !== undefined) {
+      result[key] = obj[key];
+    }
+  }
+  return result;
 }

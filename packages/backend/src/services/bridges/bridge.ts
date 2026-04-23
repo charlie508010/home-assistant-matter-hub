@@ -2,11 +2,11 @@ import {
   BridgeStatus,
   type UpdateBridgeRequest,
 } from "@home-assistant-matter-hub/common";
-import type { Environment, Logger } from "@matter/general";
+import type { Environment } from "@matter/general";
 import type { Endpoint } from "@matter/main";
 import { CommissioningServer } from "@matter/main/node";
 import { DeviceAdvertiser, SessionManager } from "@matter/main/protocol";
-import type { LoggerService } from "../../core/app/logger.js";
+import type { BetterLogger, LoggerService } from "../../core/app/logger.js";
 import { BridgeServerNode } from "../../matter/endpoints/bridge-server-node.js";
 import { ensureCommissioningConfig } from "../../utils/ensure-commissioning-config.js";
 import { logMemoryUsage } from "../../utils/log-memory.js";
@@ -30,7 +30,7 @@ const AUTO_FORCE_SYNC_INTERVAL_MS = 90_000;
 const DEAD_SESSION_TIMEOUT_MS = 60_000;
 
 export class Bridge {
-  private readonly log: Logger;
+  private readonly log: BetterLogger;
   readonly server: BridgeServerNode;
 
   private status: BridgeServerStatus = {
@@ -46,6 +46,11 @@ export class Bridge {
   private autoForceSyncTimer: ReturnType<typeof setInterval> | null = null;
   private deadSessionTimer: ReturnType<typeof setTimeout> | null = null;
   private staleSessionTimers = new Map<number, ReturnType<typeof setTimeout>>();
+
+  // Serialize concurrent lifecycle calls so auto-recovery and a manual
+  // restartBridge can't race past each other's Starting/Stopping states.
+  private startInFlight?: Promise<void>;
+  private stopInFlight?: Promise<void>;
 
   // Tracks the last synced state JSON per entity to avoid pushing unchanged states.
   // Key: entity_id, Value: JSON.stringify of entity.state
@@ -184,6 +189,16 @@ export class Bridge {
       this.dataProvider,
       this.endpointManager.root,
     );
+    const { basicInformation } = this.dataProvider;
+    this.log.debugCtx("Root bridge BasicInformation configured", {
+      vendorName: basicInformation.vendorName,
+      productName: basicInformation.productName,
+      productLabel: basicInformation.productLabel,
+      hardwareVersion: basicInformation.hardwareVersion,
+      hardwareVersionString: basicInformation.hardwareVersionString,
+      softwareVersion: basicInformation.softwareVersion,
+      softwareVersionString: basicInformation.softwareVersionString,
+    });
   }
 
   async initialize(): Promise<void> {
@@ -218,6 +233,16 @@ export class Bridge {
     if (this.status.code === BridgeStatus.Running) {
       return;
     }
+    if (this.startInFlight) {
+      return this.startInFlight;
+    }
+    this.startInFlight = this.runStart().finally(() => {
+      this.startInFlight = undefined;
+    });
+    return this.startInFlight;
+  }
+
+  private async runStart() {
     this.lastSyncedStates.clear();
     try {
       this.setStatus({
@@ -262,6 +287,16 @@ export class Bridge {
     code: BridgeStatus = BridgeStatus.Stopped,
     reason = "Manually stopped",
   ) {
+    if (this.stopInFlight) {
+      return this.stopInFlight;
+    }
+    this.stopInFlight = this.runStop(code, reason).finally(() => {
+      this.stopInFlight = undefined;
+    });
+    return this.stopInFlight;
+  }
+
+  private async runStop(code: BridgeStatus, reason: string) {
     this.unwireSessionDiagnostics();
     this.stopAutoForceSync();
     await this.endpointManager.stopPlugins();

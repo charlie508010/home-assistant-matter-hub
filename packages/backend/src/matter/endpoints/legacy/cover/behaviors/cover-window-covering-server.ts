@@ -23,6 +23,65 @@ const logger = Logger.get("CoverWindowCoveringServer");
 const attributes = (entity: HomeAssistantEntityState) =>
   <CoverDeviceAttributes>entity.attributes;
 
+// HA cover device_class -> Matter WindowCovering Type + EndProductType.
+// Google Home and friends use these attributes for voice intents like
+// "open curtains"; without this map every cover looks like a roller shade
+// regardless of what it actually is (#304).
+export const DEVICE_CLASS_TO_MATTER_TYPE: Record<
+  string,
+  {
+    type: WindowCovering.WindowCoveringType;
+    endProductType: WindowCovering.EndProductType;
+  }
+> = {
+  curtain: {
+    type: WindowCovering.WindowCoveringType.Drapery,
+    endProductType: WindowCovering.EndProductType.CentralCurtain,
+  },
+  awning: {
+    type: WindowCovering.WindowCoveringType.Awning,
+    endProductType: WindowCovering.EndProductType.AwningTerracePatio,
+  },
+  shutter: {
+    type: WindowCovering.WindowCoveringType.Shutter,
+    endProductType: WindowCovering.EndProductType.RollerShutter,
+  },
+  blind: {
+    type: WindowCovering.WindowCoveringType.TiltBlindTiltOnly,
+    endProductType: WindowCovering.EndProductType.InteriorBlind,
+  },
+  shade: {
+    type: WindowCovering.WindowCoveringType.Rollershade,
+    endProductType: WindowCovering.EndProductType.RollerShade,
+  },
+};
+
+export const deviceClassMapping = (entity: HomeAssistantEntityState) => {
+  const raw = (entity.attributes as Record<string, unknown>).device_class;
+  if (typeof raw !== "string") return undefined;
+  const mapping = DEVICE_CLASS_TO_MATTER_TYPE[raw.toLowerCase()];
+  if (!mapping) return undefined;
+
+  // HA blind entities frequently only expose lift (no tilt), but the
+  // device_class=blind row above picks TiltBlindTiltOnly. Advertising
+  // TiltBlindTiltOnly without the Tilt feature is a spec inconsistency
+  // that can cause controllers to drop the device from routine pickers
+  // (#312). Fall back to Rollershade while keeping the InteriorBlind hint.
+  const supportedFeatures = attributes(entity).supported_features ?? 0;
+  const hasTilt =
+    (supportedFeatures & CoverSupportedFeatures.support_open_tilt) !== 0;
+  if (
+    mapping.type === WindowCovering.WindowCoveringType.TiltBlindTiltOnly &&
+    !hasTilt
+  ) {
+    return {
+      type: WindowCovering.WindowCoveringType.Rollershade,
+      endProductType: mapping.endProductType,
+    };
+  }
+  return mapping;
+};
+
 /**
  * Platforms known to use Matter-compatible position semantics (0=open, 100=closed).
  * These integrations report position as "% closed" which matches Matter's expectations.
@@ -134,6 +193,8 @@ const config: WindowCoveringConfig = {
     }
     return position == null ? null : adjustPositionForReading(position, agent);
   },
+  getCoverType: (entity) => deviceClassMapping(entity)?.type,
+  getEndProductType: (entity) => deviceClassMapping(entity)?.endProductType,
   getMovementStatus: (entity, agent) => {
     const { featureFlags } = agent.env.get(BridgeDataProvider);
     const swapped = featureFlags?.coverSwapOpenClose === true;

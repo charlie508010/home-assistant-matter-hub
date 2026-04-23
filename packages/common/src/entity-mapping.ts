@@ -197,6 +197,12 @@ export interface EntityMappingConfig {
    */
   readonly coverSwapOpenClose?: boolean;
   /**
+   * Optional: Skip the Matter OnOff cluster for this climate entity.
+   * Stops voice commands like "turn off <room>" from calling
+   * climate.turn_off on the thermostat. No effect on non-climate entities.
+   */
+  readonly disableClimateOnOff?: boolean;
+  /**
    * Auto-populated at runtime when the vacuum supports HA 2026.3 CLEAN_AREA.
    * Maps HA areas (from the user's segment-to-area mapping in HA) to Matter
    * ServiceArea area IDs. When set, vacuum.clean_area is used instead of
@@ -242,6 +248,7 @@ export interface EntityMappingRequest {
   readonly currentRoomEntity?: string;
   readonly valetudoIdentifier?: string;
   readonly coverSwapOpenClose?: boolean;
+  readonly disableClimateOnOff?: boolean;
   readonly composedEntities?: ComposedSubEntity[];
 }
 

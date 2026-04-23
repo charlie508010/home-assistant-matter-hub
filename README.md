@@ -37,7 +37,7 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v2.0.38 | Production-ready, recommended for most users |
+| **Stable** | `main` | v2.0.41 | Production-ready, recommended for most users |
 | **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
@@ -52,15 +52,40 @@ of port forwarding etc.
 ## 🎉 What's New
 
 <details>
-<summary><strong>📦 Stable Features (v2.0.38)</strong> - Click to expand</summary>
+<summary><strong>📦 Stable Features (v2.0.41)</strong> - Click to expand</summary>
 
-**HOTFIX (post v2.0.38):**
+**New in v2.0.41:**
+
+| Feature | Description |
+|---------|-------------|
+| 🌡️ Google Home AC offline fix | `DeadFrontBehavior` on climate OnOff cluster so RoomAirConditioner stops showing offline on Google Home ([#302](https://github.com/RiDDiX/home-assistant-matter-hub/issues/302)) |
+| 🪟 Cover device_class mapping | Map HA `garage`/`gate`/`window`/`awning`/etc. to the matching Matter WindowCovering type so voice commands hit the right device type ([#304](https://github.com/RiDDiX/home-assistant-matter-hub/issues/304)) |
+| 📺 LG TV commissioning patch | Local patch on matter.js 0.16.11 to accept long NOC operational cert serials ([#305](https://github.com/RiDDiX/home-assistant-matter-hub/issues/305)) |
+| 💡 Alexa brightness-reset behind flag | Old Alexa brightness-reset heuristic moved behind `alexaPreserveBrightnessOnTurnOn`, default off — Apple Home "set room to 100%" works again ([#306](https://github.com/RiDDiX/home-assistant-matter-hub/issues/306)) |
+| 🌀 Google Home fan speed | Uses `fan.set_percentage` so already-on fans pick up speed changes from Google Home ([#308](https://github.com/RiDDiX/home-assistant-matter-hub/issues/308)) |
+| ❄️ Climate auto mode | Expose Matter Auto mode when HA reports `auto` in `hvac_modes` ([#309](https://github.com/RiDDiX/home-assistant-matter-hub/issues/309)) |
+| 🆔 Server-mode root identity | Root identity now applies as a single transaction, so controllers don't drop devices mid-swap ([#311](https://github.com/RiDDiX/home-assistant-matter-hub/issues/311)) |
+| 🪟 Lift-only blinds | No more `TiltBlindTiltOnly` on covers without tilt — fixes Alexa routines for roller blinds ([#312](https://github.com/RiDDiX/home-assistant-matter-hub/issues/312)) |
+| 🏷️ Per-entity `disableClimateOnOff` | Turn off the OnOff cluster on climate endpoints per entity for controllers that prefer mode-only control |
+| 🔢 `serialNumberSuffix` per bridge | Append a suffix to every entity serial — useful if controllers like Aqara cache stale device data |
+| 📝 `protocolLogLevel` option | Quiet matter.js logs independently from the app log level |
+| 🖥️ Bridge HW/SW version strings | HA device-registry `hw_version`/`sw_version` now show up in Matter BasicInformation on server-mode endpoints |
+| 🎨 Extended color light: XY + enhancedColorMode | XY feature added as mandatory, `enhancedColorMode` mirrors `colorMode` |
+| 🎭 Groups + Scenes | Scenes and Groups clusters added on light, plug, and fan endpoints |
+| 💧 Boolean state configuration | Cluster added on leak, freeze, rain, and contact sensors |
+| 🌍 Spanish translation | New `es` locale ([#314](https://github.com/RiDDiX/home-assistant-matter-hub/pull/314), thanks [@Yllelder](https://github.com/Yllelder)) |
+| 🧵 Matter.js 0.16.11 (pinned) | Kept pinned, local NOC serial patch applied |
+| ⬆️ Dep bumps | Vite 8, jsdom 29, MUI x-tree-view 9, i18next 26, react-i18next 17, TypeScript 6.0.3, biome pinned 2.4.3, pnpm overrides for transitive CVEs |
+
+**Reliability & resilience:** parallel bridge stop in `stopAll`/`restartAll`, parallel HA registry fetches, serialized bridge start/stop lifecycle, serialized `updateStates` with plugin listener detach, HA reconnect retry on transient network errors, 30s timeout on `sendMessagePromise`, port-conflict reject on web-api start, graceful shutdown on `/api/backup/restart`, `AppEnvironment` disposal on SIGINT, stale optimistic state sweep, pending debouncer clear, healthcheck 401 fix under basic auth, deep-equal entity attribute comparison, overlap guard for auto-refresh, safer mireds conversion, aligned `colorMode` publishing, surfaced bridge import errors, corrected thermostat running state for unknown modes + drying, unified Node version across Dockerfiles, sourcemaps excluded from npm tarball, unused deps dropped (rxjs, strip-color, lodash), unused `config-validator` utility removed.
+
+**Previously in v2.0.39 & v2.0.40 (hotfix releases):**
 - Fixed crash loop on startup caused by Node 22 native WebSocket dropping connections ([#297](https://github.com/RiDDiX/home-assistant-matter-hub/issues/297), [#299](https://github.com/RiDDiX/home-assistant-matter-hub/issues/299)) — affects both aarch64 (RPi) and amd64
 - Fixed service initialization errors being silently swallowed, causing the process to hang instead of exiting
 - Registry fetch now waits for WebSocket reconnect between retries and has increased retry tolerance
 - Fixed `select`, `input_select`, `siren` domains showing as unsupported in filter preview ([#298](https://github.com/RiDDiX/home-assistant-matter-hub/issues/298))
 
-**New in v2.0.38:**
+**Previously in v2.0.38:**
 
 | Feature | Description |
 |---------|-------------|
@@ -102,7 +127,7 @@ of port forwarding etc.
 <details>
 <summary><strong>🧪 Alpha Features (v2.1.0-alpha.x)</strong> - Click to expand</summary>
 
-**Alpha is currently level with Stable (v2.0.38).** All alpha features from the v2.1.0-alpha.600 line have been promoted into v2.0.38. New alpha work continues from `v2.1.0-alpha.601` onward and will appear here as development progresses.
+**Alpha is currently level with Stable (v2.0.41).** All alpha work from the v2.1.0-alpha.601 line through v2.1.0-alpha.626 has been promoted into v2.0.41. New alpha work continues from `v2.1.0-alpha.627` onward and will appear here as development progresses.
 
 </details>
 
@@ -127,6 +152,12 @@ of port forwarding etc.
 
 <details>
 <summary><strong>📜 Previous Stable Versions</strong> - Click to expand</summary>
+
+### v2.0.40
+Filter preview domain fix — `select`, `input_select`, `siren` now show as supported ([#298](https://github.com/RiDDiX/home-assistant-matter-hub/issues/298))
+
+### v2.0.39
+Node 22 WebSocket crash loop fix ([#297](https://github.com/RiDDiX/home-assistant-matter-hub/issues/297), [#299](https://github.com/RiDDiX/home-assistant-matter-hub/issues/299)), service init error surfacing, registry retry hardening, support link added
 
 ### v2.0.37
 Aqara productNameFromNodeLabel flag, Matter.js 0.16.11, Swedish locale update
@@ -434,6 +465,7 @@ This project thrives thanks to the amazing community! Special thanks to everyone
 | [@omerfaruk-aran](https://github.com/omerfaruk-aran) | 🔧 **Network Debugging Expert** - Systematic mDNS/multicast root cause analysis for "No Response" issues ([#129](https://github.com/RiDDiX/home-assistant-matter-hub/issues/129)) |
 | [@gustavakerstrom](https://github.com/gustavakerstrom) | 🤖 **Code Contributor** - Template description display fix ([#215](https://github.com/RiDDiX/home-assistant-matter-hub/pull/215)) |
 | [@aetasoul](https://github.com/aetasoul) | 🤖 **Code Contributor** - Immediate force sync on startup to beat stale Alexa queues ([#282](https://github.com/RiDDiX/home-assistant-matter-hub/pull/282)) |
+| [@Yllelder](https://github.com/Yllelder) | 🌐 **Translator** - Spanish translation ([#314](https://github.com/RiDDiX/home-assistant-matter-hub/pull/314)) |
 
 <details>
 <summary><strong>📋 Issue Tracker - All Contributors</strong> (click to expand)</summary>

@@ -41,11 +41,31 @@ export class BridgeService extends Service {
 
   protected override async initialize() {
     for (const data of this.bridgeStorage.bridges) {
-      await this.addBridge(data);
+      const normalized = this.normalizeBridgeData(data);
+      await this.bridgeStorage.add(normalized);
+      await this.addBridge(normalized);
     }
     if (this.autoRecoveryEnabled) {
       this.startAutoRecovery();
     }
+  }
+
+  private normalizeBridgeData(bridgeData: BridgeData): BridgeData {
+    const { basicInformation } = bridgeData;
+    return {
+      ...bridgeData,
+      basicInformation: {
+        ...basicInformation,
+        hardwareVersionString:
+          basicInformation.hardwareVersionString ??
+          this.props.basicInformation.hardwareVersionString ??
+          String(basicInformation.hardwareVersion),
+        softwareVersionString:
+          basicInformation.softwareVersionString ??
+          this.props.basicInformation.softwareVersionString ??
+          String(basicInformation.softwareVersion),
+      },
+    };
   }
 
   private startAutoRecovery() {
@@ -113,25 +133,35 @@ export class BridgeService extends Service {
   }
 
   async stopAll() {
-    for (const bridge of this.bridges) {
-      try {
-        await bridge.stop();
-        this.onBridgeChanged?.(bridge.id);
-      } catch (e) {
-        this.log.error(`Failed to stop bridge ${bridge.id}:`, e);
-      }
-    }
+    // Stop all bridges in parallel — stops are independent and a multi-bridge
+    // shutdown should not wait for each one serially.
+    await Promise.all(
+      this.bridges.map(async (bridge) => {
+        try {
+          await bridge.stop();
+          this.onBridgeChanged?.(bridge.id);
+        } catch (e) {
+          this.log.error(`Failed to stop bridge ${bridge.id}:`, e);
+        }
+      }),
+    );
   }
 
   async restartAll() {
-    for (const bridge of this.bridges) {
-      try {
-        await bridge.stop();
-      } catch (e) {
-        this.log.error(`Failed to stop bridge ${bridge.id} during restart:`, e);
-      }
-    }
-    // Sort by priority for startup
+    // Stop in parallel (no ordering requirement), then start sequentially
+    // by priority so low-priority bridges always come up first.
+    await Promise.all(
+      this.bridges.map(async (bridge) => {
+        try {
+          await bridge.stop();
+        } catch (e) {
+          this.log.error(
+            `Failed to stop bridge ${bridge.id} during restart:`,
+            e,
+          );
+        }
+      }),
+    );
     const sortedBridges = [...this.bridges].sort((a, b) => {
       const priorityA = a.data.priority ?? 100;
       const priorityB = b.data.priority ?? 100;

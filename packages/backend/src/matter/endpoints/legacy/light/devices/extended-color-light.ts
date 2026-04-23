@@ -1,3 +1,4 @@
+import { GroupsServer, ScenesManagementServer } from "@matter/main/behaviors";
 import type { ColorControl } from "@matter/main/clusters";
 import { ExtendedColorLightDevice as Device } from "@matter/main/devices";
 import type { FeatureSelection } from "../../../../../utils/feature-selection.js";
@@ -16,7 +17,11 @@ export const ExtendedColorLightType = (
 ) => {
   const features: FeatureSelection<ColorControl.Cluster> = new Set();
   if (supportsColorControl) {
+    // Xy is mandatory for device type ExtendedColorLight (0x010d) per Matter
+    // Device Library § 4.4. HueSaturation is optional but kept for controllers
+    // that prefer it (Apple Home / Alexa).
     features.add("HueSaturation");
+    features.add("Xy");
   }
   if (supportsTemperature) {
     features.add("ColorTemperature");
@@ -27,6 +32,8 @@ export const ExtendedColorLightType = (
       IdentifyServer,
       BasicInformationServer,
       HomeAssistantEntityBehavior,
+      GroupsServer,
+      ScenesManagementServer,
       LightOnOffServer,
       LightLevelControlServer,
       LightColorControlServer.with(...features),
@@ -38,6 +45,8 @@ export const ExtendedColorLightType = (
     IdentifyServer,
     BasicInformationServer,
     HomeAssistantEntityBehavior,
+    GroupsServer,
+    ScenesManagementServer,
     LightOnOffServer,
     LightLevelControlServer,
     LightColorControlServer.with(...features),
