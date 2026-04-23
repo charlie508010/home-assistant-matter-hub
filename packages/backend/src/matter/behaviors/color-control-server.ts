@@ -263,7 +263,13 @@ export class ColorControlServerBase extends FeaturedBase {
         newColorMode !== ColorControl.ColorMode.ColorTemperatureMireds) ||
       writingColorTemp;
     applyPatchState(this.state, {
-      ...(shouldPublishColorMode ? { colorMode: newColorMode } : {}),
+      ...(shouldPublishColorMode
+        ? {
+            colorMode: newColorMode,
+            enhancedColorMode:
+              newColorMode as unknown as ColorControl.EnhancedColorMode,
+          }
+        : {}),
       ...(writingHueSat
         ? {
             currentHue: hue,
@@ -304,6 +310,7 @@ export class ColorControlServerBase extends FeaturedBase {
     applyPatchState(this.state, {
       colorTemperatureMireds: targetMireds,
       colorMode: ColorControl.ColorMode.ColorTemperatureMireds,
+      enhancedColorMode: ColorControl.EnhancedColorMode.ColorTemperatureMireds,
     });
     optimisticColorState.set(homeAssistant.entityId, {
       colorTemperatureMireds: targetMireds,
@@ -354,6 +361,8 @@ export class ColorControlServerBase extends FeaturedBase {
       currentHue: targetHue,
       currentSaturation: targetSaturation,
       colorMode: ColorControl.ColorMode.CurrentHueAndCurrentSaturation,
+      enhancedColorMode:
+        ColorControl.EnhancedColorMode.CurrentHueAndCurrentSaturation,
     });
     optimisticColorState.set(homeAssistant.entityId, {
       currentHue: targetHue,
