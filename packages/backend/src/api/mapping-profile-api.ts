@@ -36,6 +36,7 @@ function configToProfileEntry(
     customFanSpeedTags: config.customFanSpeedTags,
     valetudoIdentifier: config.valetudoIdentifier,
     coverSwapOpenClose: config.coverSwapOpenClose,
+    disableClimateOnOff: config.disableClimateOnOff,
   };
 }
 
@@ -193,6 +194,7 @@ export function mappingProfileApi(
           customFanSpeedTags: entry.customFanSpeedTags,
           valetudoIdentifier: entry.valetudoIdentifier,
           coverSwapOpenClose: entry.coverSwapOpenClose,
+          disableClimateOnOff: entry.disableClimateOnOff,
         });
         applied++;
       } catch (e) {

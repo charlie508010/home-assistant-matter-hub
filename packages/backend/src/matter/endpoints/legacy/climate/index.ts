@@ -164,9 +164,12 @@ export function ClimateDevice(
   const supportsHumidity =
     attributes.current_humidity != null ||
     testBit(supportedFeatures, ClimateDeviceFeature.TARGET_HUMIDITY);
+  // Per-entity opt-out: skip OnOff so room-level "off" voice commands don't
+  // turn the thermostat off alongside the lights.
   const supportsOnOff =
     testBit(supportedFeatures, ClimateDeviceFeature.TURN_ON) &&
-    testBit(supportedFeatures, ClimateDeviceFeature.TURN_OFF);
+    testBit(supportedFeatures, ClimateDeviceFeature.TURN_OFF) &&
+    homeAssistantEntity.mapping?.disableClimateOnOff !== true;
   const supportsFanMode = testBit(
     supportedFeatures,
     ClimateDeviceFeature.FAN_MODE,

@@ -135,6 +135,7 @@ export class EntityMappingStorage extends Service {
       currentRoomEntity: request.currentRoomEntity?.trim() || undefined,
       valetudoIdentifier: request.valetudoIdentifier?.trim() || undefined,
       coverSwapOpenClose: request.coverSwapOpenClose || undefined,
+      disableClimateOnOff: request.disableClimateOnOff || undefined,
       composedEntities:
         request.composedEntities?.filter((e) => e.entityId?.trim()) ??
         undefined,
@@ -165,6 +166,7 @@ export class EntityMappingStorage extends Service {
       !config.currentRoomEntity &&
       !config.valetudoIdentifier &&
       !config.coverSwapOpenClose &&
+      !config.disableClimateOnOff &&
       (!config.composedEntities || config.composedEntities.length === 0)
     ) {
       bridgeMap.delete(request.entityId);

@@ -2,6 +2,7 @@ import {
   type BinarySensorDeviceAttributes,
   BinarySensorDeviceClass,
   type ClimateDeviceAttributes,
+  ClimateDeviceFeature,
   ClimateHvacAction,
   ClimateHvacMode,
   type CoverDeviceAttributes,
@@ -488,6 +489,42 @@ describe("endpoint mapping integration", () => {
       );
       const { type } = createAndValidate(entity);
       expect(type.behaviors).toHaveProperty("thermostat");
+    });
+
+    it("climate with TURN_ON/TURN_OFF gets onOff behavior by default", () => {
+      const entity = createEntity<ClimateDeviceAttributes>(
+        "climate.beh4a",
+        "heat",
+        {
+          hvac_modes: [ClimateHvacMode.heat],
+          hvac_mode: ClimateHvacMode.heat,
+          hvac_action: ClimateHvacAction.heating,
+          supported_features:
+            ClimateDeviceFeature.TURN_ON | ClimateDeviceFeature.TURN_OFF,
+        },
+      );
+      const type = createLegacyEndpointType(entity);
+      expect(type?.behaviors).toHaveProperty("onOff");
+    });
+
+    it("climate omits onOff when disableClimateOnOff mapping is set", () => {
+      const entity = createEntity<ClimateDeviceAttributes>(
+        "climate.beh4b",
+        "heat",
+        {
+          hvac_modes: [ClimateHvacMode.heat],
+          hvac_mode: ClimateHvacMode.heat,
+          hvac_action: ClimateHvacAction.heating,
+          supported_features:
+            ClimateDeviceFeature.TURN_ON | ClimateDeviceFeature.TURN_OFF,
+        },
+      );
+      const type = createLegacyEndpointType(entity, {
+        entityId: entity.entity_id,
+        disableClimateOnOff: true,
+      });
+      expect(type?.behaviors).toHaveProperty("thermostat");
+      expect(type?.behaviors).not.toHaveProperty("onOff");
     });
 
     it("cover has windowCovering behavior", () => {
