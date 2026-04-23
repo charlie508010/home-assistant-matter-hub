@@ -6,15 +6,23 @@ import {
   deviceClassMapping,
 } from "./cover-window-covering-server.js";
 
-const entity = (device_class?: unknown): HomeAssistantEntityState =>
-  ({
+const entity = (
+  device_class?: unknown,
+  supported_features?: number,
+): HomeAssistantEntityState => {
+  const attributes: Record<string, unknown> = {};
+  if (device_class !== undefined) attributes.device_class = device_class;
+  if (supported_features !== undefined)
+    attributes.supported_features = supported_features;
+  return {
     entity_id: "cover.test",
     state: "open",
     context: { id: "ctx" },
     last_changed: "t",
     last_updated: "t",
-    attributes: device_class === undefined ? {} : { device_class },
-  }) as unknown as HomeAssistantEntityState;
+    attributes,
+  } as unknown as HomeAssistantEntityState;
+};
 
 describe("deviceClassMapping", () => {
   it("maps curtain to Drapery + CentralCurtain", () => {
@@ -57,6 +65,26 @@ describe("deviceClassMapping", () => {
 
   it("returns undefined for non-string device_class", () => {
     expect(deviceClassMapping(entity(42))).toBeUndefined();
+  });
+
+  it("falls back to Rollershade for blind without tilt feature (#312)", () => {
+    // supported_features=7 = open + close + set_position (lift only)
+    const mapping = deviceClassMapping(entity("blind", 7));
+    expect(mapping?.type).toBe(WindowCovering.WindowCoveringType.Rollershade);
+    expect(mapping?.endProductType).toBe(
+      WindowCovering.EndProductType.InteriorBlind,
+    );
+  });
+
+  it("keeps TiltBlindTiltOnly for blind with tilt feature", () => {
+    // supported_features=7+16=23 includes support_open_tilt
+    const mapping = deviceClassMapping(entity("blind", 23));
+    expect(mapping?.type).toBe(
+      WindowCovering.WindowCoveringType.TiltBlindTiltOnly,
+    );
+    expect(mapping?.endProductType).toBe(
+      WindowCovering.EndProductType.InteriorBlind,
+    );
   });
 
   it("covers every documented key", () => {
