@@ -60,9 +60,10 @@ interface CleaningSession {
   /** Last known currentArea — used to detect room transitions */
   lastCurrentArea: number | null;
   /** Snapshot of selectedAreas taken when cleaning starts.
-   *  The start handler clears serviceArea.state.selectedAreas after
-   *  dispatching the HA action to prevent re-dispatch, but progress
-   *  tracking needs the original list for the entire cleaning session. */
+   *  serviceArea.state.selectedAreas is controller-managed persistent
+   *  state per Matter spec § 1.17.6.3 — the controller may change it
+   *  mid-session, so progress tracking uses this snapshot for the
+   *  lifetime of the cleaning run. */
   activeAreas: number[];
   /** Diagnostic short-circuit reasons already logged this session.
    *  updateCurrentRoomFromSensor() is called on every HA state event;

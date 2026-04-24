@@ -142,16 +142,11 @@ function handleCustomServiceAreas(
   selectedAreas: number[],
   customAreas: CustomServiceArea[],
   homeAssistant: HomeAssistantEntityBehavior,
-  serviceArea: { state: { selectedAreas: number[] } },
 ) {
   // Map area IDs back to custom area configs (IDs are 1-based index)
   const matched = selectedAreas
     .map((areaId) => customAreas[areaId - 1])
     .filter(Boolean);
-
-  // Clear selected areas after mapping (not before — a proxied
-  // reference would be invalidated by Datasource subref refresh).
-  serviceArea.state.selectedAreas = [];
 
   if (matched.length === 0) {
     logger.warn(
@@ -248,7 +243,6 @@ const vacuumRvcRunModeConfig = {
             selectedAreas,
             customAreas,
             homeAssistant,
-            serviceArea,
           );
         }
 
@@ -256,7 +250,6 @@ const vacuumRvcRunModeConfig = {
         const cleanAreaRooms = homeAssistant.state.mapping?.cleanAreaRooms;
         if (cleanAreaRooms && cleanAreaRooms.length > 0) {
           const haAreaIds = resolveCleanAreaIds(selectedAreas, cleanAreaRooms);
-          serviceArea.state.selectedAreas = [];
           if (haAreaIds.length > 0) {
             logger.info(
               `CLEAN_AREA: cleaning HA areas: ${haAreaIds.join(", ")}`,
@@ -287,9 +280,6 @@ const vacuumRvcRunModeConfig = {
               `Roborock: Pressing button entities for selected rooms: ${buttonEntityIds.join(", ")}`,
             );
 
-            // Clear selected areas after use
-            serviceArea.state.selectedAreas = [];
-
             // Dispatch extra button presses directly — the caller can only
             // handle a single returned action, so press buttons 1..N here.
             for (let i = 1; i < buttonEntityIds.length; i++) {
@@ -312,7 +302,6 @@ const vacuumRvcRunModeConfig = {
         // directly as segment IDs since toAreaId(numericId) === numericId.
         const vacuumEntityId = homeAssistant.entityId;
         if (vacuumEntityId.startsWith("vacuum.valetudo_")) {
-          serviceArea.state.selectedAreas = [];
           return buildValetudoSegmentAction(
             vacuumEntityId,
             selectedAreas,
@@ -341,9 +330,6 @@ const vacuumRvcRunModeConfig = {
           logger.info(
             `Starting cleaning with selected areas: ${roomIds.join(", ")}`,
           );
-
-          // Clear selected areas after use
-          serviceArea.state.selectedAreas = [];
 
           // Dreame vacuums use their own service
           if (isDreameVacuum(attributes)) {
