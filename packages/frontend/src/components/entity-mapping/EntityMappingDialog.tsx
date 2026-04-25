@@ -83,6 +83,8 @@ export function EntityMappingDialog({
   const [valetudoIdentifier, setValetudoIdentifier] = useState("");
   const [coverSwapOpenClose, setCoverSwapOpenClose] = useState(false);
   const [disableClimateOnOff, setDisableClimateOnOff] = useState(false);
+  const [disableClimateFanControl, setDisableClimateFanControl] =
+    useState(false);
   const composedKeyRef = useRef(0);
   const [composedEntities, setComposedEntities] = useState<
     (ComposedSubEntity & { _key: number })[]
@@ -133,6 +135,9 @@ export function EntityMappingDialog({
       setValetudoIdentifier(currentMapping?.valetudoIdentifier || "");
       setCoverSwapOpenClose(currentMapping?.coverSwapOpenClose || false);
       setDisableClimateOnOff(currentMapping?.disableClimateOnOff || false);
+      setDisableClimateFanControl(
+        currentMapping?.disableClimateFanControl || false,
+      );
       composedKeyRef.current = 0;
       setComposedEntities(
         (currentMapping?.composedEntities || []).map((e) => ({
@@ -218,6 +223,7 @@ export function EntityMappingDialog({
       valetudoIdentifier: valetudoIdentifier.trim() || undefined,
       coverSwapOpenClose: coverSwapOpenClose || undefined,
       disableClimateOnOff: disableClimateOnOff || undefined,
+      disableClimateFanControl: disableClimateFanControl || undefined,
       composedEntities:
         composedEntities.filter((e) => e.entityId?.trim()).length > 0
           ? composedEntities
@@ -251,6 +257,7 @@ export function EntityMappingDialog({
     valetudoIdentifier,
     coverSwapOpenClose,
     disableClimateOnOff,
+    disableClimateFanControl,
     composedEntities,
     onSave,
   ]);
@@ -792,16 +799,30 @@ export function EntityMappingDialog({
         )}
 
         {showClimateOnOffField && (
-          <FormControlLabel
-            control={
-              <Switch
-                checked={disableClimateOnOff}
-                onChange={(e) => setDisableClimateOnOff(e.target.checked)}
-              />
-            }
-            label="Disable on/off for this climate entity (keeps the thermostat running when a room is turned off by voice)"
-            sx={{ mt: 1, display: "block" }}
-          />
+          <>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={disableClimateOnOff}
+                  onChange={(e) => setDisableClimateOnOff(e.target.checked)}
+                />
+              }
+              label="Disable on/off for this climate entity (keeps the thermostat running when a room is turned off by voice)"
+              sx={{ mt: 1, display: "block" }}
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={disableClimateFanControl}
+                  onChange={(e) =>
+                    setDisableClimateFanControl(e.target.checked)
+                  }
+                />
+              }
+              label="Expose as plain Thermostat (drop FanControl) — workaround for controllers like Aqara that don't recognise the air conditioner device type"
+              sx={{ mt: 1, display: "block" }}
+            />
+          </>
         )}
 
         <Box sx={{ mt: 2, mb: 1 }}>

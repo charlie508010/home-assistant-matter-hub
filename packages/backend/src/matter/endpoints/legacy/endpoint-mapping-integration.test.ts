@@ -527,6 +527,33 @@ describe("endpoint mapping integration", () => {
       expect(type?.behaviors).not.toHaveProperty("onOff");
     });
 
+    it("climate omits fanControl when disableClimateFanControl mapping is set", () => {
+      const entity = createEntity<ClimateDeviceAttributes>(
+        "climate.beh4c",
+        "cool",
+        {
+          hvac_modes: [ClimateHvacMode.cool, ClimateHvacMode.heat],
+          hvac_mode: ClimateHvacMode.cool,
+          hvac_action: ClimateHvacAction.cooling,
+          fan_modes: ["low", "high"],
+          fan_mode: "low",
+          supported_features:
+            ClimateDeviceFeature.TURN_ON |
+            ClimateDeviceFeature.TURN_OFF |
+            ClimateDeviceFeature.FAN_MODE,
+        },
+      );
+      const baseType = createLegacyEndpointType(entity);
+      expect(baseType?.behaviors).toHaveProperty("fanControl");
+
+      const overrideType = createLegacyEndpointType(entity, {
+        entityId: entity.entity_id,
+        disableClimateFanControl: true,
+      });
+      expect(overrideType?.behaviors).toHaveProperty("thermostat");
+      expect(overrideType?.behaviors).not.toHaveProperty("fanControl");
+    });
+
     it("cover has windowCovering behavior", () => {
       const entity = createEntity<CoverDeviceAttributes>("cover.beh5", "open", {
         supported_features: 15,

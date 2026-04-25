@@ -54,6 +54,7 @@ export function entityMappingApi(
       valetudoIdentifier: body.valetudoIdentifier,
       coverSwapOpenClose: body.coverSwapOpenClose,
       disableClimateOnOff: body.disableClimateOnOff,
+      disableClimateFanControl: body.disableClimateFanControl,
       composedEntities: body.composedEntities,
     };
 

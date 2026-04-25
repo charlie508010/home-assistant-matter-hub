@@ -28,6 +28,7 @@ export interface MappingProfileEntry {
   readonly valetudoIdentifier?: string;
   readonly coverSwapOpenClose?: boolean;
   readonly disableClimateOnOff?: boolean;
+  readonly disableClimateFanControl?: boolean;
 }
 
 export interface MappingProfile {

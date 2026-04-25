@@ -203,6 +203,14 @@ export interface EntityMappingConfig {
    */
   readonly disableClimateOnOff?: boolean;
   /**
+   * Optional: Skip the Matter FanControl cluster for this climate entity, and
+   * expose it as ThermostatDevice instead of RoomAirConditionerDevice. Use
+   * this when a controller (e.g. Aqara) does not recognise the
+   * RoomAirConditioner device type and silently drops the endpoint. Fan
+   * modes are no longer exposed over Matter, but stay controllable in HA.
+   */
+  readonly disableClimateFanControl?: boolean;
+  /**
    * Auto-populated at runtime when the vacuum supports HA 2026.3 CLEAN_AREA.
    * Maps HA areas (from the user's segment-to-area mapping in HA) to Matter
    * ServiceArea area IDs. When set, vacuum.clean_area is used instead of
@@ -249,6 +257,7 @@ export interface EntityMappingRequest {
   readonly valetudoIdentifier?: string;
   readonly coverSwapOpenClose?: boolean;
   readonly disableClimateOnOff?: boolean;
+  readonly disableClimateFanControl?: boolean;
   readonly composedEntities?: ComposedSubEntity[];
 }
 

@@ -170,10 +170,12 @@ export function ClimateDevice(
     testBit(supportedFeatures, ClimateDeviceFeature.TURN_ON) &&
     testBit(supportedFeatures, ClimateDeviceFeature.TURN_OFF) &&
     homeAssistantEntity.mapping?.disableClimateOnOff !== true;
-  const supportsFanMode = testBit(
-    supportedFeatures,
-    ClimateDeviceFeature.FAN_MODE,
-  );
+  // Per-entity opt-out: skip FanControl + RoomAirConditionerDevice and fall
+  // back to ThermostatDevice. Workaround for controllers (e.g. Aqara) that
+  // don't recognise device type 0x0072 and drop the endpoint (#318).
+  const supportsFanMode =
+    testBit(supportedFeatures, ClimateDeviceFeature.FAN_MODE) &&
+    homeAssistantEntity.mapping?.disableClimateFanControl !== true;
 
   // Extract initial thermostat state from HA entity attributes.
   // These values are passed to Matter.js during registration to prevent
