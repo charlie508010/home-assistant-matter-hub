@@ -46,7 +46,7 @@ function isMopIntensityMode(mode: number): boolean {
   return mode >= MOP_INTENSITY_MODE_BASE;
 }
 
-enum CleanType {
+export enum CleanType {
   Sweeping = 0,
   Mopping = 1,
   SweepingAndMopping = 2,
@@ -68,7 +68,7 @@ function resolveCleanTypes(cleaningModeOptions?: string[]): Set<CleanType> {
   return types;
 }
 
-function buildSupportedModes(
+export function buildSupportedModes(
   fanSpeedList?: string[],
   mopIntensityList?: string[],
   cleaningModeOptions?: string[],
@@ -145,6 +145,7 @@ const CLEANING_MODE_ALIASES: Record<CleanType, string[]> = {
     "Sweep",
     "vacuum",
     "sweeping",
+    "sweep",
   ],
   [CleanType.Mopping]: ["Mopping", "Mop", "mopping", "mop", "wet_mop"],
   [CleanType.SweepingAndMopping]: [
@@ -154,6 +155,10 @@ const CLEANING_MODE_ALIASES: Record<CleanType, string[]> = {
     "Vacuum & mop",
     "vacuum_and_mop",
     "sweeping_and_mopping",
+    "Sweep Mop",
+    "Sweep & Mop",
+    "Sweep and Mop",
+    "sweep_mop",
   ],
   [CleanType.MoppingAfterSweeping]: [
     "Mopping after sweeping",
@@ -162,6 +167,10 @@ const CLEANING_MODE_ALIASES: Record<CleanType, string[]> = {
     "Mop after vacuum",
     "vacuum_then_mop",
     "mop_after_vacuum",
+    "Sweep Before Mopping",
+    "Sweep before Mop",
+    "sweep_before_mopping",
+    "sweep_then_mop",
   ],
 };
 
@@ -346,21 +355,27 @@ function matchMopIntensityOption(
 // Helpers
 // ---------------------------------------------------------------------------
 
-function parseCleanType(modeString: string | undefined): CleanType {
+export function parseCleanType(modeString: string | undefined): CleanType {
   if (!modeString) return CleanType.Sweeping;
-  const s = modeString.toLowerCase();
+  // Normalize separators so "sweep_mop" and "Sweep Mop" parse identically.
+  const s = modeString.toLowerCase().replace(/[_-]+/g, " ");
+
   if (
-    s.includes("mopping after") ||
     s.includes("after sweeping") ||
-    s.includes("then_mop") ||
-    s.includes("then mop")
+    s.includes("after sweep") ||
+    s.includes("after vacuum") ||
+    s.includes("then mop") ||
+    s.includes("before mop")
   ) {
     return CleanType.MoppingAfterSweeping;
   }
-  if (s.includes("and") || s.includes("sweeping and mopping")) {
+
+  const mentionsSweep = s.includes("sweep") || s.includes("vacuum");
+  const mentionsMop = s.includes("mop");
+  if (mentionsSweep && mentionsMop) {
     return CleanType.SweepingAndMopping;
   }
-  if (s === "mopping" || s.includes("mop")) {
+  if (mentionsMop) {
     return CleanType.Mopping;
   }
   return CleanType.Sweeping;

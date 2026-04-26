@@ -329,8 +329,8 @@ export class BridgeRegistry {
           const options = (state.attributes as { options?: string[] })?.options;
           if (
             options?.some((o) =>
-              /^(vacuum|mop|sweep|vacuum_and_mop|vacuum_then_mop|mopping|sweeping|sweeping_and_mopping|mopping_after_sweeping)$/i.test(
-                o,
+              /^(vacuum|mop|sweep|sweep_mop|sweep_before_mopping|sweep_then_mop|vacuum_and_mop|vacuum_then_mop|mopping|sweeping|sweeping_and_mopping|mopping_after_sweeping)$/i.test(
+                o.replace(/\s+/g, "_"),
               ),
             )
           ) {
