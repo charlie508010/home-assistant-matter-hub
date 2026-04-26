@@ -37,7 +37,7 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v2.0.41 | Production-ready, recommended for most users |
+| **Stable** | `main` | v2.0.42 | Production-ready, recommended for most users |
 | **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
@@ -52,9 +52,16 @@ of port forwarding etc.
 ## 🎉 What's New
 
 <details>
-<summary><strong>📦 Stable Features (v2.0.41)</strong> - Click to expand</summary>
+<summary><strong>📦 Stable Features (v2.0.42)</strong> - Click to expand</summary>
 
-**New in v2.0.41:**
+**New in v2.0.42 (hotfix release):**
+
+- 🇯🇵 Aqara bridge registration no longer stalls — root `softwareVersionString` now matches the numeric `softwareVersion` ([#316](https://github.com/RiDDiX/home-assistant-matter-hub/issues/316))
+- ❄️ Climate `auto` mode is clamped to `heat`/`cool` on devices without an `AutoMode` base ([#319](https://github.com/RiDDiX/home-assistant-matter-hub/issues/319))
+- 🌀 Per-entity `disableClimateFanControl` mapping flag — falls back to `ThermostatDevice` when controllers like Aqara don't recognise `RoomAirConditioner` (`0x0072`) ([#318](https://github.com/RiDDiX/home-assistant-matter-hub/issues/318))
+- 🗺️ Vacuum service area `selectedAreas` is kept after dispatch instead of being cleared
+
+**Previously in v2.0.41:**
 
 | Feature | Description |
 |---------|-------------|
@@ -127,7 +134,7 @@ of port forwarding etc.
 <details>
 <summary><strong>🧪 Alpha Features (v2.1.0-alpha.x)</strong> - Click to expand</summary>
 
-**Alpha is currently level with Stable (v2.0.41).** All alpha work from the v2.1.0-alpha.601 line through v2.1.0-alpha.626 has been promoted into v2.0.41. New alpha work continues from `v2.1.0-alpha.627` onward and will appear here as development progresses.
+**Alpha is currently level with Stable (v2.0.42).** All alpha work through `v2.1.0-alpha.633` has been promoted into v2.0.42. New alpha work continues from `v2.1.0-alpha.634` onward and will appear here as development progresses.
 
 </details>
 

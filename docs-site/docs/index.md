@@ -53,9 +53,16 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 ## What's New
 
 <details>
-<summary><strong>📦 Stable (v2.0.41) - Current</strong></summary>
+<summary><strong>📦 Stable (v2.0.42) - Current</strong></summary>
 
-**New in v2.0.41:**
+**New in v2.0.42 (hotfix release):**
+
+- 🇯🇵 Aqara bridge registration no longer stalls — root `softwareVersionString` now matches the numeric `softwareVersion` ([#316](https://github.com/RiDDiX/home-assistant-matter-hub/issues/316))
+- ❄️ Climate `auto` mode is clamped to `heat`/`cool` on devices without an `AutoMode` base ([#319](https://github.com/RiDDiX/home-assistant-matter-hub/issues/319))
+- 🌀 Per-entity `disableClimateFanControl` mapping flag — falls back to `ThermostatDevice` when controllers like Aqara don't recognise `RoomAirConditioner` (`0x0072`) ([#318](https://github.com/RiDDiX/home-assistant-matter-hub/issues/318))
+- 🗺️ Vacuum service area `selectedAreas` is kept after dispatch instead of being cleared
+
+**Previously in v2.0.41:**
 
 | Feature | Description |
 |---------|-------------|
@@ -128,7 +135,7 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 <details>
 <summary><strong>🧪 Alpha (v2.1.0-alpha.x)</strong></summary>
 
-**Alpha is currently level with Stable (v2.0.41).** All alpha work from the v2.1.0-alpha.601 line through v2.1.0-alpha.626 has been promoted into v2.0.41. New alpha work continues from `v2.1.0-alpha.627` onward and will appear here as development progresses. See the [Alpha Features Guide](./guides/alpha-features.md) for installation instructions.
+**Alpha is currently level with Stable (v2.0.42).** All alpha work through `v2.1.0-alpha.633` has been promoted into v2.0.42. New alpha work continues from `v2.1.0-alpha.634` onward and will appear here as development progresses. See the [Alpha Features Guide](./guides/alpha-features.md) for installation instructions.
 
 </details>
 
