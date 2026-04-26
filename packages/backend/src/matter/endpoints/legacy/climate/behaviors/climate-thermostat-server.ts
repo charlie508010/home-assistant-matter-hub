@@ -169,9 +169,21 @@ const config: ThermostatServerConfig = {
 
       // Device exposes Matter AutoMode via heat_cool or HA auto alongside
       // explicit heat/cool: keep SystemMode.Auto so Apple shows Auto (#309).
+      // Must mirror the autoMode flag in climate/index.ts: AutoMode requires
+      // BOTH heating and cooling capability, otherwise the underlying base
+      // is HeatingOnly / CoolingOnly and Matter rejects Auto on conformance
+      // (#319).
+      const hasCoolCapability =
+        modes.includes(ClimateHvacMode.cool) ||
+        modes.includes(ClimateHvacMode.heat_cool);
+      const hasHeatCapability =
+        modes.includes(ClimateHvacMode.heat) ||
+        modes.includes(ClimateHvacMode.heat_cool);
       const hasMatterAuto =
-        modes.includes(ClimateHvacMode.heat_cool) ||
-        modes.includes(ClimateHvacMode.auto);
+        (modes.includes(ClimateHvacMode.heat_cool) ||
+          modes.includes(ClimateHvacMode.auto)) &&
+        hasCoolCapability &&
+        hasHeatCapability;
       if (hasMatterAuto) {
         return systemMode;
       }

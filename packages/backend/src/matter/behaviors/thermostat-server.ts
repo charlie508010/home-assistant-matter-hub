@@ -704,8 +704,12 @@ export class ThermostatServerBase extends FullFeaturedBase {
   }
 
   private getSystemMode(entity: HomeAssistantEntityInformation) {
-    // SystemMode.Auto works without the AutoMode feature — Matter.js validates it
-    // only against controlSequenceOfOperation, not feature flags. See file header comment.
+    // Config callbacks must only return SystemMode values whose Matter
+    // conformance matches this base's feature set. SystemMode.Auto in
+    // particular requires AutoMode (see thermostat cluster element
+    // SystemMode.Auto conformance="AUTO"); on a heating-only / cooling-only
+    // base, returning Auto throws ConformanceError and the endpoint init
+    // rolls back (#319).
     return this.state.config.getSystemMode(entity.state, this.agent);
   }
 
