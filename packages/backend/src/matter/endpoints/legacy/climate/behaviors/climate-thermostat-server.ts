@@ -8,6 +8,7 @@ import {
 import type { Agent } from "@matter/main";
 import { Thermostat } from "@matter/main/clusters";
 import { HomeAssistantConfig } from "../../../../../services/home-assistant/home-assistant-config.js";
+import { snapToStep } from "../../../../../utils/converters/snap-to-step.js";
 import { Temperature } from "../../../../../utils/converters/temperature.js";
 import { testBit } from "../../../../../utils/test-bit.js";
 import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistant-entity-behavior.js";
@@ -36,6 +37,23 @@ const getTemp = (
   if (temperature != null) {
     return Temperature.withUnit(+temperature, unit);
   }
+};
+
+const getStep = (entity: HomeAssistantEntityState): number | undefined => {
+  const raw = attributes(entity).target_temp_step;
+  if (raw == null) return undefined;
+  const num = typeof raw === "string" ? parseFloat(raw) : raw;
+  return Number.isFinite(num) && num > 0 ? num : undefined;
+};
+
+const getRefTemp = (
+  entity: HomeAssistantEntityState,
+  attr: keyof ClimateDeviceAttributes,
+): number | undefined => {
+  const raw = attributes(entity)[attr];
+  if (raw == null) return undefined;
+  const num = typeof raw === "string" ? parseFloat(raw) : (raw as number);
+  return Number.isFinite(num) ? num : undefined;
 };
 
 const systemModeToHvacMode: Record<Thermostat.SystemMode, ClimateHvacMode> = {
@@ -298,19 +316,43 @@ const config: ThermostatServerConfig = {
       data: { hvac_mode: targetMode },
     };
   },
-  setTargetTemperature: (value, agent) => ({
-    action: "climate.set_temperature",
-    data: {
-      temperature: value.toUnit(getUnit(agent)),
-    },
-  }),
-  setTargetTemperatureRange: ({ low, high }, agent) => ({
-    action: "climate.set_temperature",
-    data: {
-      target_temp_low: low.toUnit(getUnit(agent)),
-      target_temp_high: high.toUnit(getUnit(agent)),
-    },
-  }),
+  setTargetTemperature: (value, agent) => {
+    const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+    const entity = homeAssistant.entity.state;
+    const unit = getUnit(agent);
+    const target = value.toUnit(unit);
+    const step = getStep(entity);
+    const current =
+      getRefTemp(entity, "temperature") ??
+      getRefTemp(entity, "target_temperature");
+    return {
+      action: "climate.set_temperature",
+      data: {
+        temperature: snapToStep(target, current, step),
+      },
+    };
+  },
+  setTargetTemperatureRange: ({ low, high }, agent) => {
+    const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+    const entity = homeAssistant.entity.state;
+    const unit = getUnit(agent);
+    const step = getStep(entity);
+    const lowTarget = low.toUnit(unit);
+    const highTarget = high.toUnit(unit);
+    const lowCurrent =
+      getRefTemp(entity, "target_temp_low") ??
+      getRefTemp(entity, "temperature");
+    const highCurrent =
+      getRefTemp(entity, "target_temp_high") ??
+      getRefTemp(entity, "temperature");
+    return {
+      action: "climate.set_temperature",
+      data: {
+        target_temp_low: snapToStep(lowTarget, lowCurrent, step),
+        target_temp_high: snapToStep(highTarget, highCurrent, step),
+      },
+    };
+  },
 };
 /**
  * Creates a ClimateThermostatServer with the specified initial state.
