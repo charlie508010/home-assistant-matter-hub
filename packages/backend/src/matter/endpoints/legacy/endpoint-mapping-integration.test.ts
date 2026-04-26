@@ -234,6 +234,19 @@ describe("endpoint mapping integration", () => {
           hvac_action: ClimateHvacAction.idle,
         }),
       ],
+      [
+        "climate (auto+heat+cool)",
+        createEntity<ClimateDeviceAttributes>("climate.cl4", "auto", {
+          hvac_modes: [
+            ClimateHvacMode.auto,
+            ClimateHvacMode.heat,
+            ClimateHvacMode.cool,
+            ClimateHvacMode.off,
+          ],
+          hvac_mode: ClimateHvacMode.auto,
+          hvac_action: ClimateHvacAction.cooling,
+        }),
+      ],
       ["automation", createEntity("automation.auto1", "on")],
       ["script", createEntity("script.scr1", "off")],
       ["scene", createEntity("scene.sc1", "on")],

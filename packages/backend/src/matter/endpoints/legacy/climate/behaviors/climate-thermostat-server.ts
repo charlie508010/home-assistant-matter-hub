@@ -167,23 +167,16 @@ const config: ThermostatServerConfig = {
           : Thermostat.SystemMode.Heat;
       }
 
-      // Device exposes Matter AutoMode via heat_cool or HA auto alongside
-      // explicit heat/cool: keep SystemMode.Auto so Apple shows Auto (#309).
-      // Must mirror the autoMode flag in climate/index.ts: AutoMode requires
-      // BOTH heating and cooling capability, otherwise the underlying base
-      // is HeatingOnly / CoolingOnly and Matter rejects Auto on conformance
-      // (#319).
-      const hasCoolCapability =
-        modes.includes(ClimateHvacMode.cool) ||
-        modes.includes(ClimateHvacMode.heat_cool);
-      const hasHeatCapability =
-        modes.includes(ClimateHvacMode.heat) ||
-        modes.includes(ClimateHvacMode.heat_cool);
+      // Mirror the autoMode flag in climate/index.ts: AutoMode is only safe
+      // when HA exposes heat_cool (dual setpoint) alongside explicit heat or
+      // cool. HA-auto-only devices fall through to dynamic Cool/Heat below
+      // because Apple Home's Auto tile doesn't write SystemMode.Auto for them
+      // (#309). #319: returning Auto on a non-AutoMode base throws
+      // ConformanceError, so the heat_cool guard also keeps us conformant.
       const hasMatterAuto =
-        (modes.includes(ClimateHvacMode.heat_cool) ||
-          modes.includes(ClimateHvacMode.auto)) &&
-        hasCoolCapability &&
-        hasHeatCapability;
+        modes.includes(ClimateHvacMode.heat_cool) &&
+        (modes.includes(ClimateHvacMode.heat) ||
+          modes.includes(ClimateHvacMode.cool));
       if (hasMatterAuto) {
         return systemMode;
       }
@@ -199,10 +192,21 @@ const config: ThermostatServerConfig = {
       if (hasCooling && !hasHeating) {
         return Thermostat.SystemMode.Cool;
       }
-      // Both heat and cool but no heat_cool: use hvac_action to decide
+      // Both heat and cool but no heat_cool: prefer hvac_action, fall back
+      // to comparing current_temperature with the target so Apple Home shows
+      // the right direction even when the integration omits hvac_action.
       const action = attributes(entity).hvac_action;
       if (action === ClimateHvacAction.cooling) {
         return Thermostat.SystemMode.Cool;
+      }
+      if (action === ClimateHvacAction.heating) {
+        return Thermostat.SystemMode.Heat;
+      }
+      const current = attributes(entity).current_temperature;
+      const target = attributes(entity).temperature;
+      if (typeof current === "number" && typeof target === "number") {
+        if (current > target) return Thermostat.SystemMode.Cool;
+        if (current < target) return Thermostat.SystemMode.Heat;
       }
       return Thermostat.SystemMode.Heat;
     }
