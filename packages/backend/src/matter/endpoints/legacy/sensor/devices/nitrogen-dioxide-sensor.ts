@@ -34,7 +34,7 @@ class No2AirQualityServer extends No2AirQualityServerBase {
 
     if (state != null && !Number.isNaN(+state)) {
       const ugm3 = +state;
-      // NO₂ in µg/m³ — thresholds based on WHO air quality guidelines (2021).
+      // NO₂ in µg/m³, thresholds based on WHO air quality guidelines (2021).
       if (ugm3 <= 25) {
         airQuality = AirQuality.AirQualityEnum.Good;
       } else if (ugm3 <= 50) {

@@ -31,7 +31,7 @@ curl -X POST http://localhost:8482/api/plugins/install-local \
   -d '{"path": "/path/to/your/plugin"}'
 ```
 
-This creates a symlink, so changes to your plugin source apply on bridge restart. Note that locally linked plugins are not added to the internal `package.json` dependencies — they rely on the symlink persisting. This method is intended for development only.
+This creates a symlink, so changes to your plugin source apply on bridge restart. Note that locally linked plugins are not added to the internal `package.json` dependencies, they rely on the symlink persisting. This method is intended for development only.
 
 ## Writing a Plugin
 
@@ -100,13 +100,13 @@ export default class MyPlugin {
 
 The `context` object passed to `onStart` provides:
 
-- **`registerDevice(device)`** — Register a Matter device on the bridge
-- **`unregisterDevice(deviceId)`** — Remove a previously registered device
-- **`updateDeviceState(deviceId, clusterId, attributes)`** — Push attribute updates to a device
-- **`registerDomainMapping(mapping)`** — Map an HA domain to a Matter device type (see [Domain Mappings](#domain-mappings))
-- **`storage`** — Persistent key-value store (survives restarts)
-- **`log`** — Scoped logger (`info`, `warn`, `error`, `debug`)
-- **`bridgeId`** — ID of the bridge this plugin is attached to
+- **`registerDevice(device)`**, Register a Matter device on the bridge
+- **`unregisterDevice(deviceId)`**, Remove a previously registered device
+- **`updateDeviceState(deviceId, clusterId, attributes)`**, Push attribute updates to a device
+- **`registerDomainMapping(mapping)`**, Map an HA domain to a Matter device type (see [Domain Mappings](#domain-mappings))
+- **`storage`**, Persistent key-value store (survives restarts)
+- **`log`**, Scoped logger (`info`, `warn`, `error`, `debug`)
+- **`bridgeId`**, ID of the bridge this plugin is attached to
 
 ### Supported Device Types
 
@@ -219,7 +219,7 @@ async onStart(context) {
 }
 ```
 
-The `matterDeviceType` must be one of the [Supported Device Types](#supported-device-types). Plugin domain mappings are checked after user-configured overrides but before the built-in domain table — they only apply to domains that HAMH does not already handle.
+The `matterDeviceType` must be one of the [Supported Device Types](#supported-device-types). Plugin domain mappings are checked after user-configured overrides but before the built-in domain table, they only apply to domains that HAMH does not already handle.
 
 If multiple plugins register the same domain, the last one wins (a warning is logged).
 
@@ -250,11 +250,11 @@ The bridge continues running even if a plugin fails. See `examples/hamh-plugin-b
 
 | Problem | Solution |
 |---------|----------|
-| Plugin not loading after install | Restart the bridge — plugins load on startup |
+| Plugin not loading after install | Restart the bridge, plugins load on startup |
 | "Circuit breaker tripped" | Check logs for the error, fix the issue, then click Reset |
 | Device not appearing in controller | Verify `deviceType` is in the supported list above |
 | Attribute updates ignored | Ensure `clusterId` matches a behavior key (e.g., `onOff`, not `OnOff`) |
-| Plugin crashes on start | Check that `onStart` doesn't throw — wrap risky code in try/catch |
+| Plugin crashes on start | Check that `onStart` doesn't throw, wrap risky code in try/catch |
 
 ## API Reference
 

@@ -1,5 +1,5 @@
 /**
- * Example HAMH Plugin — Virtual Temperature Sensor
+ * Example HAMH Plugin, Virtual Temperature Sensor
  *
  * Registers a virtual temperature sensor on the bridge and simulates
  * periodic temperature changes. Use as a starting point for your own plugins.
@@ -45,7 +45,7 @@ export default class ExamplePlugin {
 
     // Simulate temperature changes every 30 seconds
     this.#interval = setInterval(() => {
-      const temp = 2000 + Math.round(Math.random() * 500); // 20.00–25.00 °C
+      const temp = 2000 + Math.round(Math.random() * 500); // 20.00-25.00 °C
       context.updateDeviceState("example-temp-1", "temperatureMeasurement", {
         measuredValue: temp,
       });

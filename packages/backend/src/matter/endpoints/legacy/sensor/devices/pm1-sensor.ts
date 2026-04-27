@@ -34,7 +34,7 @@ class Pm1AirQualityServer extends Pm1AirQualityServerBase {
 
     if (state != null && !Number.isNaN(+state)) {
       const ugm3 = +state;
-      // PM1 in µg/m³ — thresholds based on WHO air quality guidelines (2021).
+      // PM1 in µg/m³, thresholds based on WHO air quality guidelines (2021).
       // WHO recommends annual mean ≤5 µg/m³ for PM2.5; PM1 has no separate
       // guideline, so we use slightly tighter thresholds than PM2.5.
       if (ugm3 <= 10) {

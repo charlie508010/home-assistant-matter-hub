@@ -102,7 +102,7 @@ class OnOffServerBase extends Base {
     applyPatchState(this.state, { onOff: true });
     if (!action) {
       // Callback explicitly returned undefined = skip HA action
-      // (e.g., climate already on — no need to send turn_on)
+      // (e.g., climate already on, no need to send turn_on)
       return;
     }
     logger.info(`[${homeAssistant.entityId}] Turning ON -> ${action.action}`);

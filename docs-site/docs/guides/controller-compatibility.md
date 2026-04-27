@@ -60,11 +60,11 @@ Rows flagged with a footnote number link to the vendor source that establishes t
 
 Footnote references for the ✅ / ❌ cells above:
 
-1. Google Home — [Supported devices](https://developers.home.google.com/matter/supported-devices) (doc dated 2024-12-20). Rows marked ❌ for Google are device types not listed on that page. The Google doc is roughly 16 months old; a cell not listed may just mean "not yet documented".
-2. Amazon Alexa — [Supported Matter Device Categories and Clusters](https://developer.amazon.com/en-US/docs/alexa/smarthome/supported-matter-device-categories.html) (doc dated 2026-04-08). Rows marked ❌ for Alexa are device types absent from that page.
-3. Apple Home — [Use Matter accessories with the Home app](https://support.apple.com/en-us/102135) (doc dated 2025-12-12) plus iOS 18.4 release coverage for robot vacuum support. Apple's public doc does not list dishwashers as a supported category.
+1. Google Home, [Supported devices](https://developers.home.google.com/matter/supported-devices) (doc dated 2024-12-20). Rows marked ❌ for Google are device types not listed on that page. The Google doc is roughly 16 months old; a cell not listed may just mean "not yet documented".
+2. Amazon Alexa, [Supported Matter Device Categories and Clusters](https://developer.amazon.com/en-US/docs/alexa/smarthome/supported-matter-device-categories.html) (doc dated 2026-04-08). Rows marked ❌ for Alexa are device types absent from that page.
+3. Apple Home, [Use Matter accessories with the Home app](https://support.apple.com/en-us/102135) (doc dated 2025-12-12) plus iOS 18.4 release coverage for robot vacuum support. Apple's public doc does not list dishwashers as a supported category.
 
-Apple, Google, Alexa, and SmartThings each move at a different cadence. A ❌ here means the vendor has not published support on their current device-type page — not that the device is known to fail. When a vendor adds the category we flip the cell and cite the update.
+Apple, Google, Alexa, and SmartThings each move at a different cadence. A ❌ here means the vendor has not published support on their current device-type page, not that the device is known to fail. When a vendor adds the category we flip the cell and cite the update.
 
 ## Controller Profiles
 

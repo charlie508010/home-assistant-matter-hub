@@ -31,7 +31,7 @@ import { SessionManager } from "@matter/main/protocol";
 import { describe, expect, it } from "vitest";
 
 describe("matter.js API regression", () => {
-  describe("MutableEndpoint.with() — behavior composition", () => {
+  describe("MutableEndpoint.with(), behavior composition", () => {
     it("should compose OnOffLightDevice with IdentifyServer", () => {
       const Composed = OnOffLightDevice.with(IdentifyServer);
       expect(Composed).toBeDefined();
@@ -64,7 +64,7 @@ describe("matter.js API regression", () => {
     });
   });
 
-  describe("Device type exports — all HAMH-used types exist", () => {
+  describe("Device type exports, all HAMH-used types exist", () => {
     it("should export OnOffLightDevice", () => {
       expect(OnOffLightDevice).toBeDefined();
       expect(OnOffLightDevice.deviceType).toBeDefined();
@@ -99,7 +99,7 @@ describe("matter.js API regression", () => {
     });
   });
 
-  describe("SessionManager — session diagnostics API", () => {
+  describe("SessionManager, session diagnostics API", () => {
     it("should be importable from @matter/main", () => {
       expect(SessionManager).toBeDefined();
     });
@@ -114,7 +114,7 @@ describe("matter.js API regression", () => {
     });
   });
 
-  describe("Endpoint — core API", () => {
+  describe("Endpoint, core API", () => {
     it("should export Endpoint class from @matter/main", () => {
       expect(Endpoint).toBeDefined();
     });
@@ -124,7 +124,7 @@ describe("matter.js API regression", () => {
     });
   });
 
-  describe("ServerNode — bridge lifecycle", () => {
+  describe("ServerNode, bridge lifecycle", () => {
     it("should export ServerNode from @matter/main", () => {
       expect(ServerNode).toBeDefined();
     });
@@ -134,7 +134,7 @@ describe("matter.js API regression", () => {
     });
   });
 
-  describe("Environment — service container", () => {
+  describe("Environment, service container", () => {
     it("should export Environment from @matter/general", () => {
       expect(Environment).toBeDefined();
     });
@@ -144,7 +144,7 @@ describe("matter.js API regression", () => {
     });
   });
 
-  describe("Logger — logging API", () => {
+  describe("Logger, logging API", () => {
     it("should export Logger from @matter/general", () => {
       expect(Logger).toBeDefined();
     });

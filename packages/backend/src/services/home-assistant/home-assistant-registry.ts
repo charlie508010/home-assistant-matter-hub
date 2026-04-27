@@ -82,7 +82,7 @@ export class HomeAssistantRegistry extends Service {
       if (refreshing) {
         // Previous tick is still mid-retry (HA slow / reconnecting).
         // Skip this tick so reloads don't stack and overwrite each other.
-        logger.debug("Skipping registry refresh — previous tick still running");
+        logger.debug("Skipping registry refresh, previous tick still running");
         return;
       }
       refreshing = true;
@@ -148,7 +148,7 @@ export class HomeAssistantRegistry extends Service {
     }
 
     // Fire the five HA queries in parallel. Label and area registries aren't
-    // guaranteed on older HA versions — catch and fall back to empty arrays
+    // guaranteed on older HA versions, catch and fall back to empty arrays
     // without failing the whole reload.
     const [entityRegistry, statesList, deviceRegistry, labels, areas] =
       await Promise.all([
@@ -192,7 +192,7 @@ export class HomeAssistantRegistry extends Service {
     }
     this.lastRegistryFingerprint = fingerprint;
 
-    // Structure changed — full rebuild
+    // Structure changed, full rebuild
     entityRegistry.forEach((e) => {
       e.device_id = e.device_id ?? mockDeviceId(e.entity_id);
     });

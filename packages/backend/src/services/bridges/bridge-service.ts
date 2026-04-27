@@ -133,7 +133,7 @@ export class BridgeService extends Service {
   }
 
   async stopAll() {
-    // Stop all bridges in parallel — stops are independent and a multi-bridge
+    // Stop all bridges in parallel, stops are independent and a multi-bridge
     // shutdown should not wait for each one serially.
     await Promise.all(
       this.bridges.map(async (bridge) => {

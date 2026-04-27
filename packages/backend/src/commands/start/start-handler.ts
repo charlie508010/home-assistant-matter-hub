@@ -79,7 +79,7 @@ process.on("unhandledRejection", (reason) => {
 // Matter.js registers its own handlers that call process.exit(1), so we need to be last
 function registerFinalErrorHandlers() {
   // Drop every existing listener and re-attach ours so the suppression
-  // logic sits at the end of the chain — matter.js hooks its own handlers
+  // logic sits at the end of the chain, matter.js hooks its own handlers
   // that would otherwise call process.exit(1) before we get a look in.
   process.removeAllListeners("uncaughtException");
   process.removeAllListeners("unhandledRejection");
@@ -110,7 +110,7 @@ function registerFinalErrorHandlers() {
       console.warn("Suppressed Matter.js internal error:", reason);
       return;
     }
-    // Log but don't crash — unhandled rejections are non-fatal async failures.
+    // Log but don't crash, unhandled rejections are non-fatal async failures.
     // Plugins may emit fire-and-forget promises that escape SafePluginRunner.
     console.error("Unhandled rejection (process continuing):", reason);
   });

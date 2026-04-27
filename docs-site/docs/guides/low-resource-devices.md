@@ -21,7 +21,7 @@ Since v2.0.25, HAMH automatically sizes the Node.js heap to **25% of available s
 Memory: total=4096MB, available=3200MB, cgroup=noneMB -> heap: 800MB
 ```
 
-On a 2 GB system this gives ~512 MB of heap — tight for large bridge configurations.
+On a 2 GB system this gives ~512 MB of heap, tight for large bridge configurations.
 
 ## Recommended Configuration by RAM
 
@@ -62,7 +62,7 @@ These add-ons can consume significant RAM alongside HAMH:
 
 If the automatic 25% calculation is too low or too high, override it:
 
-**Home Assistant Add-on:** Not directly configurable — the entrypoint script sets it automatically.
+**Home Assistant Add-on:** Not directly configurable, the entrypoint script sets it automatically.
 
 **Standalone Docker:**
 

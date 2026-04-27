@@ -32,7 +32,7 @@ const FeaturedBase = Base.with(
   "Rocking",
   "Wind",
 ).set({
-  // rockSupport / windSupport are Fixed quality attributes — they MUST be set
+  // rockSupport / windSupport are Fixed quality attributes, they MUST be set
   // via .set() at behavior creation time, NOT in initialize().
   // Without these, controllers reject attempts to enable rocking/wind.
   rockSupport: { rockUpDown: true },
@@ -319,7 +319,7 @@ export class FanControlServerBase extends FeaturedBase {
     }
     // When a controller writes percentSetting, matter.js auto-derives
     // speedSetting. If the derivation floors to 0 while percentSetting is
-    // still non-zero, skip — the percentSetting handler already applied the
+    // still non-zero, skip, the percentSetting handler already applied the
     // correct rounded action (#275).
     if (speed === 0 && (this.state.percentSetting ?? 0) > 0) {
       return;
@@ -520,7 +520,7 @@ export class FanControlServerBase extends FeaturedBase {
       // Use asLocalActor so the percentSetting change is treated as offline.
       // Without this, targetPercentSettingChanged fires and sends a second
       // fan.turn_on(percentage), overriding the no-param fan.turn_on from
-      // OnOffServer.on() — which causes Auto→Manual mode regression (#219).
+      // OnOffServer.on(), which causes Auto→Manual mode regression (#219).
       this.agent.asLocalActor(() => {
         try {
           applyPatchState(this.state, {
@@ -530,7 +530,7 @@ export class FanControlServerBase extends FeaturedBase {
               : {}),
           });
         } catch {
-          // Transaction conflict — HA state update will set correct values
+          // Transaction conflict, HA state update will set correct values
         }
       });
       // Also tell HA to turn on at the remembered speed so the fan doesn't

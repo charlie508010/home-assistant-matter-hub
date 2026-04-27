@@ -14,8 +14,8 @@ Alexa, follow this guide to address common problems.
 
 Matter requires IPv6 for device discovery and communication. There are two types of IPv6 addresses relevant here:
 
-- **Link-local** (`fe80::/64`) — Auto-assigned on every interface. **Cannot be routed across VLANs or subnets.** Only works when all devices are on the same Layer 2 segment.
-- **ULA (Unique Local Address)** (`fd00::/8`) — Routable across VLANs within your local network. This is what you need if your Home Assistant and IoT devices are on different VLANs.
+- **Link-local** (`fe80::/64`), Auto-assigned on every interface. **Cannot be routed across VLANs or subnets.** Only works when all devices are on the same Layer 2 segment.
+- **ULA (Unique Local Address)** (`fd00::/8`), Routable across VLANs within your local network. This is what you need if your Home Assistant and IoT devices are on different VLANs.
 
 If you run a VLAN setup (e.g. Home Assistant in a "Server" VLAN and IoT devices in an "IoT" VLAN), **you must configure ULA IPv6 addresses** on your router. Link-local alone will not work across VLANs.
 
@@ -63,7 +63,7 @@ For this reason, it is recommended to disable it on networking devices such as s
 
 ## 2. Network Equipment Blocking mDNS/Multicast
 
-Many routers, access points, and managed switches have features that **filter, throttle, or block multicast traffic by default** — which silently breaks Matter communication. This is one of the most common causes of intermittent "No Response" or connection drops.
+Many routers, access points, and managed switches have features that **filter, throttle, or block multicast traffic by default**, which silently breaks Matter communication. This is one of the most common causes of intermittent "No Response" or connection drops.
 
 > **💡 Community finding:** This was confirmed through systematic testing by [@omerfaruk-aran](https://github.com/omerfaruk-aran) in [#129](https://github.com/RiDDiX/home-assistant-matter-hub/issues/129). The issue was traced to a TP-Link Archer AX50 (in AP mode) blocking mDNS/Bonjour traffic over time, causing Apple Home to lose reachability while Alexa continued to work fine.
 
@@ -105,8 +105,8 @@ If your host has multiple network interfaces (e.g., `eth0`, `wlan0`, Docker brid
 ```
 
 Common interface names:
-- `eth0`, `end0`, `enp0s18` — Wired Ethernet
-- `wlan0` — Wi-Fi
+- `eth0`, `end0`, `enp0s18`, Wired Ethernet
+- `wlan0`, Wi-Fi
 - Check with `ip addr` or `ifconfig` on your host
 
 ### Network Topology Best Practices
@@ -114,15 +114,15 @@ Common interface names:
 - **Keep the path simple**: Avoid placing access points or managed switches between your Matter bridge (Home Assistant) and your Home Hub (HomePod/Apple TV)
 - **Use wired connections** where possible for Home Hubs and the Home Assistant host
 - **Same subnet**: All Matter devices, controllers, and the bridge **must** be on the same Layer 2 network / subnet
-- **IPv6 enabled**: Matter requires IPv6 — do not disable it. For VLAN setups, configure **ULA addresses** (`fd00::/8`), not just link-local (`fe80::`). See [IPv6 section](#ipv6) above.
+- **IPv6 enabled**: Matter requires IPv6, do not disable it. For VLAN setups, configure **ULA addresses** (`fd00::/8`), not just link-local (`fe80::`). See [IPv6 section](#ipv6) above.
 
 ## 3. Ecosystem and Device Compatibility / Requirements
 
 ### Apple Home
 
 - **Home Hub Required**: Apple Home requires a **HomePod** (mini) or **Apple TV** as a Home Hub to maintain persistent Matter connections. Without a hub, the iPhone only maintains the connection while the Home app is active.
-- **"No Response" after adding a Home Hub**: If devices become unresponsive after adding a HomePod or Apple TV, this is almost always a network issue — see [Section 2](#2-network-equipment-blocking-mdnsmulticast) above.
-- **"Updating" status for Robot Vacuums**: Apple Home requires robot vacuums to be exposed as standalone devices, not bridged. Enable **Server Mode** — see [Robot Vacuum Documentation](../devices/robot-vacuum.md).
+- **"No Response" after adding a Home Hub**: If devices become unresponsive after adding a HomePod or Apple TV, this is almost always a network issue, see [Section 2](#2-network-equipment-blocking-mdnsmulticast) above.
+- **"Updating" status for Robot Vacuums**: Apple Home requires robot vacuums to be exposed as standalone devices, not bridged. Enable **Server Mode**, see [Robot Vacuum Documentation](../devices/robot-vacuum.md).
 - **Phone reboot as a quick fix**: If Apple Home shows "No Response" but Alexa works fine, rebooting your iPhone/iPad can force Apple Home to re-establish subscriptions as a temporary workaround.
 - **Apple TV vs. HomePod mini**: Apple TV (4K) generally handles larger bridges better than HomePod mini due to more CPU/RAM. If you have many devices, prefer Apple TV as your primary Home Hub.
 

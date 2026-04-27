@@ -86,7 +86,7 @@ class RvcOperationalStateServerBase extends Base {
     // subscription report even during steady-state (same operationalState).
     //
     // Why not a toggling boolean/nonce? matter.js behavior reactors run on
-    // transient proxy instances — private instance properties reset to their
+    // transient proxy instances, private instance properties reset to their
     // initial value on every invocation, so a toggle never actually flips.
     const operationalError = {
       errorStateId,

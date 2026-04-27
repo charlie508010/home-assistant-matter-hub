@@ -91,7 +91,7 @@ export class ServerModeServerNode extends ServerNode {
   /**
    * Update root-level BasicInformation with entity-specific data.
    * In server mode, controllers (Apple Home, Alexa) read the root node's
-   * BasicInformation — not the device endpoint's BridgedDeviceBasicInformation.
+   * BasicInformation, not the device endpoint's BridgedDeviceBasicInformation.
    * Without this, server-mode devices show bridge defaults (e.g. "riddix" / "MatterHub").
    */
   async updateDeviceIdentity(

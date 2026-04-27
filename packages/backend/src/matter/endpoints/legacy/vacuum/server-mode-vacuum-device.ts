@@ -86,10 +86,10 @@ export function ServerModeVacuumDevice(
     device = device.with(VacuumOnOffServer);
   }
 
-  // PowerSource — adds device type 0x0011 to the descriptor alongside 0x0074.
+  // PowerSource, adds device type 0x0011 to the descriptor alongside 0x0074.
   device = device.with(VacuumPowerSourceServer);
 
-  // ServiceArea — included when rooms/custom areas are configured.
+  // ServiceArea, included when rooms/custom areas are configured.
   const roomEntities = homeAssistantEntity.mapping?.roomEntities;
   const rooms = parseVacuumRooms(attributes);
   if (cleanAreaRooms && cleanAreaRooms.length > 0) {
@@ -104,7 +104,7 @@ export function ServerModeVacuumDevice(
     device = device.with(createDefaultServiceAreaServer());
   }
 
-  // RvcCleanMode — always included.
+  // RvcCleanMode, always included.
   // Alexa probes for cluster 0x55 during discovery and may refuse the device without it.
   const fanSpeedList = resolveFanSpeedList(
     attributes,

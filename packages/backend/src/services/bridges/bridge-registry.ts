@@ -146,7 +146,7 @@ export class BridgeRegistry {
    * Check if auto composed devices mode is enabled.
    * When enabled, temperature sensors with auto-mapped humidity/pressure/battery
    * build real Matter Composed Devices (BridgedNodeEndpoint with sub-endpoints)
-   * rather than stacking extra clusters onto a flat TemperatureSensor —
+   * rather than stacking extra clusters onto a flat TemperatureSensor.
    * Apple Home, Google Home, and Alexa render each sub-endpoint using its
    * own device type.
    */
@@ -560,7 +560,7 @@ export class BridgeRegistry {
         const segments = areaMapping[haAreaId];
         if (!segments || segments.length === 0) {
           BridgeRegistry.cleanAreaLogger.debug(
-            `${entityId}: Skipping HA area ${haAreaId} — no segments mapped`,
+            `${entityId}: Skipping HA area ${haAreaId}, no segments mapped`,
           );
           continue;
         }
@@ -571,7 +571,7 @@ export class BridgeRegistry {
         ) {
           const areaName = this.registry.areas.get(haAreaId) ?? haAreaId;
           BridgeRegistry.cleanAreaLogger.info(
-            `${entityId}: Skipping stale HA area "${areaName}" (${haAreaId}) — segments [${segments.join(", ")}] no longer exist on vacuum`,
+            `${entityId}: Skipping stale HA area "${areaName}" (${haAreaId}), segments [${segments.join(", ")}] no longer exist on vacuum`,
           );
           continue;
         }

@@ -12,7 +12,7 @@ The thermostat type is automatically selected based on which HVAC modes your dev
 | `cool` only | Cooling | Cool-only ACs |
 | `heat` + `cool` (no `heat_cool`) | Heating + Cooling | Dual-mode without auto switching. Apple Home won't show Auto button. |
 | `heat_cool` present | Heating + Cooling + AutoMode | Full HVAC with dual setpoints |
-| `heat_cool` only (no explicit `heat`/`cool`) | Heating + Cooling | Zoned ACs — `controlSequenceOfOperation` switches dynamically based on `hvac_action` |
+| `heat_cool` only (no explicit `heat`/`cool`) | Heating + Cooling | Zoned ACs, `controlSequenceOfOperation` switches dynamically based on `hvac_action` |
 
 ## HVAC Mode Mapping
 
@@ -65,7 +65,7 @@ This was fixed in v2.0.20. AutoMode is now only exposed when the device truly su
 
 ### Alexa rejects temperature commands
 
-Single-capability thermostats (heat-only or cool-only) had a conformance issue with `controlSequenceOfOperation` that caused Alexa to reject commands. Fixed in v2.0.27 — the sequence is now dynamically set to `CoolingOnly` or `HeatingOnly` instead of `CoolingAndHeating`.
+Single-capability thermostats (heat-only or cool-only) had a conformance issue with `controlSequenceOfOperation` that caused Alexa to reject commands. Fixed in v2.0.27, the sequence is now dynamically set to `CoolingOnly` or `HeatingOnly` instead of `CoolingAndHeating`.
 
 ### Current temperature shows wrong value
 

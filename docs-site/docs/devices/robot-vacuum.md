@@ -61,7 +61,7 @@ The RVC Clean Mode cluster allows selecting the cleaning type. This is auto-enab
 | Vacuum Then Mop | DeepClean + Vacuum + Mop | Vacuum first, then mop (Apple Home shows as "Deep Clean") |
 
 :::note
-**Fallback behavior (v2.0.26+):** If your cleaning mode entity doesn't have a dedicated "Vacuum Then Mop" option, HAMH automatically falls back to the "Vacuum & Mop" option. This means you only need `vacuum`, `mop`, and `vacuum_and_mop` in your cleaning mode entity.
+**Fallback behavior (v2.0.26+):** If your cleaning mode entity doesn't have a dedicated "Vacuum Then Mop" option, HAMH automatically falls back to the "Vacuum & Mop" option. So you only need `vacuum`, `mop`, and `vacuum_and_mop` in your cleaning mode entity.
 :::
 
 ### Auto-Detection (Dreame, Ecovacs)
@@ -237,7 +237,7 @@ Mop intensity entities are **automatically detected** for Dreame and Ecovacs vac
 
 ### Apple Home Intensity Labels
 
-Apple Home shows the same **Quiet / Automatic / Max** labels for mop intensity as it does for fan speed — this is an Apple limitation. The labels come from Matter mode tags, not from HAMH. Behind the scenes, the routing is correct:
+Apple Home shows the same **Quiet / Automatic / Max** labels for mop intensity as it does for fan speed, this is an Apple limitation. The labels come from Matter mode tags, not from HAMH. Behind the scenes, the routing is correct:
 
 | Apple Home Label | Mop Intensity Action |
 |-----------------|---------------------|
@@ -259,9 +259,9 @@ The Matter spec only allows a single `currentMode` value. When in "Vacuum & Mop"
 
 Room selection is supported through multiple mechanisms, with automatic priority:
 
-### 1. Home Assistant Area Mapping (HA 2026.3+) — Recommended
+### 1. Home Assistant Area Mapping (HA 2026.3+), Recommended
 
-Starting with Home Assistant 2026.3, vacuums that support the **Clean Area** feature can map their internal segments to your existing HA areas. When this mapping is configured in HA, HAMH automatically uses `vacuum.clean_area` for room cleaning — no vendor-specific configuration needed.
+Starting with Home Assistant 2026.3, vacuums that support the **Clean Area** feature can map their internal segments to your existing HA areas. When this mapping is configured in HA, HAMH automatically uses `vacuum.clean_area` for room cleaning, no vendor-specific configuration needed.
 
 **How it works:**
 1. Your vacuum integration reports support for `CLEAN_AREA` (supported_features flag `16384`)
@@ -316,12 +316,12 @@ rooms:
 | Integration | Rooms | Cleaning Modes | Mop Intensity | Notes |
 |-------------|-------|----------------|---------------|-------|
 | **Roborock (Official)** | Auto via CLEAN_AREA (HA 2026.3+) or `roborock.get_maps` | Via helper (see above) | `select.*_mop_intensity` | CLEAN_AREA preferred when configured |
-| **Roborock (Xiaomi Miot)** | `rooms` or `segments` attribute | — | — | Native room support |
+| **Roborock (Xiaomi Miot)** | `rooms` or `segments` attribute | - | - | Native room support |
 | **Dreame** | `rooms` attribute | Auto-detected | Auto-detected | Full auto-detection |
 | **Ecovacs** | Auto via CLEAN_AREA (HA 2026.3+) or `rooms` attribute | Via `cleaningModeEntity` | Auto-detected | CLEAN_AREA preferred when configured |
-| **Valetudo** | `segments` attribute | Auto-detected | — | Native support since v2.0.27 via `mqtt.publish` segment_cleanup ([#205](https://github.com/RiDDiX/home-assistant-matter-hub/issues/205)) |
-| **Xiaomi** | `rooms` attribute | — | — | May require custom integration |
-| **iRobot Roomba** | — | — | — | Basic start/stop, use `batteryEntity` mapping |
+| **Valetudo** | `segments` attribute | Auto-detected | - | Native support since v2.0.27 via `mqtt.publish` segment_cleanup ([#205](https://github.com/RiDDiX/home-assistant-matter-hub/issues/205)) |
+| **Xiaomi** | `rooms` attribute | - | - | May require custom integration |
+| **iRobot Roomba** | - | - | - | Basic start/stop, use `batteryEntity` mapping |
 
 ### Roborock (Official Integration)
 
@@ -367,7 +367,7 @@ Since v2.0.27, HAMH has **native Valetudo support**. Valetudo-based vacuums (Dre
 1. HAMH detects Valetudo select entities (e.g., `select.*_fan_speed`, `select.*_water_grade`) automatically
 2. Room segments are read from the vacuum entity's `segments` attribute
 3. Room cleaning commands are sent via `mqtt.publish` to avoid HA entity targeting issues
-4. No manual configuration needed — just add your Valetudo vacuum to a Server Mode bridge
+4. No manual configuration needed, just add your Valetudo vacuum to a Server Mode bridge
 
 ### Requirements
 
@@ -405,16 +405,16 @@ Since v2.0.27, HAMH reports the `IsCharging` state when the vacuum is docked and
 
 ### Vacuum not showing in Apple Home
 
-1. **Use Server Mode** — bridged vacuums don't work in Apple Home. Create a dedicated Server Mode bridge.
-2. **Update all Home Hubs** — All HomePods and Apple TVs must be on iOS/tvOS/AudioOS 18.4+
-3. **Re-pair** — Remove from Apple Home and add again after enabling Server Mode
+1. **Use Server Mode**, bridged vacuums don't work in Apple Home. Create a dedicated Server Mode bridge.
+2. **Update all Home Hubs**, All HomePods and Apple TVs must be on iOS/tvOS/AudioOS 18.4+
+3. **Re-pair**, Remove from Apple Home and add again after enabling Server Mode
 
 ### Rooms not appearing in Apple Home
 
-1. **Check Server Mode** — Room selection requires Server Mode
-2. **Re-pair the vacuum** — Remove from Apple Home and add again after updating HAMH
-3. **Check logs** — Look for `Auto-detected X Roborock rooms` or `Resolved X rooms` in the startup log
-4. **Verify room data** — Check your vacuum entity attributes for `rooms`, `segments`, or `room_list`
+1. **Check Server Mode**, Room selection requires Server Mode
+2. **Re-pair the vacuum**, Remove from Apple Home and add again after updating HAMH
+3. **Check logs**, Look for `Auto-detected X Roborock rooms` or `Resolved X rooms` in the startup log
+4. **Verify room data**, Check your vacuum entity attributes for `rooms`, `segments`, or `room_list`
 
 ### Room selection not working
 
@@ -424,16 +424,16 @@ Since v2.0.27, HAMH reports the `IsCharging` state when the vacuum is docked and
 
 ### Mop intensity not showing in Apple Home
 
-1. **Configure a cleaning mode entity** — Mop intensity requires one. See [Creating a Cleaning Mode Helper](#creating-a-cleaning-mode-helper-roborock--others)
-2. **Configure mop intensity entity** — Set `mopIntensityEntity` in Entity Mapping
-3. **Re-pair** — New clusters require a fresh pairing
+1. **Configure a cleaning mode entity**, Mop intensity requires one. See [Creating a Cleaning Mode Helper](#creating-a-cleaning-mode-helper-roborock--others)
+2. **Configure mop intensity entity**, Set `mopIntensityEntity` in Entity Mapping
+3. **Re-pair**, New clusters require a fresh pairing
 
 ### Apple Home shows "Updating..." or "No Response"
 
-1. **Check Server Mode** — Must be enabled for Apple Home
-2. **Check network** — See [Connectivity Issues](../guides/connectivity-issues.md)
-3. **Check logs** — Look for errors related to battery, cluster creation, or Matter.js
-4. **Factory reset** — As a last resort, factory reset the bridge and re-pair
+1. **Check Server Mode**, Must be enabled for Apple Home
+2. **Check network**, See [Connectivity Issues](../guides/connectivity-issues.md)
+3. **Check logs**, Look for errors related to battery, cluster creation, or Matter.js
+4. **Factory reset**, As a last resort, factory reset the bridge and re-pair
 
 ### iPhone shows "Updating" but iPad works fine
 
@@ -466,4 +466,4 @@ Since v2.0.26, "Vacuum Then Mop" (shown as "Deep Clean" in Apple Home) falls bac
 
 ### Intensity options look the same for Vacuum and Mop mode
 
-This is an Apple Home limitation. Apple renders the same labels (Quiet / Automatic / Max) for both vacuum fan speed and mop intensity because both use the same Matter mode tags. The routing behind the labels is correct — selecting "Quiet" in Mop mode sets mop intensity, while "Quiet" in Vacuum mode sets fan speed.
+This is an Apple Home limitation. Apple renders the same labels (Quiet / Automatic / Max) for both vacuum fan speed and mop intensity because both use the same Matter mode tags. The routing behind the labels is correct, selecting "Quiet" in Mop mode sets mop intensity, while "Quiet" in Vacuum mode sets fan speed.

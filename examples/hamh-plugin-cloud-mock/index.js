@@ -3,7 +3,7 @@
  *
  * Demonstrates how to build a device source plugin that integrates
  * an external cloud service with HAMH. Uses an in-memory mock API
- * for testing — replace MockCloudApi with your real provider's SDK.
+ * for testing, replace MockCloudApi with your real provider's SDK.
  *
  * Features demonstrated:
  *   - Device discovery from external source

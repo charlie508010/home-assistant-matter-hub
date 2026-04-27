@@ -178,13 +178,13 @@ export class ServerModeEndpointManager extends Service {
 
     if (isHeapUnderPressure()) {
       this.log.error(
-        "Memory pressure detected — cannot create device endpoint. " +
+        "Memory pressure detected, cannot create device endpoint. " +
           "Reduce entities on other bridges or increase the Node.js heap size (NODE_OPTIONS=--max-old-space-size=1024).",
       );
       this._failedEntities.push({
         entityId,
         reason:
-          "Skipped due to memory pressure — reduce entities or increase heap size",
+          "Skipped due to memory pressure, reduce entities or increase heap size",
       });
       return;
     }

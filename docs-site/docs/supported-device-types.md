@@ -1,6 +1,6 @@
 # Supported Device Types
 
-This document provides comprehensive information about all device types supported by Home-Assistant-Matter-Hub, including their capabilities, controller compatibility, and configuration options.
+All device types Home-Assistant-Matter-Hub supports, with their capabilities, controller compatibility, and configuration options.
 
 ---
 
@@ -176,11 +176,11 @@ Mapped to **Thermostat** with heating, cooling, and auto modes.
 - `min_temp` / `max_temp` → Thermostat limits
 
 **Feature Variants (auto-detected from HA hvac_modes):**
-- **Heating Only**: Heat-only TRVs, water heaters — exposes only `Heating` feature
-- **Cooling Only**: Cool-only ACs — exposes only `Cooling` feature
-- **Heating + Cooling**: Devices with `heat` and `cool` but no `heat_cool` — exposes `Heating` + `Cooling` without AutoMode. Apple Home won't show Auto button, preventing mode flipping.
-- **Full HVAC (AutoMode)**: Devices with `heat_cool` in hvac_modes — exposes `Heating` + `Cooling` + `AutoMode` with dual setpoints
-- **heat_cool-only zones** *(new in v2.0.27)*: Devices with `heat_cool` but no explicit `heat` or `cool` mode (e.g. zoned ACs) — exposes `Heating` + `Cooling` without AutoMode. The `controlSequenceOfOperation` dynamically switches between `CoolingOnly` and `HeatingOnly` based on `hvac_action`. ([#207](https://github.com/RiDDiX/home-assistant-matter-hub/issues/207))
+- **Heating Only**: Heat-only TRVs, water heaters, exposes only `Heating` feature
+- **Cooling Only**: Cool-only ACs, exposes only `Cooling` feature
+- **Heating + Cooling**: Devices with `heat` and `cool` but no `heat_cool`, exposes `Heating` + `Cooling` without AutoMode. Apple Home won't show Auto button, preventing mode flipping.
+- **Full HVAC (AutoMode)**: Devices with `heat_cool` in hvac_modes, exposes `Heating` + `Cooling` + `AutoMode` with dual setpoints
+- **heat_cool-only zones** *(new in v2.0.27)*: Devices with `heat_cool` but no explicit `heat` or `cool` mode (e.g. zoned ACs), exposes `Heating` + `Cooling` without AutoMode. The `controlSequenceOfOperation` dynamically switches between `CoolingOnly` and `HeatingOnly` based on `hvac_action`. ([#207](https://github.com/RiDDiX/home-assistant-matter-hub/issues/207))
 
 > **New in v2.0.20:** AutoMode is now only exposed when the device supports `heat_cool` (dual setpoint) in Home Assistant. Devices with only `auto` mode (single setpoint, device decides) no longer get AutoMode, which previously caused Apple Home to send conflicting commands and mode flipping.
 
@@ -274,9 +274,9 @@ HAMH can automatically combine related sensors from the same HA device into a si
 | `autoPressureMapping` | Combines pressure sensor with temperature sensor (default: enabled) |
 
 You can also manually assign sensors via **Entity Mapping**:
-- `batteryEntity` — Battery sensor entity ID
-- `humidityEntity` — Humidity sensor entity ID
-- `pressureEntity` — Pressure sensor entity ID
+- `batteryEntity`, Battery sensor entity ID
+- `humidityEntity`, Humidity sensor entity ID
+- `pressureEntity`, Pressure sensor entity ID
 
 See [Temperature & Humidity Sensor](./devices/temperature-humidity-sensor.md) for detailed setup instructions.
 
@@ -317,7 +317,7 @@ Mapped to **Speaker** device with volume and playback control.
 - Next/Previous track
 
 **Device Type Override:**
-Media players can be overridden to other device types via Entity Mapping. For example, mapping a media player to **OnOffPlugInUnit** (switch) makes it appear as a simple on/off switch in controllers like Alexa — useful when you only need power control.
+Media players can be overridden to other device types via Entity Mapping. For example, mapping a media player to **OnOffPlugInUnit** (switch) makes it appear as a simple on/off switch in controllers like Alexa, useful when you only need power control.
 
 **Controller Notes:**
 - Media player support in Matter is limited
@@ -420,8 +420,8 @@ Mapped to **RoboticVacuumCleaner**.
 | `roomEntities` | Array of button entity IDs for room selection (Roborock) |
 | `batteryEntity` | External battery sensor entity (Roomba, Deebot) |
 | `cleaningModeEntity` | Select entity for cleaning mode (Dreame, Ecovacs, etc.) |
-| `suctionLevelEntity` | Select entity for suction level — adds Quiet/Max intensity toggles to Apple Home's extra features panel |
-| `mopIntensityEntity` | Select entity for mop intensity / water level — adds mop intensity modes to Apple Home's extra features panel |
+| `suctionLevelEntity` | Select entity for suction level, adds Quiet/Max intensity toggles to Apple Home's extra features panel |
+| `mopIntensityEntity` | Select entity for mop intensity / water level, adds mop intensity modes to Apple Home's extra features panel |
 
 **Feature Flags (Bridge Settings):**
 | Flag | Description |
@@ -433,7 +433,7 @@ Mapped to **RoboticVacuumCleaner**.
 - **Server Mode recommended** - For full voice command support (Siri, Alexa)
 - **Server Mode = one device per bridge** - The vacuum must be the only device
 - **Apple Home** requires iOS/tvOS/AudioOS 18.4+ on all Home hubs
-- **Google Home** has limited RVC support — basic start/stop works, room selection and cleaning modes may vary
+- **Google Home** has limited RVC support, basic start/stop works, room selection and cleaning modes may vary
 
 See [Robot Vacuum Guide](./devices/robot-vacuum.md) for detailed setup instructions.
 
@@ -458,7 +458,7 @@ Mapped to **ModeSelectDevice** (0x0027). Each alarm state becomes a selectable m
 
 **Controller Notes:**
 - Matter does not have a native alarm panel device type, so ModeSelect is used as the closest match
-- Voice commands like "Hey Siri, set alarm to Armed Away" may not work — use the controller app to switch modes
+- Voice commands like "Hey Siri, set alarm to Armed Away" may not work, use the controller app to switch modes
 
 ---
 

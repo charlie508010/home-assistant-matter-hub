@@ -38,7 +38,7 @@ function nudgeSetpoint(value: number | undefined, maxLimit: number): number {
 //   Apple Home uses localTemp vs setpoint comparison for "Heating to..." display.
 //   Setting localTemp = setpoint makes Apple Home think target is already reached.
 // thermostatRunningMode: Set ONLY for Auto mode from hvac_action. Matter.js reactor
-//   handles Heat/Cool/Off but SKIPS Auto — without our update, switching Heat→Auto
+//   handles Heat/Cool/Off but SKIPS Auto, without our update, switching Heat→Auto
 //   leaves runningMode stale at Heat. (889010b: all modes = conflict, 0678d35: none
 //   = stale, da04b2e: Auto only = correct)
 // thermostatRunningState: Set from hvac_action for controllers that support it.
@@ -415,7 +415,7 @@ export class ThermostatServerBase extends FullFeaturedBase {
       // Heat/Cool/Off but SKIPS Auto (see #handleSystemModeChange in Matter.js).
       // Without this, switching Heat→Auto leaves runningMode stale at Heat.
       // 889010b set for ALL modes (conflicted with reactor), 0678d35 set for NONE
-      // (stale in Auto). da04b2e's Auto-only approach is correct — the issues
+      // (stale in Auto). da04b2e's Auto-only approach is correct, the issues
       // reported after it were caused by localTemperature fallback, not runningMode.
       ...(this.features.heating &&
       this.features.cooling &&
@@ -426,7 +426,7 @@ export class ThermostatServerBase extends FullFeaturedBase {
 
     // Setpoints are applied in a separate patch wrapped with the nudgingSetpoints
     // guard. When Off, setpoints are nudged by +1 centidegree (0.01°C) so any
-    // controller write — even the "same" temperature — triggers $Changing for
+    // controller write, even the "same" temperature, triggers $Changing for
     // auto-resume (#176). The guard prevents the nudge itself from auto-resuming.
     nudgingSetpoints.add(entityId);
     try {
@@ -732,7 +732,7 @@ export class ThermostatServerBase extends FullFeaturedBase {
     const fanOnly = { ...allOff, fan: true };
 
     // runningMode (derived from hvac_action) is the primary signal for
-    // active heating/cooling — Apple Home reads it to distinguish
+    // active heating/cooling, Apple Home reads it to distinguish
     // "Heating to 26" (active) from "Heat to 26" (mode selected, idle).
     // FanOnly/Dry have no RunningMode equivalent, so we fall back to systemMode.
     switch (runningMode) {
@@ -852,7 +852,7 @@ class CoolingOnlyThermostatServerBase extends CoolingOnlyFeaturedBase {
     config!: ThermostatServerConfig;
   };
 
-  // Each variant MUST define its own initialize() — see HeatingOnly comment above.
+  // Each variant MUST define its own initialize(), see HeatingOnly comment above.
   override async initialize() {
     thermostatPreInitialize(this);
     await super.initialize();
@@ -890,7 +890,7 @@ class HeatingAndCoolingThermostatServerBase extends HeatingAndCoolingFeaturedBas
     config!: ThermostatServerConfig;
   };
 
-  // Each variant MUST define its own initialize() — see HeatingOnly comment above.
+  // Each variant MUST define its own initialize(), see HeatingOnly comment above.
   override async initialize() {
     thermostatPreInitialize(this);
     await super.initialize();

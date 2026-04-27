@@ -51,7 +51,7 @@ describe("validateEndpointType", () => {
   });
 
   it("should detect missing mandatory Thermostat cluster on base ThermostatDevice", () => {
-    // ThermostatDevice base type only has Identify — Thermostat cluster
+    // ThermostatDevice base type only has Identify, Thermostat cluster
     // requires feature selection via .with() before it's added
     const result = validateEndpointType(ThermostatDevice);
     expect(result).toBeDefined();

@@ -56,7 +56,7 @@ export function patchLevelControlTlv(): void {
     );
   } else {
     logger.warn(
-      "Failed to patch LevelControl TLV schemas — field definitions not found. " +
+      "Failed to patch LevelControl TLV schemas, field definitions not found. " +
         "Google Home brightness adjustment may not work.",
     );
   }

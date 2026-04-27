@@ -12,16 +12,16 @@ Home Assistant lights are automatically mapped to the appropriate Matter light t
 | `hs`, `rgb`, `xy`, `rgbw`, `rgbww` | ExtendedColorLight (HueSaturation feature) |
 | `color_temp` + any color mode | ExtendedColorLight (both features) |
 
-> **Note:** Color-temperature-only lights use `ExtendedColorLight` internally (not `ColorTemperatureLightDevice`) to avoid Matter.js initialization issues. The behavior is identical — controllers still show a color temperature slider.
+> **Note:** Color-temperature-only lights use `ExtendedColorLight` internally (not `ColorTemperatureLightDevice`) to avoid Matter.js initialization issues. The behavior is identical, controllers still show a color temperature slider.
 
 ## Features
 
-- **On/Off** — Power control via `light.turn_on` / `light.turn_off`
-- **Brightness** — HA brightness (0–255) mapped to Matter Level (0–254)
-- **Color Temperature** — HA mireds/Kelvin mapped to Matter Color Temperature. Min/max range taken from `min_color_temp_kelvin` / `max_color_temp_kelvin` attributes
-- **Color (Hue/Saturation)** — HA `hs_color`, `rgb_color`, `xy_color`, `rgbw_color`, or `rgbww_color` converted to Matter Hue/Saturation
-- **Battery** — Optional battery level from entity attribute or mapped sensor
-- **Adaptive Lighting** — Color changes while light is off are staged and merged on turn-on (`executeIfOff` + `pendingColorStaging`)
+- **On/Off**, Power control via `light.turn_on` / `light.turn_off`
+- **Brightness**, HA brightness (0-255) mapped to Matter Level (0-254)
+- **Color Temperature**, HA mireds/Kelvin mapped to Matter Color Temperature. Min/max range taken from `min_color_temp_kelvin` / `max_color_temp_kelvin` attributes
+- **Color (Hue/Saturation)**, HA `hs_color`, `rgb_color`, `xy_color`, `rgbw_color`, or `rgbww_color` converted to Matter Hue/Saturation
+- **Battery**, Optional battery level from entity attribute or mapped sensor
+- **Adaptive Lighting**, Color changes while light is off are staged and merged on turn-on (`executeIfOff` + `pendingColorStaging`)
 
 ## Power & Energy Measurement
 
@@ -77,5 +77,5 @@ Matter and HA may have different min/max color temperature ranges. The bridge us
 ### Battery level not showing
 
 1. Ensure the entity has a `battery` or `battery_level` attribute, or configure `batteryEntity` in Entity Mapping
-2. The battery sensor must return a numeric 0–100 value
+2. The battery sensor must return a numeric 0-100 value
 3. You may need to remove and re-add the device in your controller after enabling battery support

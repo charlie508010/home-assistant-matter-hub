@@ -81,7 +81,7 @@ function buildGetUserResponse(
 }
 
 /**
- * Base DoorLock server — used when no PIN is configured for the entity.
+ * Base DoorLock server, used when no PIN is configured for the entity.
  * Plain lock/unlock, no credential workflow.
  */
 // biome-ignore lint/correctness/noUnusedVariables: Biome thinks this is unused, but it's used by the function below
@@ -139,7 +139,7 @@ namespace LockServerBase {
  * Sets requirePinForRemoteOperation so Matter controllers (Google Home
  * in particular) prompt for the PIN in-app before unlock.
  *
- * Voice unlock stays disabled by Google policy — not a Matter limitation.
+ * Voice unlock stays disabled by Google policy, not a Matter limitation.
  */
 const PinCredentialBase = Base.with(
   "User",
@@ -501,7 +501,7 @@ class LockServerWithPinAndUnboltBase extends PinCredentialUnboltBase {
   override unlockDoor(request: DoorLock.UnlockDoorRequest) {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     // Use unlatch action if available (lock.open = unlock + unlatch on most
-    // locks) — Apple Home's unlock then also unlatches, matching Google Home.
+    // locks), Apple Home's unlock then also unlatches, matching Google Home.
     const unlatchConfig = this.state.config.unlatch;
     const action = unlatchConfig
       ? unlatchConfig(void 0, this.agent)

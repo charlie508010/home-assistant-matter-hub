@@ -291,7 +291,7 @@ export const PluginsPage = () => {
                   </ListItemIcon>
                   <ListItemText
                     primary={pkg.packageName}
-                    secondary={`v${pkg.version} — installed ${new Date(pkg.installedAt).toLocaleDateString()}`}
+                    secondary={`v${pkg.version}, installed ${new Date(pkg.installedAt).toLocaleDateString()}`}
                   />
                 </ListItem>
               ))}
@@ -414,7 +414,7 @@ export const PluginsPage = () => {
                           <ListItem key={device.id}>
                             <ListItemText
                               primary={device.name}
-                              secondary={`${device.deviceType} — ${device.id}`}
+                              secondary={`${device.deviceType}, ${device.id}`}
                             />
                           </ListItem>
                         ))}

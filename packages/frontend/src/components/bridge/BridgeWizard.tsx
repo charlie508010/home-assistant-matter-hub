@@ -224,11 +224,11 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
 
   const handleNext = () => {
     if (activeStep === 0) {
-      // Template step — just proceed
+      // Template step, just proceed
       setError(null);
     }
     if (activeStep === 1) {
-      // Controller step — just proceed
+      // Controller step, just proceed
       setError(null);
     }
     if (activeStep === 2) {

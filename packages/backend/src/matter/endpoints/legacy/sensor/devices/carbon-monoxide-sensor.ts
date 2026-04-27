@@ -34,7 +34,7 @@ class CoAirQualityServer extends CoAirQualityServerBase {
 
     if (state != null && !Number.isNaN(+state)) {
       const ppm = +state;
-      // CO in ppm — thresholds based on WHO indoor air quality guidelines.
+      // CO in ppm, thresholds based on WHO indoor air quality guidelines.
       if (ppm <= 9) {
         airQuality = AirQuality.AirQualityEnum.Good;
       } else if (ppm <= 25) {

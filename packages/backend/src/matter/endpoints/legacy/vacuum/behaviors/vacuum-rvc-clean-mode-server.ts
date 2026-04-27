@@ -16,7 +16,7 @@ import {
 const logger = Logger.get("VacuumRvcCleanModeServer");
 
 // ---------------------------------------------------------------------------
-// Mode IDs — flat structure matching the pattern Apple Home expects.
+// Mode IDs, flat structure matching the pattern Apple Home expects.
 // Cleaning-type modes and fan-speed modes are siblings, NOT cross-products.
 // Apple Home groups modes by their tags:
 //   • Cleaning types (Vacuum / Mop / Vacuum+Mop / VacuumThenMop) appear
@@ -219,7 +219,7 @@ function buildFanSpeedModes(
 ): RvcCleanMode.ModeOption[] {
   // Assign intensity tags to ALL matching speeds so Apple Home
   // shows every recognized speed. Multiple speeds can share the
-  // same tag — Apple Home distinguishes them by label.
+  // same tag, Apple Home distinguishes them by label.
   return fanSpeedList.map((name, index) => {
     const tag = getFanSpeedTag(name, customTags);
     const modeTags: { value: number }[] = [
@@ -421,7 +421,7 @@ function findMatchingCleanOption(
 
 /**
  * Build a cleaning mode action for the target type.
- * Always returns an action — the debounce layer ensures rapid switches
+ * Always returns an action, the debounce layer ensures rapid switches
  * resolve to the last requested type.
  */
 function buildCleaningModeAction(
@@ -456,7 +456,7 @@ function matchFanSpeedOption(
     (o) => o.toLowerCase().includes(s) || s.includes(o.toLowerCase()),
   );
   if (contains) return contains;
-  // Alias match via tag category — find sibling names in the same group
+  // Alias match via tag category, find sibling names in the same group
   const tag = getFanSpeedTag(name, customTags);
   if (tag !== undefined) {
     const group = FAN_TAG_PATTERNS.find((p) => p.tag === tag);
@@ -618,7 +618,7 @@ function createCleanModeConfig(
       const mapping = homeAssistant.state.mapping;
 
       logger.info(
-        `setCleanMode(${mode}) for ${vacuumEntityId} — ` +
+        `setCleanMode(${mode}) for ${vacuumEntityId}, ` +
           `suctionEntity=${mapping?.suctionLevelEntity ?? "none"}, ` +
           `mopEntity=${mapping?.mopIntensityEntity ?? "none"}, ` +
           `fanSpeedList=${JSON.stringify(fanSpeedList ?? [])}, ` +

@@ -347,7 +347,7 @@ export function EntityMappingDialog({
               <em>{t("mapping.autoDetect")}</em>
             </MenuItem>
             {suggestedTypes.length > 0 && (
-              <MenuItem disabled>— Suggested for {domain} —</MenuItem>
+              <MenuItem disabled>Suggested for {domain}</MenuItem>
             )}
             {suggestedTypes.map((type: MatterDeviceType) => (
               <MenuItem key={type} value={type}>
@@ -355,7 +355,7 @@ export function EntityMappingDialog({
               </MenuItem>
             ))}
             {suggestedTypes.length > 0 && (
-              <MenuItem disabled>— All types —</MenuItem>
+              <MenuItem disabled>All types</MenuItem>
             )}
             {availableTypes
               .filter(([key]) => !suggestedTypes.includes(key))
@@ -668,7 +668,7 @@ export function EntityMappingDialog({
               onChange={setPowerEntity}
               label="Power Sensor (optional)"
               placeholder="sensor.smart_plug_power"
-              helperText="Sensor with device_class: power (W) — adds real-time power measurement to this device"
+              helperText="Sensor with device_class: power (W), adds real-time power measurement to this device"
               domain="sensor"
             />
             <EntityAutocomplete
@@ -676,7 +676,7 @@ export function EntityMappingDialog({
               onChange={setEnergyEntity}
               label="Energy Sensor (optional)"
               placeholder="sensor.smart_plug_energy"
-              helperText="Sensor with device_class: energy (kWh) — adds cumulative energy measurement to this device"
+              helperText="Sensor with device_class: energy (kWh), adds cumulative energy measurement to this device"
               domain="sensor"
             />
           </>
@@ -819,7 +819,7 @@ export function EntityMappingDialog({
                   }
                 />
               }
-              label="Expose as plain Thermostat (drop FanControl) — workaround for controllers like Aqara that don't recognise the air conditioner device type"
+              label="Expose as plain Thermostat (drop FanControl), workaround for controllers like Aqara that don't recognise the air conditioner device type"
               sx={{ mt: 1, display: "block" }}
             />
           </>

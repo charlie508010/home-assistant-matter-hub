@@ -216,7 +216,7 @@
     "actionStarted": "Запущено",
     "actionStopped": "Остановлено",
     "actionRestarted": "Перезапущено",
-    "actionFailed": "{{action}} — ошибка",
+    "actionFailed": "{{action}}, ошибка",
     "actionResult": "{{label}} {{count}} мост(ов)",
     "couldNotLoad": "Не удалось загрузить мосты",
     "showingFirst": "Показаны первые {{count}}",

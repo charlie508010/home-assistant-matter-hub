@@ -4,9 +4,9 @@ Home Assistant `lock` entities are mapped to Matter **DoorLock** devices with PI
 
 ## Features
 
-- **Lock** — Always allowed, no PIN required
-- **Unlock** — Requires PIN if credentials are configured
-- **Unlatch / Unbolt** — Available when the HA entity supports the `OPEN` feature. Maps to `lock.open` action. Apple Home shows an "Unlatch" button.
+- **Lock**, Always allowed, no PIN required
+- **Unlock**, Requires PIN if credentials are configured
+- **Unlatch / Unbolt**, Available when the HA entity supports the `OPEN` feature. Maps to `lock.open` action. Apple Home shows an "Unlatch" button.
 
 ## State Mapping
 
@@ -28,7 +28,7 @@ You can configure PIN codes through the **Entity Mapping** UI to require a code 
 4. In the **PIN Credentials** section, add one or more PIN codes
 5. Save the mapping
 
-When PIN credentials are configured, controllers will prompt for a code before unlocking. The PIN is validated by the bridge — only matching codes will trigger the `lock.unlock` action in HA.
+When PIN credentials are configured, controllers will prompt for a code before unlocking. The PIN is validated by the bridge, only matching codes will trigger the `lock.unlock` action in HA.
 
 ### Lock without PIN
 
@@ -59,7 +59,7 @@ When enabled:
 
 ### Controller won't unlock the door
 
-1. Check if you have PIN credentials configured — if so, ensure the controller supports PIN entry
+1. Check if you have PIN credentials configured, if so, ensure the controller supports PIN entry
 2. Try unlocking via the controller app (not voice) to see if a PIN prompt appears
 3. Google Home blocks voice unlock for Matter locks by policy
 

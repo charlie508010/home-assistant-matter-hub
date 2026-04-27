@@ -23,7 +23,7 @@ function resolveAppVersion(): string {
       return pkg.version;
     }
   } catch {
-    // ignore — fall through to env var
+    // ignore, fall through to env var
   }
   if (process.env.APP_VERSION) {
     return process.env.APP_VERSION;

@@ -7,8 +7,8 @@ Home Assistant `cover` entities are mapped to Matter **WindowCovering** devices 
 | HA Feature | Matter Capability |
 |------------|------------------|
 | `open` / `close` | Open/Close commands |
-| `set_position` | Lift percentage (0–100%) |
-| `set_tilt_position` | Tilt percentage (0–100%) |
+| `set_position` | Lift percentage (0-100%) |
+| `set_tilt_position` | Tilt percentage (0-100%) |
 | `stop` | Stop movement |
 
 ## Supported Device Classes
@@ -77,11 +77,11 @@ Google Home does not support WindowCovering devices as actions in Automations. W
 
 ### Cover doesn't appear in Alexa routine picker after changing `device_class`
 
-Matter `Type` and `EndProductType` are spec-defined as fixed attributes — controllers cache them at commissioning and don't re-read after that. So changing `device_class` in HA doesn't move the cover into a different Alexa sub-category (`Tapparelle interne`, `Tendine`, `Tende`, `Tende da sole`, etc.) on its own. After fixing `device_class`, restart HAMH and remove + re-add the bridge in the Alexa app for the routine picker to re-categorize.
+Matter `Type` and `EndProductType` are spec-defined as fixed attributes, controllers cache them at commissioning and don't re-read after that. So changing `device_class` in HA doesn't move the cover into a different Alexa sub-category (`Tapparelle interne`, `Tendine`, `Tende`, `Tende da sole`, etc.) on its own. After fixing `device_class`, restart HAMH and remove + re-add the bridge in the Alexa app for the routine picker to re-categorize.
 
 ### Position not updating
 
-Check that your HA entity reports `current_position` correctly in Developer Tools → States. Some cover integrations don't report position during movement — the position will update once movement stops.
+Check that your HA entity reports `current_position` correctly in Developer Tools → States. Some cover integrations don't report position during movement, the position will update once movement stops.
 
 ### Garage door limitations
 

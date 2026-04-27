@@ -142,7 +142,7 @@ export class SpeakerLevelControlServerBase extends FeaturedBase {
    *
    * The base class registers a reactor on onOff$Changed that sets
    * currentLevel = onLevel. This is designed for lights (restore brightness
-   * on power-on) but is wrong for speakers — it overwrites the correct
+   * on power-on) but is wrong for speakers, it overwrites the correct
    * volume (e.g. 191 for 75%) with a stale onLevel value, causing Google
    * Home to display the wrong percentage (Issue #79).
    */

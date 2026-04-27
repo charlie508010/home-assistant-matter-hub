@@ -1,5 +1,5 @@
 /**
- * Intentionally Broken Plugin — for testing HAMH failure isolation.
+ * Intentionally Broken Plugin, for testing HAMH failure isolation.
  *
  * Exercises multiple failure modes to verify that HAMH continues
  * running when a plugin misbehaves. Configure via the `failMode`

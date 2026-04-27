@@ -36,7 +36,7 @@ const logger = Logger.get("VacuumRvcRunModeServer");
  * If valetudoIdentifier is set in the entity mapping, it is used directly.
  * Otherwise the identifier is extracted from the HA entity ID (lowercase).
  * HA normalizes entity IDs to lowercase, but the Valetudo MQTT topic uses
- * the original identifier case — set valetudoIdentifier in the mapping if
+ * the original identifier case, set valetudoIdentifier in the mapping if
  * they don't match.
  */
 function buildValetudoSegmentAction(
@@ -280,7 +280,7 @@ const vacuumRvcRunModeConfig = {
               `Roborock: Pressing button entities for selected rooms: ${buttonEntityIds.join(", ")}`,
             );
 
-            // Dispatch extra button presses directly — the caller can only
+            // Dispatch extra button presses directly, the caller can only
             // handle a single returned action, so press buttons 1..N here.
             for (let i = 1; i < buttonEntityIds.length; i++) {
               homeAssistant.callAction({

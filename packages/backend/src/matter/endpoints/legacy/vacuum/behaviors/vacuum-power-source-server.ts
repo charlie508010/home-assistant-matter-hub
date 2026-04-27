@@ -30,7 +30,7 @@ export const VacuumPowerSourceServer = PowerSourceServer({
       return batteryLevel;
     }
     // Some integrations (e.g. Rest980/Roomba) store battery as a string
-    // like "100%" — parse the numeric part.
+    // like "100%", parse the numeric part.
     const parsed = Number.parseFloat(String(batteryLevel));
     return Number.isNaN(parsed) ? null : parsed;
   },

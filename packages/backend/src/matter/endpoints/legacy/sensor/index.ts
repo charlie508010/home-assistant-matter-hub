@@ -167,7 +167,7 @@ export function SensorDevice(
   if (deviceClass) {
     diagnosticEventBus.emit(
       "entity_warning",
-      `Sensor "${homeAssistantEntity.entity.entity_id}" has unsupported device_class "${deviceClass}" — skipped`,
+      `Sensor "${homeAssistantEntity.entity.entity_id}" has unsupported device_class "${deviceClass}", skipped`,
       {
         entityId: homeAssistantEntity.entity.entity_id,
         details: { device_class: deviceClass },

@@ -200,7 +200,7 @@ export class ServerModeVacuumEndpoint extends EntityEndpoint {
         }
       }
     } else {
-      logger.warn(`${entityId}: No device_id — cannot auto-assign battery`);
+      logger.warn(`${entityId}: No device_id, cannot auto-assign battery`);
     }
 
     const payload = {
@@ -273,7 +273,7 @@ export class ServerModeVacuumEndpoint extends EntityEndpoint {
    *  Previous approaches that pushed state through
    *  HomeAssistantEntityBehavior failed because the reactor writes
    *  (RvcOperationalStateServer.update()) run inside the postCommit
-   *  phase of the HAEntityBehavior transaction — those writes are
+   *  phase of the HAEntityBehavior transaction, those writes are
    *  buffered but never committed, so no attrsChanged event reaches
    *  the ServerSubscription.
    *
@@ -328,7 +328,7 @@ export class ServerModeVacuumEndpoint extends EntityEndpoint {
       const counter = this.keepaliveCounter;
       logger.info(`Keepalive #${counter} for ${this.entityId}`);
 
-      // Read current state from behaviors — reactor writes may not have
+      // Read current state from behaviors, reactor writes may not have
       // produced subscription reports (postCommit writes are buffered),
       // so re-push the current operationalState and currentMode to
       // ensure controllers see the latest values.
@@ -370,7 +370,7 @@ export class ServerModeVacuumEndpoint extends EntityEndpoint {
   async updateStates(states: HomeAssistantStates): Promise<void> {
     const state = states[this.entityId] ?? {};
     const mappedChanged = this.hasMappedEntityChanged(states);
-    // Compare only meaningful fields — ignore volatile HA metadata
+    // Compare only meaningful fields, ignore volatile HA metadata
     // (last_changed, last_updated, context) that changes on every event
     // even when the actual device state/attributes are identical.
     // Skipping these prevents unnecessary Matter subscription reports

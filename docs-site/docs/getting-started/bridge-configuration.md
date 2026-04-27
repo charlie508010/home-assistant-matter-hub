@@ -75,7 +75,7 @@ A include- or exclude-item is an object having a `type` and a `value` property.
 > The dropdown in the web UI now shows **tooltips** with detailed descriptions when hovering over each filter type.
 
 > [!WARNING]
-> The old `label` filter type is **deprecated** — use `entity_label` or `device_label` instead for clarity.
+> The old `label` filter type is **deprecated**, use `entity_label` or `device_label` instead for clarity.
 
 ### Pattern vs Regex
 
@@ -118,7 +118,7 @@ rules will be excluded.
 Labels can be applied at the entity level or at the device level:
 - Use `entity_label` to match labels assigned directly to entities
 - Use `device_label` to match labels assigned to the parent device (all entities of that device will match)
-- The old `label` type still works but only matches entity labels — use the new types for explicit control
+- The old `label` type still works but only matches entity labels, use the new types for explicit control
 
 You can use either the **display name** (e.g. `My Smart Lights`) or the **slug** (e.g. `my_smart_lights`) as the filter value. The display name is automatically resolved to the correct slug.
 
@@ -213,7 +213,7 @@ Include all entities from Philips devices, exclude IKEA devices:
 
 ### Combining Multiple Filter Types
 
-A comprehensive example using multiple filter types:
+A bigger example using multiple filter types:
 
 ```json
 {
@@ -289,14 +289,14 @@ Feature flags control advanced behavior of the bridge. Configure them in the **B
 > [!NOTE]
 >
 > You can use the label's **display name** (as shown in Home Assistant) directly as the filter value.
-> For example, if your label is called "My Smart Lights", you can enter `My Smart Lights` as the value — it will be resolved automatically.
+> For example, if your label is called "My Smart Lights", you can enter `My Smart Lights` as the value, it will be resolved automatically.
 >
 > If you prefer, you can still use the **slug** (e.g. `my_smart_lights`). Slugs are always lowercase and use underscores instead of spaces.
 
 > [!WARNING]
 >
 > - If you renamed a label in Home Assistant, the slug does **not** change. In that case, use the current display name or the original slug.
-> - Areas work differently — they still require the slug (e.g. `living_room`, not `Living Room`).
+> - Areas work differently, they still require the slug (e.g. `living_room`, not `Living Room`).
 >
 > You can retrieve slugs using the following templates in Home Assistant:
 >

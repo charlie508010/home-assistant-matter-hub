@@ -56,7 +56,7 @@ export function VacuumDevice(
   );
 
   // Add RvcRunModeServer with initial supportedModes (including room modes if available).
-  // Custom service areas are passed so they get registered as room modes —
+  // Custom service areas are passed so they get registered as room modes.
   // Apple Home uses RvcRunMode (not ServiceArea.selectAreas) for zone selection.
   const cleanAreaRooms = homeAssistantEntity.mapping?.cleanAreaRooms;
   let device = VacuumEndpointType.with(
@@ -78,10 +78,10 @@ export function VacuumDevice(
     device = device.with(VacuumOnOffServer);
   }
 
-  // PowerSource — adds device type 0x0011 to the descriptor alongside 0x0074.
+  // PowerSource, adds device type 0x0011 to the descriptor alongside 0x0074.
   device = device.with(VacuumPowerSourceServer);
 
-  // ServiceArea — included when rooms/custom areas are configured.
+  // ServiceArea, included when rooms/custom areas are configured.
   const roomEntities = homeAssistantEntity.mapping?.roomEntities;
   const rooms = parseVacuumRooms(attributes);
   logger.info(
@@ -107,7 +107,7 @@ export function VacuumDevice(
     device = device.with(createDefaultServiceAreaServer());
   }
 
-  // RvcCleanMode — always included.
+  // RvcCleanMode, always included.
   // Alexa probes for cluster 0x55 during discovery and may refuse the device without it.
   const fanSpeedList = resolveFanSpeedList(
     attributes,

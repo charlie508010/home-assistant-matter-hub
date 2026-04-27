@@ -346,7 +346,7 @@ export class WindowCoveringServerBase extends FeaturedBase {
         Date.now() - this.lastLiftMovementMs < 50
       ) {
         logger.info(
-          `Skipping tilt ${MovementDirection[direction]} — lift already moving in same direction`,
+          `Skipping tilt ${MovementDirection[direction]}, lift already moving in same direction`,
         );
         return;
       }

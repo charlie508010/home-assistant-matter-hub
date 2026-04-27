@@ -133,7 +133,7 @@ class HaGenericSwitchServerBase extends SimpleBase {
       return;
     }
 
-    // Continuous hold (e.g. press_cont) — ignore, longPress already sent
+    // Continuous hold (e.g. press_cont), ignore, longPress already sent
     if (lower.includes("cont") && lower.includes("press")) {
       return;
     }

@@ -122,7 +122,7 @@ export class BridgeEndpointManager extends Service {
           try {
             observable.off(listener);
           } catch {
-            // Observable may already be disposed — ignore.
+            // Observable may already be disposed, ignore.
           }
         }
         this.pluginListeners.delete(deviceId);
@@ -470,7 +470,7 @@ export class BridgeEndpointManager extends Service {
         // absorbed into an air purifier). Delete the standalone endpoint so
         // the composed device is the only representation (#218).
         this.log.info(
-          `Deleting standalone endpoint ${endpoint.entityId} — consumed by composed device`,
+          `Deleting standalone endpoint ${endpoint.entityId}, consumed by composed device`,
         );
         try {
           await endpoint.delete();
@@ -516,7 +516,7 @@ export class BridgeEndpointManager extends Service {
       if (!memoryLimitReached && isHeapUnderPressure()) {
         memoryLimitReached = true;
         this.log.error(
-          "Memory pressure detected — skipping remaining entities to prevent OOM crash. " +
+          "Memory pressure detected, skipping remaining entities to prevent OOM crash. " +
             "Reduce the number of entities in this bridge or increase the Node.js heap size (NODE_OPTIONS=--max-old-space-size=1024).",
         );
       }
@@ -526,7 +526,7 @@ export class BridgeEndpointManager extends Service {
           this._failedEntities.push({
             entityId,
             reason:
-              "Skipped due to memory pressure — reduce entities or increase heap size",
+              "Skipped due to memory pressure, reduce entities or increase heap size",
           });
         }
         continue;
@@ -544,7 +544,7 @@ export class BridgeEndpointManager extends Service {
         this.registry.isComposedSubEntityUsed(entityId)
       ) {
         this.log.debug(
-          `Skipping ${entityId} — already part of a composed device`,
+          `Skipping ${entityId}, already part of a composed device`,
         );
         continue;
       }
@@ -610,7 +610,7 @@ export class BridgeEndpointManager extends Service {
     // Collapse bursts (HA restart, scene activation) by serializing runs.
     // If a run is already active, stash the latest batch; once the current
     // run finishes it picks up the freshest stash. Older pending batches
-    // are dropped — they're already superseded by the newer one.
+    // are dropped, they're already superseded by the newer one.
     if (this.updateInFlight) {
       this.pendingStates = states;
       return this.updateInFlight;
@@ -668,7 +668,7 @@ export class BridgeEndpointManager extends Service {
 
   /**
    * Log detailed behavior error information for debugging "Behaviors have errors".
-   * Matter.js EndpointBehaviorsError extends AggregateError — the `errors` array
+   * Matter.js EndpointBehaviorsError extends AggregateError, the `errors` array
    * contains individual behavior crash errors (one per failed behavior).
    */
   private logDetailedError(entityId: string, error: unknown): void {

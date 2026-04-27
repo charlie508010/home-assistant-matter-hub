@@ -1,7 +1,7 @@
 {
   "name": "hamh-plugin-cloud-mock",
   "version": "1.0.0",
-  "description": "Mock cloud provider plugin — demonstrates device source integration",
+  "description": "Mock cloud provider plugin, demonstrates device source integration",
   "main": "index.js",
   "type": "module",
   "keywords": ["hamh-plugin", "matter", "home-assistant", "cloud"],

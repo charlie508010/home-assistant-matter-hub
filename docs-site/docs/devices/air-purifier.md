@@ -100,9 +100,9 @@ Composed air purifiers are automatically created when `autoComposedDevices` is e
 
 Since v2.0.27, air purifiers properly support:
 
-- **Oscillation (Rocking)** — If your fan entity has the `oscillating` attribute, it is exposed as the Matter Rocking feature
-- **Natural Wind** — Maps the "Natural" preset mode to Matter's naturalWind feature
-- **Sleep Wind** — Maps the "Sleep" preset mode to Matter's sleepWind feature
+- **Oscillation (Rocking)**, If your fan entity has the `oscillating` attribute, it is exposed as the Matter Rocking feature
+- **Natural Wind**, Maps the "Natural" preset mode to Matter's naturalWind feature
+- **Sleep Wind**, Maps the "Sleep" preset mode to Matter's sleepWind feature
 
 These features were previously missing from the air purifier device type.
 

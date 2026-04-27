@@ -374,7 +374,7 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
                     <TableCell>
                       {config.customName || (
                         <Typography color="text.secondary" variant="body2">
-                          —
+                          -
                         </Typography>
                       )}
                     </TableCell>
@@ -493,7 +493,7 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
                       <TableCell>
                         {config.customName || (
                           <Typography color="text.secondary" variant="body2">
-                            —
+                            -
                           </Typography>
                         )}
                       </TableCell>
@@ -528,7 +528,7 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
           {importPreview && (
             <Stack spacing={2} sx={{ mt: 1 }}>
               <Typography variant="body2" color="text.secondary">
-                Profile: <strong>{importPreview.profileName}</strong> —{" "}
+                Profile: <strong>{importPreview.profileName}</strong>,{" "}
                 {importPreview.totalEntries} entries,{" "}
                 {importPreview.matches.length} matched
               </Typography>

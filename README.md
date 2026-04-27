@@ -56,9 +56,9 @@ of port forwarding etc.
 
 **New in v2.0.42 (hotfix release):**
 
-- 🇯🇵 Aqara bridge registration no longer stalls — root `softwareVersionString` now matches the numeric `softwareVersion` ([#316](https://github.com/RiDDiX/home-assistant-matter-hub/issues/316))
+- 🇯🇵 Aqara bridge registration no longer stalls, root `softwareVersionString` now matches the numeric `softwareVersion` ([#316](https://github.com/RiDDiX/home-assistant-matter-hub/issues/316))
 - ❄️ Climate `auto` mode is clamped to `heat`/`cool` on devices without an `AutoMode` base ([#319](https://github.com/RiDDiX/home-assistant-matter-hub/issues/319))
-- 🌀 Per-entity `disableClimateFanControl` mapping flag — falls back to `ThermostatDevice` when controllers like Aqara don't recognise `RoomAirConditioner` (`0x0072`) ([#318](https://github.com/RiDDiX/home-assistant-matter-hub/issues/318))
+- 🌀 Per-entity `disableClimateFanControl` mapping flag, falls back to `ThermostatDevice` when controllers like Aqara don't recognise `RoomAirConditioner` (`0x0072`) ([#318](https://github.com/RiDDiX/home-assistant-matter-hub/issues/318))
 - 🗺️ Vacuum service area `selectedAreas` is kept after dispatch instead of being cleared
 
 **Previously in v2.0.41:**
@@ -68,13 +68,13 @@ of port forwarding etc.
 | 🌡️ Google Home AC offline fix | `DeadFrontBehavior` on climate OnOff cluster so RoomAirConditioner stops showing offline on Google Home ([#302](https://github.com/RiDDiX/home-assistant-matter-hub/issues/302)) |
 | 🪟 Cover device_class mapping | Map HA `garage`/`gate`/`window`/`awning`/etc. to the matching Matter WindowCovering type so voice commands hit the right device type ([#304](https://github.com/RiDDiX/home-assistant-matter-hub/issues/304)) |
 | 📺 LG TV commissioning patch | Local patch on matter.js 0.16.11 to accept long NOC operational cert serials ([#305](https://github.com/RiDDiX/home-assistant-matter-hub/issues/305)) |
-| 💡 Alexa brightness-reset behind flag | Old Alexa brightness-reset heuristic moved behind `alexaPreserveBrightnessOnTurnOn`, default off — Apple Home "set room to 100%" works again ([#306](https://github.com/RiDDiX/home-assistant-matter-hub/issues/306)) |
+| 💡 Alexa brightness-reset behind flag | Old Alexa brightness-reset heuristic moved behind `alexaPreserveBrightnessOnTurnOn`, default off, Apple Home "set room to 100%" works again ([#306](https://github.com/RiDDiX/home-assistant-matter-hub/issues/306)) |
 | 🌀 Google Home fan speed | Uses `fan.set_percentage` so already-on fans pick up speed changes from Google Home ([#308](https://github.com/RiDDiX/home-assistant-matter-hub/issues/308)) |
 | ❄️ Climate auto mode | Expose Matter Auto mode when HA reports `auto` in `hvac_modes` ([#309](https://github.com/RiDDiX/home-assistant-matter-hub/issues/309)) |
 | 🆔 Server-mode root identity | Root identity now applies as a single transaction, so controllers don't drop devices mid-swap ([#311](https://github.com/RiDDiX/home-assistant-matter-hub/issues/311)) |
-| 🪟 Lift-only blinds | No more `TiltBlindTiltOnly` on covers without tilt — fixes Alexa routines for roller blinds ([#312](https://github.com/RiDDiX/home-assistant-matter-hub/issues/312)) |
+| 🪟 Lift-only blinds | No more `TiltBlindTiltOnly` on covers without tilt, fixes Alexa routines for roller blinds ([#312](https://github.com/RiDDiX/home-assistant-matter-hub/issues/312)) |
 | 🏷️ Per-entity `disableClimateOnOff` | Turn off the OnOff cluster on climate endpoints per entity for controllers that prefer mode-only control |
-| 🔢 `serialNumberSuffix` per bridge | Append a suffix to every entity serial — useful if controllers like Aqara cache stale device data |
+| 🔢 `serialNumberSuffix` per bridge | Append a suffix to every entity serial, useful if controllers like Aqara cache stale device data |
 | 📝 `protocolLogLevel` option | Quiet matter.js logs independently from the app log level |
 | 🖥️ Bridge HW/SW version strings | HA device-registry `hw_version`/`sw_version` now show up in Matter BasicInformation on server-mode endpoints |
 | 🎨 Extended color light: XY + enhancedColorMode | XY feature added as mandatory, `enhancedColorMode` mirrors `colorMode` |
@@ -87,7 +87,7 @@ of port forwarding etc.
 **Reliability & resilience:** parallel bridge stop in `stopAll`/`restartAll`, parallel HA registry fetches, serialized bridge start/stop lifecycle, serialized `updateStates` with plugin listener detach, HA reconnect retry on transient network errors, 30s timeout on `sendMessagePromise`, port-conflict reject on web-api start, graceful shutdown on `/api/backup/restart`, `AppEnvironment` disposal on SIGINT, stale optimistic state sweep, pending debouncer clear, healthcheck 401 fix under basic auth, deep-equal entity attribute comparison, overlap guard for auto-refresh, safer mireds conversion, aligned `colorMode` publishing, surfaced bridge import errors, corrected thermostat running state for unknown modes + drying, unified Node version across Dockerfiles, sourcemaps excluded from npm tarball, unused deps dropped (rxjs, strip-color, lodash), unused `config-validator` utility removed.
 
 **Previously in v2.0.39 & v2.0.40 (hotfix releases):**
-- Fixed crash loop on startup caused by Node 22 native WebSocket dropping connections ([#297](https://github.com/RiDDiX/home-assistant-matter-hub/issues/297), [#299](https://github.com/RiDDiX/home-assistant-matter-hub/issues/299)) — affects both aarch64 (RPi) and amd64
+- Fixed crash loop on startup caused by Node 22 native WebSocket dropping connections ([#297](https://github.com/RiDDiX/home-assistant-matter-hub/issues/297), [#299](https://github.com/RiDDiX/home-assistant-matter-hub/issues/299)), affects both aarch64 (RPi) and amd64
 - Fixed service initialization errors being silently swallowed, causing the process to hang instead of exiting
 - Registry fetch now waits for WebSocket reconnect between retries and has increased retry tolerance
 - Fixed `select`, `input_select`, `siren` domains showing as unsupported in filter preview ([#298](https://github.com/RiDDiX/home-assistant-matter-hub/issues/298))
@@ -161,7 +161,7 @@ of port forwarding etc.
 <summary><strong>📜 Previous Stable Versions</strong> - Click to expand</summary>
 
 ### v2.0.40
-Filter preview domain fix — `select`, `input_select`, `siren` now show as supported ([#298](https://github.com/RiDDiX/home-assistant-matter-hub/issues/298))
+Filter preview domain fix, `select`, `input_select`, `siren` now show as supported ([#298](https://github.com/RiDDiX/home-assistant-matter-hub/issues/298))
 
 ### v2.0.39
 Node 22 WebSocket crash loop fix ([#297](https://github.com/RiDDiX/home-assistant-matter-hub/issues/297), [#299](https://github.com/RiDDiX/home-assistant-matter-hub/issues/299)), service init error surfacing, registry retry hardening, support link added
@@ -205,7 +205,7 @@ Vacuum mop intensity, vacuum auto-detection, Roborock room auto-detect, live ent
 ### v2.0.24
 Dashboard landing page, composed devices, bridge wizard feature flags, entity autocomplete, light transitions, live diagnostics, vacuum suction level, thermostat auto-resume, vacuum docked state, memory leak fix
 
-### v2.0.19–v2.0.23
+### v2.0.19-v2.0.23
 Bridge templates, live filter preview, entity diagnostics, multi-bridge bulk operations, entity health indicators, diagnostic export, EntityLabel/DeviceLabel filters, Power & Energy Measurement, Event domain (GenericSwitch)
 
 ### v2.0.17 / v2.0.18
@@ -347,26 +347,26 @@ configuration options, known issues, limitations and guides.
 ## 🔧 Network Troubleshooting
 
 <details>
-<summary><strong>⚠️ "No Response" / Connection Drops — Common Network Causes</strong> (click to expand)</summary>
+<summary><strong>⚠️ "No Response" / Connection Drops, Common Network Causes</strong> (click to expand)</summary>
 
 ### The Problem
 
-Your Matter devices suddenly show **"No Response"** (Apple Home), **"Unavailable"** (Google Home), or become **unresponsive** after some time — even though the bridge is still running and other controllers (e.g., Alexa) continue to work fine.
+Your Matter devices suddenly show **"No Response"** (Apple Home), **"Unavailable"** (Google Home), or become **unresponsive** after some time, even though the bridge is still running and other controllers (e.g., Alexa) continue to work fine.
 
 ### Root Cause: Network Equipment Blocking mDNS/Multicast
 
-Matter relies heavily on **mDNS (multicast DNS)** for device discovery and reachability. Many routers, access points, and managed switches have features that **filter, throttle, or block multicast traffic** — which breaks Matter communication silently.
+Matter relies heavily on **mDNS (multicast DNS)** for device discovery and reachability. Many routers, access points, and managed switches have features that **filter, throttle, or block multicast traffic**, which breaks Matter communication silently.
 
-> **💡 This was confirmed and documented thanks to the excellent systematic testing by [@omerfaruk-aran](https://github.com/omerfaruk-aran) in [#129](https://github.com/RiDDiX/home-assistant-matter-hub/issues/129).** The issue was traced to a TP-Link Archer AX50 (in AP mode) sitting between the Apple TV and the network — its default settings were blocking/limiting mDNS/Bonjour traffic over time.
+> **💡 This was confirmed and documented thanks to the excellent systematic testing by [@omerfaruk-aran](https://github.com/omerfaruk-aran) in [#129](https://github.com/RiDDiX/home-assistant-matter-hub/issues/129).** The issue was traced to a TP-Link Archer AX50 (in AP mode) sitting between the Apple TV and the network, its default settings were blocking/limiting mDNS/Bonjour traffic over time.
 
 ### What to Check on Your Network Equipment
 
-1. **IGMP Snooping** — Disable or configure it to allow mDNS (`224.0.0.251` / `ff02::fb`)
-2. **Multicast Optimization / Multicast Enhancement** — Disable (often called "Airtime Fairness" or "Multicast to Unicast")
-3. **AP Isolation / Client Isolation** — Must be **disabled** so devices on the same network can communicate
-4. **mDNS / Bonjour Forwarding** — Enable if available (some enterprise APs have this)
-5. **DHCP Server on secondary devices** — Disable DHCP on access points / switches that are NOT your main router (multiple DHCP servers cause IP conflicts)
-6. **Firmware Updates** — Update your router/AP firmware, as multicast handling is frequently improved
+1. **IGMP Snooping**, Disable or configure it to allow mDNS (`224.0.0.251` / `ff02::fb`)
+2. **Multicast Optimization / Multicast Enhancement**, Disable (often called "Airtime Fairness" or "Multicast to Unicast")
+3. **AP Isolation / Client Isolation**, Must be **disabled** so devices on the same network can communicate
+4. **mDNS / Bonjour Forwarding**, Enable if available (some enterprise APs have this)
+5. **DHCP Server on secondary devices**, Disable DHCP on access points / switches that are NOT your main router (multiple DHCP servers cause IP conflicts)
+6. **Firmware Updates**, Update your router/AP firmware, as multicast handling is frequently improved
 
 ### Affected Equipment (Known Cases)
 
@@ -390,14 +390,14 @@ Matter relies heavily on **mDNS (multicast DNS)** for device discovery and reach
    ```
    --mdns-network-interface eth0
    ```
-   (or `end0`, `enp0s18`, etc. — check your system)
+   (or `end0`, `enp0s18`, etc., check your system)
 
 ### Network Topology Tips
 
 - **Keep the path simple**: Avoid placing access points or managed switches between your Matter bridge (Home Assistant) and your Home Hub (HomePod/Apple TV)
 - **Use wired connections** where possible for Home Hubs and the Home Assistant host
 - **Same subnet**: All Matter devices, controllers, and the bridge must be on the same Layer 2 network / subnet
-- **IPv6**: Matter requires IPv6 — do not disable it. For VLAN setups, configure **ULA addresses** (`fd00::/8`), not just link-local (`fe80::`). See [Troubleshooting](https://home-assistant-matter-hub.riddix.dev/guides/connectivity-issues#ipv6) and [Discussion #39](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/39)
+- **IPv6**: Matter requires IPv6, do not disable it. For VLAN setups, configure **ULA addresses** (`fd00::/8`), not just link-local (`fe80::`). See [Troubleshooting](https://home-assistant-matter-hub.riddix.dev/guides/connectivity-issues#ipv6) and [Discussion #39](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/39)
 
 </details>
 
@@ -405,7 +405,7 @@ Matter relies heavily on **mDNS (multicast DNS)** for device discovery and reach
 
 ## Migration from t0bst4r
 
-Migrating from the original `t0bst4r/home-assistant-matter-hub` is straightforward. **Your Matter fabric connections and paired devices will be preserved!**
+Migrating from the original `t0bst4r/home-assistant-matter-hub` is easy. **Your Matter fabric connections and paired devices will be preserved!**
 
 ### Home Assistant Add-on
 
@@ -457,22 +457,29 @@ Your volume mounts stay the same - no data migration needed.
 
 This project thrives thanks to the amazing community! Special thanks to everyone who contributes by reporting bugs, suggesting features, and helping others.
 
+> Note: GitHub doesn't surface contributors on this repo because it's still a fork of the original. The list below is maintained by hand.
+
 ### 🏆 Top Contributors
+
+Newest first.
 
 | Contributor | Contributions |
 |-------------|---------------|
-| [@codyc1515](https://github.com/codyc1515) | 🥇 **Top Reporter** - Climate/thermostat bugs (#52, #24, #21, #20), extensive testing feedback |
-| [@Hatton920](https://github.com/Hatton920) | 🤖 **Vacuum Expert** - Intensive testing of Robot Vacuum Server Mode, Apple Home & Siri validation |
-| [@Chrulf](https://github.com/Chrulf) | 🔍 Google Home brightness debugging (#41), detailed logs & testing |
-| [@SH1FT-W](https://github.com/SH1FT-W) | 💎 **Sponsor** + Vacuum room selection feature request (#49) |
-| [@depahk](https://github.com/depahk) | 📝 Migration documentation fix ([#32](https://github.com/RiDDiX/home-assistant-matter-hub/pull/32)) |
-| [@Fettkeewl](https://github.com/Fettkeewl) | 🐛 Script import bug (#26), Alias feature request (#25) |
-| [@razzietheman](https://github.com/razzietheman) | 🥈 **Active Tester** - Bridge icons (#101), sorting (#80), feature requests (#31, #30), extensive UI/UX feedback |
-| [@markgaze](https://github.com/markgaze) | 🤖 **Code Contributor** - Ecovacs Deebot room support ([#118](https://github.com/RiDDiX/home-assistant-matter-hub/pull/118)) |
-| [@omerfaruk-aran](https://github.com/omerfaruk-aran) | 🔧 **Network Debugging Expert** - Systematic mDNS/multicast root cause analysis for "No Response" issues ([#129](https://github.com/RiDDiX/home-assistant-matter-hub/issues/129)) |
-| [@gustavakerstrom](https://github.com/gustavakerstrom) | 🤖 **Code Contributor** - Template description display fix ([#215](https://github.com/RiDDiX/home-assistant-matter-hub/pull/215)) |
-| [@aetasoul](https://github.com/aetasoul) | 🤖 **Code Contributor** - Immediate force sync on startup to beat stale Alexa queues ([#282](https://github.com/RiDDiX/home-assistant-matter-hub/pull/282)) |
 | [@Yllelder](https://github.com/Yllelder) | 🌐 **Translator** - Spanish translation ([#314](https://github.com/RiDDiX/home-assistant-matter-hub/pull/314)) |
+| [@MStankiewiczOfficial](https://github.com/MStankiewiczOfficial) | 🌐 **Translator** - Polish translation ([#288](https://github.com/RiDDiX/home-assistant-matter-hub/pull/288)) |
+| [@aetasoul](https://github.com/aetasoul) | 🤖 **Code Contributor** - Immediate force sync on startup to beat stale Alexa queues ([#282](https://github.com/RiDDiX/home-assistant-matter-hub/pull/282)) |
+| [@omerfaruk-aran](https://github.com/omerfaruk-aran) | 🌐 Turkish translation ([#260](https://github.com/RiDDiX/home-assistant-matter-hub/pull/260)) + 🔧 Network debugging for "No Response" issues ([#129](https://github.com/RiDDiX/home-assistant-matter-hub/issues/129)) |
+| [@gustavakerstrom](https://github.com/gustavakerstrom) | 🤖 **Code Contributor** - Custom fan speed mapping ([#226](https://github.com/RiDDiX/home-assistant-matter-hub/pull/226)), template description fix ([#215](https://github.com/RiDDiX/home-assistant-matter-hub/pull/215)) |
+| [@AmineDjeghri](https://github.com/AmineDjeghri) | 📝 Migration instructions for the addon data folder ([#171](https://github.com/RiDDiX/home-assistant-matter-hub/pull/171)) |
+| [@markgaze](https://github.com/markgaze) | 🤖 **Code Contributor** - Ecovacs Deebot room support ([#118](https://github.com/RiDDiX/home-assistant-matter-hub/pull/118)) |
+| [@codyc1515](https://github.com/codyc1515) | 🥇 **Top Reporter** - Climate/thermostat bugs (#52, #24, #21, #20), README badge & install steps ([#285](https://github.com/RiDDiX/home-assistant-matter-hub/pull/285)), binary sensor classes ([#66](https://github.com/RiDDiX/home-assistant-matter-hub/pull/66)), fan control init ([#10](https://github.com/RiDDiX/home-assistant-matter-hub/pull/10)) |
+| [@AymericLeFeyer](https://github.com/AymericLeFeyer) | 📝 README YouTube video link |
+| [@depahk](https://github.com/depahk) | 📝 Migration docs ([#32](https://github.com/RiDDiX/home-assistant-matter-hub/pull/32)) |
+| [@Hatton920](https://github.com/Hatton920) | 🤖 **Vacuum Expert** - Intensive testing of Robot Vacuum Server Mode, Apple Home & Siri validation |
+| [@razzietheman](https://github.com/razzietheman) | 🥈 **Active Tester** - Bridge icons (#101), sorting (#80), feature requests (#31, #30), extensive UI/UX feedback |
+| [@SH1FT-W](https://github.com/SH1FT-W) | 💎 **Sponsor** + Vacuum room selection feature request (#49) |
+| [@Chrulf](https://github.com/Chrulf) | 🔍 Google Home brightness debugging (#41), detailed logs & testing |
+| [@Fettkeewl](https://github.com/Fettkeewl) | 🐛 Script import bug (#26), Alias feature request (#25) |
 
 <details>
 <summary><strong>📋 Issue Tracker - All Contributors</strong> (click to expand)</summary>
@@ -516,7 +523,7 @@ Thank you to everyone who helps improve this project by reporting issues!
 
 ### 💖 Sponsors
 
-> **Donations are completely voluntary!** This project exists because of passion for open source, not money. Thank you to everyone who has supported it — it truly means a lot! ❤️
+> **Donations are completely voluntary!** This project exists because of passion for open source, not money. Thank you to everyone who has supported it, it truly means a lot! ❤️
 
 🥇 **First Sponsor:** [@thorsten-gehrig](https://github.com/thorsten-gehrig)
 
@@ -568,3 +575,4 @@ Your support helps cover hosting costs and motivates continued development. Than
 </div>
 
 ---
+

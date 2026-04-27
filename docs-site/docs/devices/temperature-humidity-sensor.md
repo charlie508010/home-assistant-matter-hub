@@ -37,9 +37,9 @@ Instead of exposing each sensor entity separately:
 | Without Mapping | With Mapping |
 |-----------------|------------|
 | H&T Bad Temperature | **H&T Bad** (combined) |
-| H&T Bad Humidity | — (still gets its own standalone endpoint) |
-| H&T Bad Pressure | — (auto-assigned to temperature) |
-| H&T Bad Battery | — (auto-assigned to temperature) |
+| H&T Bad Humidity |, (still gets its own standalone endpoint) |
+| H&T Bad Pressure |, (auto-assigned to temperature) |
+| H&T Bad Battery |, (auto-assigned to temperature) |
 
 The combined device reports all values in one place.
 

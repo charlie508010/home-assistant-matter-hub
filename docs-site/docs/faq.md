@@ -42,9 +42,9 @@ If you just can't get it working with your labels, try to delete your label and 
 
 ## My Vacuum does not appear in the Apple Home App
 
-1. **Use Server Mode** — Apple Home requires robot vacuums as standalone devices. Create a dedicated Server Mode bridge with only your vacuum.
-2. **Update all Home Hubs** — Ensure **all** home hubs are updated to **iOS/tvOS/AudioOS 18.4** or later. If **any** hub is below 18.4, the vacuum won't show up.
-3. **Re-pair** — After enabling Server Mode, remove the old accessory and pair the new bridge.
+1. **Use Server Mode**, Apple Home requires robot vacuums as standalone devices. Create a dedicated Server Mode bridge with only your vacuum.
+2. **Update all Home Hubs**, Ensure **all** home hubs are updated to **iOS/tvOS/AudioOS 18.4** or later. If **any** hub is below 18.4, the vacuum won't show up.
+3. **Re-pair**, After enabling Server Mode, remove the old accessory and pair the new bridge.
 
 See the [Robot Vacuum Guide](./devices/robot-vacuum.md) for full setup instructions.
 
@@ -83,9 +83,9 @@ See [Temperature & Humidity Sensor](./devices/temperature-humidity-sensor.md) fo
 
 ## The app keeps crashing or restarting on my HA Yellow / Raspberry Pi / VM
 
-Low-resource devices (1–2 GB RAM) or VMs with limited memory allocation can run out of memory. Since v2.0.25, HAMH dynamically sizes the Node.js heap to 25% of your system RAM (clamped between 256 MB and 1024 MB). The startup log shows the calculated value: `System RAM: 2048MB → Node.js heap: 512MB`. The total process memory (including matter.js cluster definitions, SQLite, and V8 overhead) can reach 400–600 MB even before bridges start.
+Low-resource devices (1-2 GB RAM) or VMs with limited memory allocation can run out of memory. Since v2.0.25, HAMH dynamically sizes the Node.js heap to 25% of your system RAM (clamped between 256 MB and 1024 MB). The startup log shows the calculated value: `System RAM: 2048MB → Node.js heap: 512MB`. The total process memory (including matter.js cluster definitions, SQLite, and V8 overhead) can reach 400-600 MB even before bridges start.
 
-The telltale sign of an OOM kill is the log showing `Killed` with no error message or stack trace — this means the Linux kernel terminated the process.
+The telltale sign of an OOM kill is the log showing `Killed` with no error message or stack trace, this means the Linux kernel terminated the process.
 
 If crashes persist:
 
@@ -99,7 +99,7 @@ See the [Low-Resource Devices Guide](./guides/low-resource-devices.md) for detai
 
 ## Alexa loses connection after a few hours
 
-This is typically caused by stale sessions — Alexa goes offline but the bridge keeps the old session alive, blocking new subscriptions. The bridge includes an automatic force-sync mechanism that periodically pushes state updates to all connected controllers. If you still experience this:
+This is typically caused by stale sessions, Alexa goes offline but the bridge keeps the old session alive, blocking new subscriptions. The bridge includes an automatic force-sync mechanism that periodically pushes state updates to all connected controllers. If you still experience this:
 
 1. Update to the latest version
 2. Remove and re-pair the bridge in the Alexa app
@@ -111,9 +111,9 @@ See [#105](https://github.com/RiDDiX/home-assistant-matter-hub/issues/105) for d
 
 Matter and Home Assistant use different conventions for cover position percentages. Use the bridge feature flags to fix this:
 
-- **`coverSwapOpenClose`** — Swaps open/close commands (fixes reversed Alexa commands)
-- **`coverDoNotInvertPercentage`** — Skips percentage inversion
-- **`coverUseHomeAssistantPercentage`** — Uses HA percentages directly
+- **`coverSwapOpenClose`**, Swaps open/close commands (fixes reversed Alexa commands)
+- **`coverDoNotInvertPercentage`**, Skips percentage inversion
+- **`coverUseHomeAssistantPercentage`**, Uses HA percentages directly
 
 Configure these in your Bridge Settings → Feature Flags. See [#107](https://github.com/RiDDiX/home-assistant-matter-hub/issues/107), [#109](https://github.com/RiDDiX/home-assistant-matter-hub/issues/109).
 
@@ -163,7 +163,7 @@ If you're on an older version, update to get the correct mapping. See [#154](htt
 
 HAMH sends your Home Assistant area names to Matter controllers using the FixedLabel cluster (`label: "room", value: "<area name>"`). However, **no major controller** (Google Home, Apple Home, Alexa) currently reads this label for automatic room assignment. You need to assign rooms manually in each controller app during or after pairing.
 
-The FixedLabel data is kept in the bridge for future controller support. The room name is limited to 16 characters per the Matter spec — longer HA area names are truncated automatically.
+The FixedLabel data is kept in the bridge for future controller support. The room name is limited to 16 characters per the Matter spec, longer HA area names are truncated automatically.
 
 ## How do I control Media Player playback?
 
@@ -177,7 +177,7 @@ See [Creating a Cleaning Mode Helper](./devices/robot-vacuum.md#creating-a-clean
 
 ## Why does Apple Home show the same intensity options (Quiet / Automatic / Max) for both Vacuum and Mop mode?
 
-This is an Apple Home limitation. Apple renders intensity labels based on Matter mode tags, and both fan speed and mop intensity use the same tags (Quiet, Auto, Max). The routing behind the labels is correct — selecting "Quiet" in Mop mode sets the mop intensity, while "Quiet" in Vacuum mode sets fan speed.
+This is an Apple Home limitation. Apple renders intensity labels based on Matter mode tags, and both fan speed and mop intensity use the same tags (Quiet, Auto, Max). The routing behind the labels is correct, selecting "Quiet" in Mop mode sets the mop intensity, while "Quiet" in Vacuum mode sets fan speed.
 
 ## My vacuum's mop intensity doesn't show in Apple Home
 
@@ -191,7 +191,7 @@ Since v2.0.26, `select` and `input_select` entities are automatically mapped to 
 
 ## How do I expose my alarm control panel to Matter?
 
-Since v2.0.27, `alarm_control_panel` entities are automatically exposed as Matter **ModeSelectDevice**. Each alarm state (Disarmed, Armed Home, Armed Away, etc.) becomes a selectable mode. An OnOff fallback is also included for Apple Home compatibility — turning "on" arms the alarm, turning "off" disarms it. See [#209](https://github.com/RiDDiX/home-assistant-matter-hub/issues/209).
+Since v2.0.27, `alarm_control_panel` entities are automatically exposed as Matter **ModeSelectDevice**. Each alarm state (Disarmed, Armed Home, Armed Away, etc.) becomes a selectable mode. An OnOff fallback is also included for Apple Home compatibility, turning "on" arms the alarm, turning "off" disarms it. See [#209](https://github.com/RiDDiX/home-assistant-matter-hub/issues/209).
 
 ## My Valetudo vacuum rooms aren't working
 
@@ -216,11 +216,11 @@ Fixed in v2.0.27. Devices with only `heat_cool` mode (no explicit `heat` or `coo
 
 Home Assistant 2026.4 changed how `friendly_name` is composed. Entity names now always include the device name as a prefix (e.g. "Motion Sensor Temperature" instead of just "Temperature"). This affects HAMH because Matter's `nodeLabel` is derived from `friendly_name`.
 
-Since Matter has no concept of aliases — `nodeLabel` is a single string (max 32 characters) — there is no way for HAMH to pass multiple names to a controller.
+Since Matter has no concept of aliases, `nodeLabel` is a single string (max 32 characters), there is no way for HAMH to pass multiple names to a controller.
 
 **Workaround:** Use **Entity Mapping** in the HAMH UI to set a `customName` for affected entities. The `customName` always takes priority over `friendly_name`. Go to the bridge detail page → Entity Mappings → Add/Edit mapping → set your preferred name.
 
-HA's automatic migration adds old names as Assist voice aliases, but those only work for HA's built-in voice assistant — not for external controllers like Alexa, Google Home, or Apple Home. Each controller has its own device renaming UI that you can use as an alternative.
+HA's automatic migration adds old names as Assist voice aliases, but those only work for HA's built-in voice assistant, not for external controllers like Alexa, Google Home, or Apple Home. Each controller has its own device renaming UI that you can use as an alternative.
 
 See [#276](https://github.com/RiDDiX/home-assistant-matter-hub/issues/276) for discussion.
 
@@ -233,7 +233,7 @@ See the [Alpha Features Guide](./guides/alpha-features.md) for details on alpha 
 
 ## I switched from Alpha to Stable (or vice versa) and lost all my devices / custom names
 
-The Alpha and Stable add-ons use **different add-on slugs** (`hamh-alpha` vs `hamh`), which means they have separate data directories. A Home Assistant system backup only restores data to the same add-on slug it came from — it does **not** transfer data between Alpha and Stable.
+The Alpha and Stable add-ons use **different add-on slugs** (`hamh-alpha` vs `hamh`), which means they have separate data directories. A Home Assistant system backup only restores data to the same add-on slug it came from, it does **not** transfer data between Alpha and Stable.
 
 To migrate your configuration (bridges, entity mappings, custom names, and Matter identity) between Alpha and Stable:
 
@@ -277,7 +277,7 @@ When reporting Alpha issues, include:
 
 ## My thermostat doesn't turn on when I set the temperature
 
-Since v2.0.24, thermostats support **auto-resume** — when off and you set a temperature (even the same one), it automatically turns on. This works with all voice assistants.
+Since v2.0.24, thermostats support **auto-resume**, when off and you set a temperature (even the same one), it automatically turns on. This works with all voice assistants.
 
 If not working:
 

@@ -279,7 +279,7 @@ export class ServerModeBridge {
         );
         if (totalSubs === 0 && sessions.length > 0) {
           this.log.warn(
-            `All subscriptions lost — ${sessions.length} session(s) still active, waiting for controller to re-subscribe`,
+            `All subscriptions lost, ${sessions.length} session(s) still active, waiting for controller to re-subscribe`,
           );
           if (!this.deadSessionTimer) {
             this.deadSessionTimer = setTimeout(() => {
@@ -343,7 +343,7 @@ export class ServerModeBridge {
             s.subscriptions.size === 0
           ) {
             this.log.info(
-              `Closing stale session ${s.id} (peer ${s.peerNodeId}, 0 subs) — replaced by session ${newSession.id}`,
+              `Closing stale session ${s.id} (peer ${s.peerNodeId}, 0 subs), replaced by session ${newSession.id}`,
             );
             s.initiateForceClose().catch(() => {});
           }
@@ -560,7 +560,7 @@ export class ServerModeBridge {
       const currentEntity = behavior.entity;
 
       if (currentEntity?.state) {
-        // Compare only meaningful fields — ignore volatile HA metadata
+        // Compare only meaningful fields, ignore volatile HA metadata
         // (last_changed, last_updated, context) to avoid unnecessary MRP traffic.
         const stateJson = JSON.stringify({
           s: currentEntity.state.state,
@@ -568,7 +568,7 @@ export class ServerModeBridge {
         });
 
         if (stateJson !== this.lastSyncedState) {
-          // State has changed since last sync — push update
+          // State has changed since last sync, push update
           await device.setStateOf(HomeAssistantEntityBehavior, {
             entity: {
               ...currentEntity,

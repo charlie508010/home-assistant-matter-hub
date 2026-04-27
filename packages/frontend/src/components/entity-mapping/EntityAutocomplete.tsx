@@ -54,7 +54,7 @@ export function EntityAutocomplete({
           setOptions(data.entities ?? []);
         }
       } catch {
-        // silently fail — user can still type manually
+        // silently fail, user can still type manually
       } finally {
         setLoading(false);
       }

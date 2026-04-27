@@ -163,9 +163,9 @@ List entities with pagination and filtering.
 **Query Parameters:**
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `domain` | string | — | Filter by domain (e.g. `light`) |
-| `search` | string | — | Search in entity_id and friendly_name |
-| `limit` | number | 100 | Max results (1–500) |
+| `domain` | string | - | Filter by domain (e.g. `light`) |
+| `search` | string | - | Search in entity_id and friendly_name |
+| `limit` | number | 100 | Max results (1-500) |
 | `offset` | number | 0 | Pagination offset |
 
 ### GET /api/home-assistant/entities/:entityId
@@ -386,9 +386,9 @@ Retrieve logs with optional filtering.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `level` | string | — | Comma-separated levels (e.g. `error,warn`) |
-| `search` | string | — | Search in log messages |
-| `limit` | number | 100 | Max entries (1–500) |
+| `level` | string | - | Comma-separated levels (e.g. `error,warn`) |
+| `search` | string | - | Search in log messages |
+| `limit` | number | 100 | Max entries (1-500) |
 
 ### GET /api/logs/levels
 

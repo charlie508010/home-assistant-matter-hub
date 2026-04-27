@@ -44,9 +44,9 @@ class MyServer extends Base {
 Responsibilities:
 
 - **Build endpoints** from the filtered entity list (`BridgeRegistry.includedEntities`) and plug devices.
-- **Refresh** when the HA registry changes — create missing endpoints, delete removed ones, rewire mapped companion sensors.
+- **Refresh** when the HA registry changes, create missing endpoints, delete removed ones, rewire mapped companion sensors.
 - **Forward state updates** from HA (via `subscribeEntities`) into matter.js via each endpoint's `updateStates()`.
-- **Serialize state bursts** so that when HA fires 200 state updates in 50 ms (restart, scene activation), matter.js only sees one batch at a time — the manager keeps a pending batch and collapses consecutive calls.
+- **Serialize state bursts** so that when HA fires 200 state updates in 50 ms (restart, scene activation), matter.js only sees one batch at a time, the manager keeps a pending batch and collapses consecutive calls.
 - **Track plugin endpoints** separately: listeners on plugin cluster events are kept so they can be detached when the plugin removes a device.
 
 Typical call site in `start-handler.ts`:
@@ -66,7 +66,7 @@ enableAutoRefresh = initBridges
   .then((r) => r.enableAutoRefresh(() => bridgeService.refreshAll()));
 ```
 
-The callback is guarded against overlapping runs — if the previous tick is still retrying (slow HA, reconnect), the next tick skips instead of stacking up.
+The callback is guarded against overlapping runs, if the previous tick is still retrying (slow HA, reconnect), the next tick skips instead of stacking up.
 
 ## Endpoint update flow
 
@@ -75,7 +75,7 @@ The callback is guarded against overlapping runs — if the previous tick is sti
 3. `BridgeEndpointManager.updateStates(states)` gets called.
 4. If no update is in flight, it runs `runUpdateStates` immediately. If one is running, it stashes the newest batch and lets the running call pick it up when done.
 5. `runUpdateStates` merges the batch into the registry and dispatches `endpoint.updateStates(states)` to every child endpoint in parallel.
-6. Each `LegacyEndpoint.updateStates` compares the entity against its last cached state — state string plus a deep-equal attribute check — and returns early if nothing changed, so the matter.js cluster writes don't fire when they don't need to.
+6. Each `LegacyEndpoint.updateStates` compares the entity against its last cached state, state string plus a deep-equal attribute check, and returns early if nothing changed, so the matter.js cluster writes don't fire when they don't need to.
 
 ## Full registry-refresh flow
 
@@ -89,6 +89,6 @@ The callback is guarded against overlapping runs — if the previous tick is sti
 
 1. Create `packages/backend/src/matter/endpoints/legacy/<domain>/index.ts` with a builder function that returns an `EndpointType`.
 2. Pick the matter.js device type (`@matter/main/devices`) and the behavior servers (`@matter/main/behaviors` plus any HAMH-local ones in `packages/backend/src/matter/behaviors/`).
-3. If the domain maps onto a new cluster, add an enum entry to `packages/common/src/clusters/index.ts` — the cluster-validation test in `create-legacy-endpoint-type.test.ts` asserts every cluster ID a HAMH endpoint exposes is in that enum.
+3. If the domain maps onto a new cluster, add an enum entry to `packages/common/src/clusters/index.ts`, the cluster-validation test in `create-legacy-endpoint-type.test.ts` asserts every cluster ID a HAMH endpoint exposes is in that enum.
 4. Wire the domain into `createLegacyEndpointType()`.
 5. Add controller-compatibility rows to `docs-site/docs/guides/controller-compatibility.md`. Every cell starts as `❓` until a vendor doc or pair-test proves otherwise.

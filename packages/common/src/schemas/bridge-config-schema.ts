@@ -202,7 +202,7 @@ const featureFlagSchema: JSONSchema7 = {
       title: "Auto Composed Devices",
       description:
         "Master toggle: combine related entities from the same Home Assistant device into a single Matter endpoint. " +
-        "Turns on battery, humidity, pressure, power, and energy auto-mapping at once — a Shelly Plug shows up as one device with power monitoring instead of several siblings.",
+        "Turns on battery, humidity, pressure, power, and energy auto-mapping at once, a Shelly Plug shows up as one device with power monitoring instead of several siblings.",
       type: "boolean",
       default: false,
     },
@@ -234,7 +234,7 @@ const featureFlagSchema: JSONSchema7 = {
         "Since Home Assistant 2026.4, friendly_name is prefixed with the device name, which breaks voice " +
         "commands that relied on the short entity name. " +
         "Resolution order: customName → registry name → registry original_name → friendly_name → entity_id. " +
-        "Matter has no alias concept — this only changes which single name is reported.",
+        "Matter has no alias concept, this only changes which single name is reported.",
       type: "boolean",
       default: false,
     },
@@ -245,7 +245,7 @@ const featureFlagSchema: JSONSchema7 = {
         "Add an OnOff cluster to robot vacuum endpoints. " +
         "Alexa REQUIRES this (PowerController) to show robotic vacuums in the app. " +
         "Without it, Alexa commissions the device but never displays it. " +
-        "In Server Mode this is enabled automatically — only check this for bridge mode. " +
+        "In Server Mode this is enabled automatically, only check this for bridge mode. " +
         "WARNING: OnOff is NOT part of the Matter RVC device type specification. " +
         "Enabling this may break Apple Home (shows 'Updating') and Google Home.",
       type: "boolean",

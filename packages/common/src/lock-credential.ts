@@ -44,7 +44,7 @@ export interface LockCredentialRequest {
 /**
  * Sanitized credential shape returned by the REST API. The PIN hash and
  * salt are never sent to clients; only metadata plus a `hasPinCode` flag.
- * Matter controllers do not see this type — they interact with locks via
+ * Matter controllers do not see this type, they interact with locks via
  * the Matter DoorLock cluster, which is handled server-side against the
  * full `LockCredential` entries in storage.
  */

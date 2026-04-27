@@ -391,7 +391,7 @@ export const DevicesPage = () => {
                 </ListItemIcon>
                 <ListItemText
                   primary={fe.entityId}
-                  secondary={`${fe.bridgeName} — ${fe.reason}`}
+                  secondary={`${fe.bridgeName}, ${fe.reason}`}
                   primaryTypographyProps={{
                     variant: "body2",
                     fontWeight: "bold",
@@ -417,7 +417,7 @@ export const DevicesPage = () => {
           <Typography variant="body2">
             {t("devices.noFailedEntities", {
               defaultValue:
-                "No failed entities — all devices loaded successfully.",
+                "No failed entities, all devices loaded successfully.",
             })}
           </Typography>
         </Alert>

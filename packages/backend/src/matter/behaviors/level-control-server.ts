@@ -187,7 +187,7 @@ export class LevelControlServerBase extends FeaturedBase {
     // on() followed by moveToLevel(254) within ~50ms, resetting brightness to
     // 100%. Apple Home's room-level "set to 100%" Siri command uses the same
     // on() + moveToLevel(254) pattern (#306), so this has to stay behind a
-    // feature flag — dropping the command by default breaks Apple Home.
+    // feature flag, dropping the command by default breaks Apple Home.
     const { featureFlags } = this.env.get(BridgeDataProvider);
     if (featureFlags?.alexaPreserveBrightnessOnTurnOn === true) {
       const lastTurnOn = lastTurnOnTimestamps.get(entityId);

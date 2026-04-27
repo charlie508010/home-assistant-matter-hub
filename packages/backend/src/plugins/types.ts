@@ -109,7 +109,7 @@ export interface PluginContext {
 /**
  * The interface that all plugins must implement.
  *
- * A plugin is a "device provider" — it discovers/creates devices and
+ * A plugin is a "device provider", it discovers/creates devices and
  * registers them with the bridge via the PluginContext.
  */
 export interface MatterHubPlugin {

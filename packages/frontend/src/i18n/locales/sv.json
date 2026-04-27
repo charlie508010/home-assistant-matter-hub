@@ -408,7 +408,7 @@
     "namePlaceholder": "Ytterdörr",
     "nameHelperText": "Vänligt namn för denna autentiseringsuppgift",
     "entityRequired": "Enhets-ID krävs",
-    "pinLength": "PIN-koden måste vara 4–8 siffror",
+    "pinLength": "PIN-koden måste vara 4-8 siffror",
     "pinDigitsOnly": "PIN-koden får endast innehålla siffror",
     "saveFailed": "Misslyckades med att spara",
     "loadFailed": "Misslyckades med att ladda inloggningsuppgifterna",

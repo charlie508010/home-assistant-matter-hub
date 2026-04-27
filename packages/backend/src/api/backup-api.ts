@@ -293,8 +293,8 @@ export function backupApi(
 
   router.post("/restart", async (_, res) => {
     res.json({ message: "Restarting application..." });
-    // Signal the graceful shutdown path instead of exiting directly —
-    // the SIGTERM handler disposes bridges, HA client, and storage in
+    // Signal the graceful shutdown path instead of exiting directly.
+    // The SIGTERM handler disposes bridges, HA client, and storage in
     // reverse order before the process exits.
     setTimeout(() => {
       process.kill(process.pid, "SIGTERM");

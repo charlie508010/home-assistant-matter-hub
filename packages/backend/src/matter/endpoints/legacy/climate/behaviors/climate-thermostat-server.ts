@@ -172,7 +172,7 @@ const config: ThermostatServerConfig = {
       hvacModeToSystemMode[hvacMode] ?? Thermostat.SystemMode.Off;
     // Map SystemMode.Auto to the correct mode based on device capabilities.
     // Matter AutoMode = dual setpoint = HA heat_cool.
-    // HA auto ≠ Matter Auto — it's a single-setpoint mode where the device decides.
+    // HA auto ≠ Matter Auto, it's a single-setpoint mode where the device decides.
     if (systemMode === Thermostat.SystemMode.Auto) {
       const modes = attributes(entity).hvac_modes ?? [];
 

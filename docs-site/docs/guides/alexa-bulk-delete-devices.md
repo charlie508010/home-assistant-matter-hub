@@ -1,7 +1,7 @@
 # Bulk Delete Alexa Smart Home Devices
 
-If you have many old or duplicate smart home devices in Alexa — for example after migrating from HAASKA or after
-reconfiguring your bridge — deleting them one by one through the Alexa app can be tedious. This guide describes a
+If you have many old or duplicate smart home devices in Alexa, for example after migrating from HAASKA or after
+reconfiguring your bridge, deleting them one by one through the Alexa app can be tedious. This guide describes a
 faster method using the Amazon web interface and the browser developer console.
 
 :::warning
@@ -80,7 +80,7 @@ The console will log each device name and the HTTP status code (`200` = success)
 
 ### 4. Refresh and rediscover
 
-1. Refresh the page — the device list should now be empty.
+1. Refresh the page, the device list should now be empty.
    If devices still remain, you may have a CSRF issue; try logging out and back in, then repeat from step 1.
 2. Say **"Alexa, discover devices"** to re-add devices from your active skills and Matter bridges.
 3. Refresh the page again to confirm only your current devices are listed.

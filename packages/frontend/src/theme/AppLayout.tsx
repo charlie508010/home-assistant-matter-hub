@@ -41,7 +41,7 @@ export const AppLayout: FC = () => {
       )}
       {!isConnected && (
         <Alert severity="error" variant="filled" sx={{ borderRadius: 0 }}>
-          Connection lost — data may be outdated. Reconnecting…
+          Connection lost, data may be outdated. Reconnecting…
         </Alert>
       )}
       <Container sx={{ p: 2 }}>

@@ -57,7 +57,7 @@ const ClimateDeviceType = (
   // Use feature-specific thermostat server so controllers like Alexa
   // see only the features the device actually supports (#136).
   // Pass initialState directly so the behavior class has correct limits
-  // from the start — critical for negative temperatures (refrigerators).
+  // from the start, critical for negative temperatures (refrigerators).
   const thermostatServer = ClimateThermostatServer(initialState, features);
 
   if (supportsFanMode) {
@@ -202,7 +202,7 @@ export function ClimateDevice(
 
   // AutoMode is only safe when the device truly supports dual-setpoint
   // operation (HA heat_cool). For HA's single-setpoint 'auto' the Auto tile
-  // in Apple Home doesn't write SystemMode.Auto — it writes Cool/Heat based
+  // in Apple Home doesn't write SystemMode.Auto, it writes Cool/Heat based
   // on its own heuristics, so HA ends up in cool/heat instead of auto (#309).
   // Without AutoMode, getSystemMode maps HA auto to Cool/Heat dynamically.
   const autoMode =

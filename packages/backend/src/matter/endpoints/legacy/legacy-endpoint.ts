@@ -363,7 +363,7 @@ export class LegacyEndpoint extends EntityEndpoint {
 
     // When autoComposedDevices is enabled and this is a temperature sensor
     // with auto-mapped humidity/pressure, build a real Matter Composed Device
-    // instead of a flat endpoint with extra clusters — Apple Home, Google
+    // instead of a flat endpoint with extra clusters, Apple Home, Google
     // Home, and Alexa then render each sub-endpoint with its own device type.
     if (registry.isAutoComposedDevicesEnabled()) {
       const attrs = state.attributes as SensorDeviceAttributes;
@@ -407,7 +407,7 @@ export class LegacyEndpoint extends EntityEndpoint {
             ? registry.findHumidityEntityForDevice(entity.device_id)
             : undefined);
         // Only compose if at least one sensor sub-entity is available.
-        // Climate entities stay standalone — ThermostatDevice competes with
+        // Climate entities stay standalone, ThermostatDevice competes with
         // the parent for Apple Home's primary tile selection.
         if (temperatureEntityId || humidityEntityId) {
           const composedAreaName = registry.getAreaName(entityId);
@@ -509,7 +509,7 @@ export class LegacyEndpoint extends EntityEndpoint {
   async updateStates(states: HomeAssistantStates) {
     const state = states[this.entityId] ?? {};
     const mappedChanged = this.hasMappedEntityChanged(states);
-    // Compare only meaningful fields — ignore volatile HA metadata
+    // Compare only meaningful fields, ignore volatile HA metadata
     // (last_changed, last_updated, context) that changes on every event
     // even when the actual device state/attributes are identical.
     // Skipping these prevents unnecessary Matter subscription reports

@@ -38,7 +38,7 @@ interface AllBridgeFeatureFlags {
    * Auto Composed Devices: master toggle for all auto-mapping features.
    * When enabled, related entities from the same Home Assistant device are
    * combined into a single Matter endpoint (battery, humidity, pressure,
-   * power, energy) — one device in the controller app instead of five.
+   * power, energy), one device in the controller app instead of five.
    * Default: false (disabled)
    */
   readonly autoComposedDevices: boolean;
@@ -66,7 +66,7 @@ interface AllBridgeFeatureFlags {
    * nodeLabel resolves as customName → registry.name → registry.original_name →
    * friendly_name → entity_id. A per-entity customName still takes precedence.
    * Matter has no alias concept, so multiple names per endpoint cannot be
-   * exposed — this only controls which single name is reported.
+   * exposed, this only controls which single name is reported.
    * Default: false (disabled)
    */
   readonly preferEntityRegistryName: boolean;

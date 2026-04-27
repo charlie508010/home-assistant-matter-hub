@@ -595,7 +595,7 @@ const FailedEntities = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
                   component="span"
                   color="text.secondary"
                 >
-                  {" — "}
+                  {", "}
                   {entity.reason}
                 </Typography>
               </Box>

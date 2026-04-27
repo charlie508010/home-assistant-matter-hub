@@ -45,7 +45,7 @@ export class VacuumIdentifyServer extends IdentifyServer {
       return;
     }
     logger.warn(
-      `${source} for ${homeAssistant.entityId} — LOCATE not in supported_features (${features}), trying vacuum.locate anyway`,
+      `${source} for ${homeAssistant.entityId}, LOCATE not in supported_features (${features}), trying vacuum.locate anyway`,
     );
     homeAssistant.callAction({ action: "vacuum.locate" });
   }

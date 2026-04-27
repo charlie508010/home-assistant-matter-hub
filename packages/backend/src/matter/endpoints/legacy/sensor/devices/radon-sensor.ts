@@ -34,7 +34,7 @@ class RadonAirQualityServer extends RadonAirQualityServerBase {
 
     if (state != null && !Number.isNaN(+state)) {
       const bqm3 = +state;
-      // Radon in Bq/m³ — thresholds based on WHO handbook (2009).
+      // Radon in Bq/m³, thresholds based on WHO handbook (2009).
       // WHO recommends action level at 100 Bq/m³, national limits often 300 Bq/m³.
       if (bqm3 <= 50) {
         airQuality = AirQuality.AirQualityEnum.Good;
