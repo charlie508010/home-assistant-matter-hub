@@ -435,6 +435,31 @@ Since v2.0.27, HAMH reports the `IsCharging` state when the vacuum is docked and
 3. **Check logs** — Look for errors related to battery, cluster creation, or Matter.js
 4. **Factory reset** — As a last resort, factory reset the bridge and re-pair
 
+### iPhone shows "Updating" but iPad works fine
+
+This one comes from [#287](https://github.com/RiDDiX/home-assistant-matter-hub/issues/287). On some iPhones running iOS 26.4.x, the vacuum tile gets stuck on "Updating" after roughly 5 days of normal use. The same vacuum on the same hub still works on iPad and via Siri, so the bridge itself is doing its job. The iPhone's HomeKit daemon stops renewing the Matter subscription after a while and never recovers on its own.
+
+Rebooting the iPhone clears it for a few minutes. Pressing "Locate" in the Home app also unsticks the tile briefly, but it slips back as soon as you close the Home app again.
+
+This one sits on Apple's side. HAMH already pushes a keepalive every 55 seconds and forces fresh subscription reports for exactly this kind of stale tile. The bridge is sending data correctly, the iPhone just stops listening once the subscription has expired.
+
+#### Workaround
+
+Run an HA automation that calls `vacuum.locate` on a schedule. The Identify command goes through a different path in iOS than the live state subscription and tends to wake the tile back up:
+
+```yaml
+alias: Keep iPhone HomeKit vacuum tile alive
+trigger:
+  - platform: time_pattern
+    hours: "/4"
+action:
+  - service: vacuum.locate
+    target:
+      entity_id: vacuum.r2d2
+```
+
+The vacuum will beep briefly each time. If you can grab a `sysdiagnose` from a Mac while the tile is stuck, please file it with Apple Feedback. That is the only path to a proper fix on the iOS side.
+
 ### "Deep Clean" mode doesn't work
 
 Since v2.0.26, "Vacuum Then Mop" (shown as "Deep Clean" in Apple Home) falls back to "Vacuum & Mop" when your cleaning mode entity doesn't have a dedicated option. If it still fails, check that your cleaning mode entity includes `vacuum_and_mop` as an option.
