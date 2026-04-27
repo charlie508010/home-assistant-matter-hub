@@ -87,6 +87,12 @@ describe("deviceClassMapping", () => {
     );
   });
 
+  it("maps window to Rollershade + Unknown", () => {
+    const mapping = deviceClassMapping(entity("window"));
+    expect(mapping?.type).toBe(WindowCovering.WindowCoveringType.Rollershade);
+    expect(mapping?.endProductType).toBe(WindowCovering.EndProductType.Unknown);
+  });
+
   it("covers every documented key", () => {
     expect(Object.keys(DEVICE_CLASS_TO_MATTER_TYPE).sort()).toEqual([
       "awning",
@@ -94,6 +100,7 @@ describe("deviceClassMapping", () => {
       "curtain",
       "shade",
       "shutter",
+      "window",
     ]);
   });
 });
