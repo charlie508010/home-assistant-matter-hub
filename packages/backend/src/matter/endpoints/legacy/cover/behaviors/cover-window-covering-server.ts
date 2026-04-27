@@ -69,22 +69,26 @@ export const deviceClassMapping = (entity: HomeAssistantEntityState) => {
   const mapping = DEVICE_CLASS_TO_MATTER_TYPE[raw.toLowerCase()];
   if (!mapping) return undefined;
 
-  // HA blind entities frequently only expose lift (no tilt), but the
-  // device_class=blind row above picks TiltBlindTiltOnly. Advertising
-  // TiltBlindTiltOnly without the Tilt feature is a spec inconsistency
-  // that can cause controllers to drop the device from routine pickers
-  // (#312). Fall back to Rollershade while keeping the InteriorBlind hint.
+  // TiltBlindTiltOnly only fits tilt-only covers: fall back to Rollershade
+  // for lift-only blinds (#312) and TiltBlindLift for lift+tilt (#323).
   const supportedFeatures = attributes(entity).supported_features ?? 0;
+  const hasLift =
+    (supportedFeatures & CoverSupportedFeatures.support_open) !== 0;
   const hasTilt =
     (supportedFeatures & CoverSupportedFeatures.support_open_tilt) !== 0;
-  if (
-    mapping.type === WindowCovering.WindowCoveringType.TiltBlindTiltOnly &&
-    !hasTilt
-  ) {
-    return {
-      type: WindowCovering.WindowCoveringType.Rollershade,
-      endProductType: mapping.endProductType,
-    };
+  if (mapping.type === WindowCovering.WindowCoveringType.TiltBlindTiltOnly) {
+    if (!hasTilt) {
+      return {
+        type: WindowCovering.WindowCoveringType.Rollershade,
+        endProductType: mapping.endProductType,
+      };
+    }
+    if (hasLift) {
+      return {
+        type: WindowCovering.WindowCoveringType.TiltBlindLift,
+        endProductType: mapping.endProductType,
+      };
+    }
   }
   return mapping;
 };
