@@ -210,23 +210,41 @@ const config: ThermostatServerConfig = {
       if (hasCooling && !hasHeating) {
         return Thermostat.SystemMode.Cool;
       }
-      // Both heat and cool but no heat_cool: prefer hvac_action, fall back
-      // to comparing current_temperature with the target so Apple Home shows
-      // the right direction even when the integration omits hvac_action.
+      // Both heat and cool but no heat_cool: HA `auto` is single-setpoint and
+      // doesn't tell us which direction is active. Use hvac_action when
+      // present, fall back to the last direction we saw for this entity, then
+      // seed from current vs target so Apple Home doesn't flip Cool↔Heat
+      // every time the AC reaches its setpoint and hvac_action goes idle.
+      const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+      const entityId = homeAssistant.entityId;
       const action = attributes(entity).hvac_action;
       if (action === ClimateHvacAction.cooling) {
+        lastHvacDirection.set(entityId, "cooling");
         return Thermostat.SystemMode.Cool;
       }
       if (action === ClimateHvacAction.heating) {
+        lastHvacDirection.set(entityId, "heating");
         return Thermostat.SystemMode.Heat;
+      }
+      const remembered = lastHvacDirection.get(entityId);
+      if (remembered) {
+        return remembered === "cooling"
+          ? Thermostat.SystemMode.Cool
+          : Thermostat.SystemMode.Heat;
       }
       const current = attributes(entity).current_temperature;
       const target = attributes(entity).temperature;
       if (typeof current === "number" && typeof target === "number") {
-        if (current > target) return Thermostat.SystemMode.Cool;
-        if (current < target) return Thermostat.SystemMode.Heat;
+        if (current > target) {
+          lastHvacDirection.set(entityId, "cooling");
+          return Thermostat.SystemMode.Cool;
+        }
+        if (current < target) {
+          lastHvacDirection.set(entityId, "heating");
+          return Thermostat.SystemMode.Heat;
+        }
       }
-      return Thermostat.SystemMode.Heat;
+      return Thermostat.SystemMode.Cool;
     }
     return systemMode;
   },
