@@ -6,6 +6,7 @@ import en from "./locales/en.json";
 import es from "./locales/es.json";
 import fr from "./locales/fr.json";
 import it from "./locales/it.json";
+import ja from "./locales/ja.json";
 import pl from "./locales/pl.json";
 import ru from "./locales/ru.json";
 import sv from "./locales/sv.json";
@@ -98,6 +99,7 @@ i18n
       de: { translation: de },
       fr: { translation: fr },
       it: { translation: it },
+      ja: { translation: ja },
       es: { translation: es },
       zh: { translation: zh },
       "zh-TW": { translation: zhTW },
