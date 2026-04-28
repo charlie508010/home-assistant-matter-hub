@@ -1,4 +1,9 @@
-import { LogFormat, Logger, LogLevel as MatterLogLevel } from "@matter/general";
+import {
+  LogDestination,
+  LogFormat,
+  Logger,
+  LogLevel as MatterLogLevel,
+} from "@matter/general";
 import { addLogEntry } from "../../api/logs-api.js";
 import type { Service } from "../ioc/service.js";
 
@@ -11,6 +16,20 @@ type LogLevelName = keyof (typeof CustomLogLevel & typeof MatterLogLevel);
 
 export interface LogContext {
   [key: string]: unknown;
+}
+
+// matter.js facility names that carry controller traffic.
+export const MATTER_TRAFFIC_FACILITIES = new Set([
+  "InteractionServer",
+  "MessageExchange",
+  "MessageChannel",
+  "ServerSubscription",
+  "IncomingInteractionServerMessenger",
+  "ExchangeManager",
+]);
+
+export function categoryFor(facility: string): string | undefined {
+  return MATTER_TRAFFIC_FACILITIES.has(facility) ? "matter-traffic" : undefined;
 }
 
 function logLevelFromString(
@@ -78,6 +97,30 @@ export class LoggerService {
       MessageExchange: resolvedProtocolLevel,
     };
     Logger.format = options.disableColors ? LogFormat.PLAIN : LogFormat.ANSI;
+
+    // Forward matter.js traffic logs into the in-memory buffer.
+    const destinationLevel =
+      this.customLogLevelMapping[this._level as CustomLogLevel] ??
+      (this._level as MatterLogLevel);
+    Logger.destinations["hamh-buffer"] = LogDestination({
+      name: "hamh-buffer",
+      level: destinationLevel,
+      facilityLevels: {
+        MessageChannel: resolvedProtocolLevel,
+        MessageExchange: resolvedProtocolLevel,
+      },
+      write: (text, message) => {
+        const category = categoryFor(message.facility);
+        if (!category) return;
+        addLogEntry({
+          timestamp: message.now.toISOString(),
+          level: logLevelToString(message.level).toLowerCase(),
+          message: text,
+          facility: message.facility,
+          category,
+        });
+      },
+    });
   }
 
   get(name: string): BetterLogger;

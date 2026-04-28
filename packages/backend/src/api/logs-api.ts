@@ -7,6 +7,8 @@ export interface LogEntry {
   level: string;
   message: string;
   context?: Record<string, unknown>;
+  category?: string;
+  facility?: string;
 }
 
 type LogListener = (entry: LogEntry) => void;
@@ -45,7 +47,14 @@ export function logsApi(_logger: LoggerService): express.Router {
   const router = express.Router();
 
   router.get("/", (req, res) => {
-    const { level, search, limit = "100", offset = "0" } = req.query;
+    const {
+      level,
+      search,
+      category,
+      facility,
+      limit = "100",
+      offset = "0",
+    } = req.query;
     const limitNum = Math.min(
       500,
       Math.max(1, parseInt(limit as string, 10) || 100),
@@ -57,6 +66,20 @@ export function logsApi(_logger: LoggerService): express.Router {
     if (level && typeof level === "string") {
       const levels = level.split(",").map((l) => l.toLowerCase().trim());
       entries = entries.filter((e) => levels.includes(e.level.toLowerCase()));
+    }
+
+    if (category && typeof category === "string") {
+      const cats = category.split(",").map((c) => c.toLowerCase().trim());
+      entries = entries.filter(
+        (e) => e.category != null && cats.includes(e.category.toLowerCase()),
+      );
+    }
+
+    if (facility && typeof facility === "string") {
+      const facLower = facility.toLowerCase();
+      entries = entries.filter((e) =>
+        e.facility?.toLowerCase().includes(facLower),
+      );
     }
 
     if (search && typeof search === "string") {
