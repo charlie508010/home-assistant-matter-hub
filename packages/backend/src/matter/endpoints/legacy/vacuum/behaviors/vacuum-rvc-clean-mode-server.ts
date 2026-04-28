@@ -138,7 +138,8 @@ export function buildSupportedModes(
 const CLEAN_TOKENS = {
   vacuum: /\b(vacuum|vacuuming|sweep|sweeping|suction)\b/i,
   mop: /\b(mop|mopping|wipe|wet|wash|scrub)\b/i,
-  sequential: /\b(then|after|before|followed|following|first|secondly|sequentially)\b/i,
+  sequential:
+    /\b(then|after|before|followed|following|first|secondly|sequentially)\b/i,
 } as const;
 
 function normalizeCleanLabel(s: string): string {
