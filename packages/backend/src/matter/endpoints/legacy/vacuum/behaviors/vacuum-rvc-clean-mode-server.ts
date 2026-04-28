@@ -137,14 +137,14 @@ export function buildSupportedModes(
 // contains instead of maintaining per-vendor alias lists.
 const CLEAN_TOKENS = {
   vacuum: /\b(vacuum|vacuuming|sweep|sweeping|suction)\b/i,
-  mop: /\b(mop|mopping|wipe|wet)\b/i,
-  sequential: /\b(then|after|before|followed|following)\b/i,
+  mop: /\b(mop|mopping|wipe|wet|wash|scrub)\b/i,
+  sequential: /\b(then|after|before|followed|following|first|secondly|sequentially)\b/i,
 } as const;
 
 function normalizeCleanLabel(s: string): string {
   return s
     .toLowerCase()
-    .replace(/[_\-+&/]+/g, " ")
+    .replace(/[_\-+&/. ]+/g, " ")
     .replace(/\band\b/g, " ")
     .trim();
 }
