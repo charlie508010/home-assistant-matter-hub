@@ -211,16 +211,22 @@ class RvcRunModeServerBase extends Base {
         return;
       }
 
-      if (s.activeAreas.length === 0) {
-        this.logShortCircuitOnce(
-          "no-active-areas",
-          `currentRoom sensor: activeAreas empty while cleaning, ` +
-            `sensor=${currentRoomEntityId} state="${roomState.state}"`,
-        );
-        return;
-      }
-
       const serviceArea = this.agent.get(ServiceAreaBehavior);
+
+      // External-start sessions (HA service call, Roborock app) never run
+      // changeToMode, so activeAreas stays []. currentArea must still
+      // track the actual room reported by the sensor, so in that case
+      // accept any supportedAreas match. With a controller-driven
+      // selection (activeAreas populated), keep the strict filter so we
+      // don't mis-attribute drive-through rooms the user didn't pick.
+      const externalSession = s.activeAreas.length === 0;
+      const supportedAreaIds = serviceArea.state.supportedAreas.map(
+        (a) => a.areaId,
+      );
+      const isAllowedArea = (id: number) =>
+        externalSession
+          ? supportedAreaIds.includes(id)
+          : s.activeAreas.includes(id);
 
       // Match by numeric room/segment ID (preferred) or by room name.
       // Dreame sensors use "room_id", others may use "segment_id".
@@ -233,27 +239,19 @@ class RvcRunModeServerBase extends Base {
 
       let matchedAreaId: number | null = null;
 
-      // Strategy 1: Direct segmentId → activeAreas match.
-      // Works when areaId === room_id (e.g. Dreame floor 0).
-      if (segmentId != null) {
-        if (s.activeAreas.includes(segmentId)) {
-          matchedAreaId = segmentId;
-        }
+      // Strategy 1: Direct segmentId match (areaId === room_id, e.g. Dreame floor 0).
+      if (segmentId != null && isAllowedArea(segmentId)) {
+        matchedAreaId = segmentId;
       }
 
       // Strategy 2: Look up segmentId in supportedAreas to find the
       // corresponding areaId. Dreame multi-floor vacuums offset room IDs
       // per floor (areaId = floorIndex * 10000 + room_id), so the raw
-      // sensor room_id won't match activeAreas directly for floor > 0.
-      // Also handles cases where areaId is a hash of a string room ID.
+      // sensor room_id won't match directly for floor > 0. Also handles
+      // cases where areaId is a hash of a string room ID.
       if (matchedAreaId === null && segmentId != null) {
         for (const area of serviceArea.state.supportedAreas) {
-          // areaId % 10000 recovers the original per-floor room_id
-          // for Dreame multi-floor; for single-floor, areaId === room_id.
-          if (
-            s.activeAreas.includes(area.areaId) &&
-            area.areaId % 10000 === segmentId
-          ) {
+          if (isAllowedArea(area.areaId) && area.areaId % 10000 === segmentId) {
             matchedAreaId = area.areaId;
             break;
           }
@@ -267,7 +265,7 @@ class RvcRunModeServerBase extends Base {
             a.areaInfo.locationInfo?.locationName?.toLowerCase() ===
             roomName.toLowerCase(),
         );
-        if (area && s.activeAreas.includes(area.areaId)) {
+        if (area && isAllowedArea(area.areaId)) {
           matchedAreaId = area.areaId;
         }
       }
