@@ -22,7 +22,7 @@ class StandalonePowerServer extends PowerBase {
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
-    this.reactTo(homeAssistant.onChange, this.update);
+    this.reactTo(homeAssistant.onChange, this.update, { offline: true });
   }
 
   private update(entity: HomeAssistantEntityInformation) {
@@ -88,7 +88,7 @@ class StandaloneEnergyServer extends EnergyFeaturedBase {
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
     this.update(homeAssistant.entity);
-    this.reactTo(homeAssistant.onChange, this.update);
+    this.reactTo(homeAssistant.onChange, this.update, { offline: true });
   }
 
   private update(entity: HomeAssistantEntityInformation) {
