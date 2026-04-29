@@ -53,9 +53,23 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 ## What's New
 
 <details>
-<summary><strong>📦 Stable (v2.0.42) - Current</strong></summary>
+<summary><strong>📦 Stable (v2.0.43) - Current</strong></summary>
 
-**New in v2.0.42 (hotfix release):**
+**New in v2.0.43:**
+
+- 🤖 Vacuum `currentArea` updates when cleaning is started outside HAMH ([#281](https://github.com/RiDDiX/home-assistant-matter-hub/issues/281))
+- 📡 Sensor reactors mark themselves offline when HA disconnects, so updates reach controllers on reconnect ([#327](https://github.com/RiDDiX/home-assistant-matter-hub/issues/327))
+- 🪟 Lift+tilt window coverings pick a valid Matter Type ([#323](https://github.com/RiDDiX/home-assistant-matter-hub/issues/323))
+- 🪟 Cover `device_class=window` maps to Rollershade ([#312](https://github.com/RiDDiX/home-assistant-matter-hub/issues/312))
+- 🧹 UWANT and Xiaomi sweep/mop labels recognised, mop usage routed via `mode.vacuum_mop` ([#322](https://github.com/RiDDiX/home-assistant-matter-hub/issues/322))
+- 🤖 Vacuum identify falls back to a sibling identify button when `vacuum.locate` is unsupported ([#320](https://github.com/RiDDiX/home-assistant-matter-hub/issues/320))
+- ❄️ HA-auto AC `systemMode` stays put when `hvac_action` is idle, ha-auto-only ACs no longer expose Matter Auto ([#309](https://github.com/RiDDiX/home-assistant-matter-hub/issues/309))
+- 🌡️ Climate setpoints snap to the entity `target_temp_step` ([#321](https://github.com/RiDDiX/home-assistant-matter-hub/issues/321))
+- 🛰️ matter.js controller traffic captured in `/api/logs`
+- 🇯🇵 Japanese translation by [@kimera257](https://github.com/kimera257) ([#325](https://github.com/RiDDiX/home-assistant-matter-hub/pull/325))
+- 📝 Docs note for the iPhone-only stuck-on-updating vacuum workaround ([#287](https://github.com/RiDDiX/home-assistant-matter-hub/issues/287))
+
+**Previously in v2.0.42 (hotfix release):**
 
 - 🇯🇵 Aqara bridge registration no longer stalls, root `softwareVersionString` now matches the numeric `softwareVersion` ([#316](https://github.com/RiDDiX/home-assistant-matter-hub/issues/316))
 - ❄️ Climate `auto` mode is clamped to `heat`/`cool` on devices without an `AutoMode` base ([#319](https://github.com/RiDDiX/home-assistant-matter-hub/issues/319))
@@ -135,7 +149,7 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 <details>
 <summary><strong>🧪 Alpha (v2.1.0-alpha.x)</strong></summary>
 
-**Alpha is currently level with Stable (v2.0.42).** All alpha work through `v2.1.0-alpha.633` has been promoted into v2.0.42. New alpha work continues from `v2.1.0-alpha.634` onward and will appear here as development progresses. See the [Alpha Features Guide](./guides/alpha-features.md) for installation instructions.
+**Alpha is currently level with Stable (v2.0.43).** All alpha work up to the latest pre-release has been promoted into v2.0.43. New alpha work continues from the next pre-release tag onward and will appear here as development progresses. See the [Alpha Features Guide](./guides/alpha-features.md) for installation instructions.
 
 </details>
 
