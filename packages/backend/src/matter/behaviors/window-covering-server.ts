@@ -90,7 +90,7 @@ export class WindowCoveringServerBase extends FeaturedBase {
   // Two-phase debounce: longer for first command (quick swipe sends initial step value),
   // shorter for subsequent commands during drag
   private static readonly DEBOUNCE_INITIAL_MS = 400;
-  private static readonly DEBOUNCE_SUBSEQUENT_MS = 150;
+  private static readonly DEBOUNCE_SUBSEQUENT_MS = 300;
   private static readonly COMMAND_SEQUENCE_THRESHOLD_MS = 600;
 
   override async [Symbol.asyncDispose]() {
