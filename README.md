@@ -480,7 +480,7 @@ Newest first.
 | Contributor | Contributions |
 |-------------|---------------|
 | [@Yllelder](https://github.com/Yllelder) | 🌐 **Translator** - Spanish translation ([#314](https://github.com/RiDDiX/home-assistant-matter-hub/pull/314)) |
-| [@MStankiewiczOfficial](https://github.com/MStankiewiczOfficial) | 🌐 **Translator** - Polish translation ([#288](https://github.com/RiDDiX/home-assistant-matter-hub/pull/288)) |
+| [@MStankiewiczOfficial](https://github.com/MStankiewiczOfficial) | 🌐 **Translator** - Polish translation ([#288](https://github.com/RiDDiX/home-assistant-matter-hub/pull/288), [#329](https://github.com/RiDDiX/home-assistant-matter-hub/pull/329)) |
 | [@aetasoul](https://github.com/aetasoul) | 🤖 **Code Contributor** - Immediate force sync on startup to beat stale Alexa queues ([#282](https://github.com/RiDDiX/home-assistant-matter-hub/pull/282)) |
 | [@omerfaruk-aran](https://github.com/omerfaruk-aran) | 🌐 Turkish translation ([#260](https://github.com/RiDDiX/home-assistant-matter-hub/pull/260)) + 🔧 Network debugging for "No Response" issues ([#129](https://github.com/RiDDiX/home-assistant-matter-hub/issues/129)) |
 | [@gustavakerstrom](https://github.com/gustavakerstrom) | 🤖 **Code Contributor** - Custom fan speed mapping ([#226](https://github.com/RiDDiX/home-assistant-matter-hub/pull/226)), template description fix ([#215](https://github.com/RiDDiX/home-assistant-matter-hub/pull/215)) |
