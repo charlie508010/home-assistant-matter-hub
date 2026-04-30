@@ -35,6 +35,9 @@ export const EditBridgePage = () => {
       ...(bridge.featureFlags != null && { featureFlags: bridge.featureFlags }),
       ...(bridge.icon != null && { icon: bridge.icon }),
       ...(bridge.priority != null && { priority: bridge.priority }),
+      ...(bridge.serialNumberSuffix != null && {
+        serialNumberSuffix: bridge.serialNumberSuffix,
+      }),
     };
   }, [isLoading, bridge]);
 
