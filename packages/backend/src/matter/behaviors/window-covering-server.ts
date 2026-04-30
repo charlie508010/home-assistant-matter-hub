@@ -251,6 +251,24 @@ export class WindowCoveringServerBase extends FeaturedBase {
           ...(this.features.lift ? { lift: movementStatus } : {}),
           ...(this.features.tilt ? { tilt: movementStatus } : {}),
         },
+        // Target before current so Apple Home derives the right direction
+        // at the start of an externally-driven movement (#328).
+        ...(this.features.positionAwareLift
+          ? {
+              targetPositionLiftPercent100ths: inferTarget(
+                currentLift100ths,
+                this.state.targetPositionLiftPercent100ths,
+              ),
+            }
+          : {}),
+        ...(this.features.positionAwareTilt
+          ? {
+              targetPositionTiltPercent100ths: inferTarget(
+                currentTilt100ths,
+                this.state.targetPositionTiltPercent100ths,
+              ),
+            }
+          : {}),
         ...(this.features.absolutePosition && this.features.lift
           ? {
               installedOpenLimitLift: 0,
@@ -269,20 +287,12 @@ export class WindowCoveringServerBase extends FeaturedBase {
           ? {
               currentPositionLiftPercentage: currentLift,
               currentPositionLiftPercent100ths: currentLift100ths,
-              targetPositionLiftPercent100ths: inferTarget(
-                currentLift100ths,
-                this.state.targetPositionLiftPercent100ths,
-              ),
             }
           : {}),
         ...(this.features.positionAwareTilt
           ? {
               currentPositionTiltPercentage: currentTilt,
               currentPositionTiltPercent100ths: currentTilt100ths,
-              targetPositionTiltPercent100ths: inferTarget(
-                currentTilt100ths,
-                this.state.targetPositionTiltPercent100ths,
-              ),
             }
           : {}),
       },
