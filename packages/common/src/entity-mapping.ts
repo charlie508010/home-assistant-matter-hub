@@ -205,6 +205,11 @@ export interface EntityMappingConfig {
    */
   readonly coverSwapOpenClose?: boolean;
   /**
+   * Optional: per-entity cover slider debounce (ms). Overrides the bridge
+   * coverSliderDebounceMs flag. 0 / unset = fall back to bridge / default.
+   */
+  readonly coverSliderDebounceMs?: number;
+  /**
    * Optional: Skip the Matter OnOff cluster for this climate entity.
    * Stops voice commands like "turn off <room>" from calling
    * climate.turn_off on the thermostat. No effect on non-climate entities.
@@ -265,6 +270,7 @@ export interface EntityMappingRequest {
   readonly currentRoomEntity?: string;
   readonly valetudoIdentifier?: string;
   readonly coverSwapOpenClose?: boolean;
+  readonly coverSliderDebounceMs?: number;
   readonly disableClimateOnOff?: boolean;
   readonly disableClimateFanControl?: boolean;
   readonly composedEntities?: ComposedSubEntity[];

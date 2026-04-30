@@ -273,6 +273,23 @@ const featureFlagSchema: JSONSchema7 = {
       type: "boolean",
       default: false,
     },
+
+    coverSliderDebounceMs: {
+      title: "Cover Slider Debounce (ms)",
+      description:
+        "Override the cover position-update debounce window for this bridge. " +
+        "Some controllers (Apple Home) stream slider updates while the user is " +
+        "still dragging, causing covers to start moving toward an intermediate " +
+        "target. Set to the time the bridge should wait after the last update " +
+        "before sending the final value to Home Assistant. 0 keeps the built-in " +
+        "two-phase debounce (400 ms initial / 150 ms subsequent), which fits " +
+        "most controllers. Try 800–1500 ms for slow blinds. " +
+        "A per-entity override on a single cover wins over this flag.",
+      type: "number",
+      minimum: 0,
+      maximum: 5000,
+      default: 0,
+    },
   },
 };
 

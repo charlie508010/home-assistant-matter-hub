@@ -107,6 +107,12 @@ interface AllBridgeFeatureFlags {
    * Default: false (disabled)
    */
   readonly useHaRegistrySerial: boolean;
+  /**
+   * Cover slider debounce (ms). >0 overrides the built-in 400/150 ms
+   * two-phase debounce with a single window. For controllers like Apple Home
+   * that stream slider updates. Per-entity override wins over this. 0 = unset.
+   */
+  readonly coverSliderDebounceMs: number;
 }
 
 export type BridgeFeatureFlags = Partial<AllBridgeFeatureFlags>;

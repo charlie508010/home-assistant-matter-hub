@@ -136,6 +136,7 @@ export class EntityMappingStorage extends Service {
       currentRoomEntity: request.currentRoomEntity?.trim() || undefined,
       valetudoIdentifier: request.valetudoIdentifier?.trim() || undefined,
       coverSwapOpenClose: request.coverSwapOpenClose || undefined,
+      coverSliderDebounceMs: sanitizeDebounceMs(request.coverSliderDebounceMs),
       disableClimateOnOff: request.disableClimateOnOff || undefined,
       disableClimateFanControl: request.disableClimateFanControl || undefined,
       composedEntities:
@@ -169,6 +170,7 @@ export class EntityMappingStorage extends Service {
       !config.currentRoomEntity &&
       !config.valetudoIdentifier &&
       !config.coverSwapOpenClose &&
+      !config.coverSliderDebounceMs &&
       !config.disableClimateOnOff &&
       !config.disableClimateFanControl &&
       (!config.composedEntities || config.composedEntities.length === 0)
@@ -205,4 +207,15 @@ function sanitizeVendorId(value: unknown): number | undefined {
     return undefined;
   }
   return n;
+}
+
+function sanitizeDebounceMs(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+  const n = typeof value === "string" ? Number(value) : value;
+  if (typeof n !== "number" || !Number.isFinite(n) || n <= 0) {
+    return undefined;
+  }
+  return Math.min(5000, Math.round(n));
 }

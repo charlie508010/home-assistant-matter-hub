@@ -9,6 +9,7 @@ import {
   MovementType,
 } from "@matter/main/behaviors";
 import { WindowCovering } from "@matter/main/clusters";
+import { BridgeDataProvider } from "../../services/bridges/bridge-data-provider.js";
 import {
   type HomeAssistantAction,
   HomeAssistantActions,
@@ -90,8 +91,24 @@ export class WindowCoveringServerBase extends FeaturedBase {
   // Two-phase debounce: longer for first command (quick swipe sends initial step value),
   // shorter for subsequent commands during drag
   private static readonly DEBOUNCE_INITIAL_MS = 400;
-  private static readonly DEBOUNCE_SUBSEQUENT_MS = 300;
+  private static readonly DEBOUNCE_SUBSEQUENT_MS = 150;
   private static readonly COMMAND_SEQUENCE_THRESHOLD_MS = 600;
+
+  // Per-entity override wins over per-bridge flag; both must be > 0 to count.
+  private resolveDebounceOverride(
+    homeAssistant: HomeAssistantEntityBehavior,
+  ): number | null {
+    const fromEntity = homeAssistant.state.mapping?.coverSliderDebounceMs;
+    if (typeof fromEntity === "number" && fromEntity > 0) {
+      return fromEntity;
+    }
+    const fromBridge =
+      this.env.get(BridgeDataProvider).featureFlags?.coverSliderDebounceMs;
+    if (typeof fromBridge === "number" && fromBridge > 0) {
+      return fromBridge;
+    }
+    return null;
+  }
 
   override async [Symbol.asyncDispose]() {
     if (this.liftDebounceTimer) {
@@ -419,10 +436,8 @@ export class WindowCoveringServerBase extends FeaturedBase {
     const actions = this.env.get(HomeAssistantActions);
     this.pendingLiftAction = { action, entityId, actions };
 
-    // Two-phase debounce to handle Google Home's quick swipe behavior:
-    // - Quick swipe sends an initial "step" value, then final value after a delay
-    // - If we use short debounce, the step value gets executed before final arrives
-    // - Use longer debounce for first command, shorter for subsequent commands in sequence
+    // Two-phase debounce for GH quick swipes; coverSliderDebounceMs collapses
+    // both phases into one window for controllers that stream slider updates.
     const now = Date.now();
     const timeSinceLastCommand = now - this.lastLiftCommandTime;
     this.lastLiftCommandTime = now;
@@ -430,12 +445,16 @@ export class WindowCoveringServerBase extends FeaturedBase {
     const isFirstInSequence =
       timeSinceLastCommand >
       WindowCoveringServerBase.COMMAND_SEQUENCE_THRESHOLD_MS;
-    const debounceMs = isFirstInSequence
-      ? WindowCoveringServerBase.DEBOUNCE_INITIAL_MS
-      : WindowCoveringServerBase.DEBOUNCE_SUBSEQUENT_MS;
+    const overrideMs = this.resolveDebounceOverride(homeAssistant);
+    const debounceMs =
+      overrideMs != null
+        ? overrideMs
+        : isFirstInSequence
+          ? WindowCoveringServerBase.DEBOUNCE_INITIAL_MS
+          : WindowCoveringServerBase.DEBOUNCE_SUBSEQUENT_MS;
 
     logger.debug(
-      `Lift command: target=${targetPosition}%, debounce=${debounceMs}ms (${isFirstInSequence ? "initial" : "subsequent"})`,
+      `Lift command: target=${targetPosition}%, debounce=${debounceMs}ms (${overrideMs != null ? "override" : isFirstInSequence ? "initial" : "subsequent"})`,
     );
 
     if (this.liftDebounceTimer) {
@@ -492,7 +511,7 @@ export class WindowCoveringServerBase extends FeaturedBase {
     const actions = this.env.get(HomeAssistantActions);
     this.pendingTiltAction = { action, entityId, actions };
 
-    // Two-phase debounce (same logic as lift)
+    // Same two-phase / override logic as lift.
     const now = Date.now();
     const timeSinceLastCommand = now - this.lastTiltCommandTime;
     this.lastTiltCommandTime = now;
@@ -500,12 +519,16 @@ export class WindowCoveringServerBase extends FeaturedBase {
     const isFirstInSequence =
       timeSinceLastCommand >
       WindowCoveringServerBase.COMMAND_SEQUENCE_THRESHOLD_MS;
-    const debounceMs = isFirstInSequence
-      ? WindowCoveringServerBase.DEBOUNCE_INITIAL_MS
-      : WindowCoveringServerBase.DEBOUNCE_SUBSEQUENT_MS;
+    const overrideMs = this.resolveDebounceOverride(homeAssistant);
+    const debounceMs =
+      overrideMs != null
+        ? overrideMs
+        : isFirstInSequence
+          ? WindowCoveringServerBase.DEBOUNCE_INITIAL_MS
+          : WindowCoveringServerBase.DEBOUNCE_SUBSEQUENT_MS;
 
     logger.debug(
-      `Tilt command: target=${targetPosition}%, debounce=${debounceMs}ms (${isFirstInSequence ? "initial" : "subsequent"})`,
+      `Tilt command: target=${targetPosition}%, debounce=${debounceMs}ms (${overrideMs != null ? "override" : isFirstInSequence ? "initial" : "subsequent"})`,
     );
 
     if (this.tiltDebounceTimer) {

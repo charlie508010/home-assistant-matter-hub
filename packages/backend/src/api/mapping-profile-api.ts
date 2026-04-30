@@ -36,6 +36,7 @@ function configToProfileEntry(
     customFanSpeedTags: config.customFanSpeedTags,
     valetudoIdentifier: config.valetudoIdentifier,
     coverSwapOpenClose: config.coverSwapOpenClose,
+    coverSliderDebounceMs: config.coverSliderDebounceMs,
     disableClimateOnOff: config.disableClimateOnOff,
     disableClimateFanControl: config.disableClimateFanControl,
   };
@@ -195,6 +196,7 @@ export function mappingProfileApi(
           customFanSpeedTags: entry.customFanSpeedTags,
           valetudoIdentifier: entry.valetudoIdentifier,
           coverSwapOpenClose: entry.coverSwapOpenClose,
+          coverSliderDebounceMs: entry.coverSliderDebounceMs,
           disableClimateOnOff: entry.disableClimateOnOff,
           disableClimateFanControl: entry.disableClimateFanControl,
         });
