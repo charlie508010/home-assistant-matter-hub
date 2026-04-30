@@ -262,6 +262,17 @@ const featureFlagSchema: JSONSchema7 = {
       type: "boolean",
       default: false,
     },
+
+    useHaRegistrySerial: {
+      title: "Use HA Registry Serial Number",
+      description:
+        "Fall back to the Home Assistant device registry serial_number when no per-entity " +
+        "customSerialNumber is configured. Default off because changing serialNumber after " +
+        "commissioning can confuse controllers. A per-entity customSerialNumber still " +
+        "takes precedence.",
+      type: "boolean",
+      default: false,
+    },
   },
 };
 

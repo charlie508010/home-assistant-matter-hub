@@ -330,6 +330,8 @@
     "customVendorNameHelp": "Override the vendor/manufacturer name reported to Matter controllers.",
     "customSerialNumber": "Custom Serial Number",
     "customSerialNumberHelp": "Override the serial number reported to Matter controllers.",
+    "customVendorId": "Custom Vendor ID",
+    "customVendorIdHelp": "Override the numeric Matter Vendor ID (e.g. 0x115F for Aqara). Bridge mode only. Range 1..0xFFFE.",
     "loadFailed": "Failed to load entity mappings",
     "noMappings": "No custom entity mappings configured. Use mappings to override Matter device types, set custom names, or disable specific entities.",
     "applying": "Applying...",

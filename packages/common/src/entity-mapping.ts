@@ -72,6 +72,14 @@ export interface EntityMappingConfig {
    * When set, this takes priority over the default entity-ID-based hash.
    */
   readonly customSerialNumber?: string;
+  /**
+   * Optional: Override the numeric Matter Vendor ID for this entity.
+   * Range 1..0xFFFE. Some controllers (Aqara) key vendor-specific UI off
+   * the numeric vendorId rather than vendorName. Bridge mode only: in
+   * server mode the root vendorId is fixed at commissioning time and
+   * cannot be changed without breaking already-paired controllers.
+   */
+  readonly customVendorId?: number;
   readonly disabled?: boolean;
   /**
    * Optional: Array of additional entities to compose into this device.
@@ -238,6 +246,7 @@ export interface EntityMappingRequest {
   readonly customProductName?: string;
   readonly customVendorName?: string;
   readonly customSerialNumber?: string;
+  readonly customVendorId?: number;
   readonly disabled?: boolean;
   readonly filterLifeEntity?: string;
   readonly cleaningModeEntity?: string;

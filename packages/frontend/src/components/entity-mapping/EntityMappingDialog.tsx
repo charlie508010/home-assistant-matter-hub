@@ -37,6 +37,17 @@ interface RelatedButton {
   clean_name: string;
 }
 
+function parseVendorId(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const n =
+    trimmed.startsWith("0x") || trimmed.startsWith("0X")
+      ? Number.parseInt(trimmed.slice(2), 16)
+      : Number(trimmed);
+  if (!Number.isInteger(n) || n < 1 || n > 0xfffe) return undefined;
+  return n;
+}
+
 interface EntityMappingDialogProps {
   open: boolean;
   entityId: string;
@@ -63,6 +74,7 @@ export function EntityMappingDialog({
   const [customProductName, setCustomProductName] = useState("");
   const [customVendorName, setCustomVendorName] = useState("");
   const [customSerialNumber, setCustomSerialNumber] = useState("");
+  const [customVendorId, setCustomVendorId] = useState("");
   const [disabled, setDisabled] = useState(false);
   const [filterLifeEntity, setFilterLifeEntity] = useState("");
   const [cleaningModeEntity, setCleaningModeEntity] = useState("");
@@ -117,6 +129,11 @@ export function EntityMappingDialog({
       setCustomProductName(currentMapping?.customProductName || "");
       setCustomVendorName(currentMapping?.customVendorName || "");
       setCustomSerialNumber(currentMapping?.customSerialNumber || "");
+      setCustomVendorId(
+        currentMapping?.customVendorId !== undefined
+          ? `0x${currentMapping.customVendorId.toString(16).toUpperCase()}`
+          : "",
+      );
       setDisabled(currentMapping?.disabled || false);
       setFilterLifeEntity(currentMapping?.filterLifeEntity || "");
       setCleaningModeEntity(currentMapping?.cleaningModeEntity || "");
@@ -200,6 +217,7 @@ export function EntityMappingDialog({
       customProductName: customProductName.trim() || undefined,
       customVendorName: customVendorName.trim() || undefined,
       customSerialNumber: customSerialNumber.trim() || undefined,
+      customVendorId: parseVendorId(customVendorId),
       disabled,
       filterLifeEntity: filterLifeEntity.trim() || undefined,
       cleaningModeEntity: cleaningModeEntity.trim() || undefined,
@@ -238,6 +256,7 @@ export function EntityMappingDialog({
     customProductName,
     customVendorName,
     customSerialNumber,
+    customVendorId,
     disabled,
     filterLifeEntity,
     cleaningModeEntity,
@@ -402,6 +421,16 @@ export function EntityMappingDialog({
           value={customSerialNumber}
           onChange={(e) => setCustomSerialNumber(e.target.value)}
           helperText={t("mapping.customSerialNumberHelp")}
+        />
+
+        <TextField
+          fullWidth
+          margin="normal"
+          label={t("mapping.customVendorId")}
+          placeholder="0x115F"
+          value={customVendorId}
+          onChange={(e) => setCustomVendorId(e.target.value)}
+          helperText={t("mapping.customVendorIdHelp")}
         />
 
         {showFilterLifeField && (

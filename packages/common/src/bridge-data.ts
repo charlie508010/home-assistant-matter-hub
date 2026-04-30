@@ -97,6 +97,16 @@ interface AllBridgeFeatureFlags {
    * Default: false (disabled).
    */
   readonly alexaPreserveBrightnessOnTurnOn: boolean;
+  /**
+   * Use HA Registry Serial Number: when set, fall back to the Home Assistant
+   * device registry serial_number for the Matter serialNumber attribute when
+   * no per-entity customSerialNumber is configured. Default off because
+   * changing serialNumber after commissioning can confuse controllers.
+   * Resolution order: customSerialNumber > device.serial_number (when this
+   * flag is on) > entity-ID-based hash.
+   * Default: false (disabled)
+   */
+  readonly useHaRegistrySerial: boolean;
 }
 
 export type BridgeFeatureFlags = Partial<AllBridgeFeatureFlags>;

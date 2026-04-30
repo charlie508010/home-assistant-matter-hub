@@ -110,6 +110,7 @@ export class EntityMappingStorage extends Service {
       customProductName: request.customProductName?.trim() || undefined,
       customVendorName: request.customVendorName?.trim() || undefined,
       customSerialNumber: request.customSerialNumber?.trim() || undefined,
+      customVendorId: sanitizeVendorId(request.customVendorId),
       disabled: request.disabled,
       filterLifeEntity: request.filterLifeEntity?.trim() || undefined,
       cleaningModeEntity: request.cleaningModeEntity?.trim() || undefined,
@@ -148,6 +149,7 @@ export class EntityMappingStorage extends Service {
       !config.customProductName &&
       !config.customVendorName &&
       !config.customSerialNumber &&
+      config.customVendorId === undefined &&
       config.disabled !== true &&
       !config.filterLifeEntity &&
       !config.cleaningModeEntity &&
@@ -192,4 +194,15 @@ export class EntityMappingStorage extends Service {
     this.mappings.delete(bridgeId);
     await this.persist();
   }
+}
+
+function sanitizeVendorId(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+  const n = typeof value === "string" ? Number(value) : value;
+  if (typeof n !== "number" || !Number.isInteger(n) || n < 1 || n > 0xfffe) {
+    return undefined;
+  }
+  return n;
 }

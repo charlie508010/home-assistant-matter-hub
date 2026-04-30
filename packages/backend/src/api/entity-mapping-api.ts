@@ -35,6 +35,7 @@ export function entityMappingApi(
       customProductName: body.customProductName,
       customVendorName: body.customVendorName,
       customSerialNumber: body.customSerialNumber,
+      customVendorId: body.customVendorId,
       disabled: body.disabled,
       filterLifeEntity: body.filterLifeEntity,
       cleaningModeEntity: body.cleaningModeEntity,

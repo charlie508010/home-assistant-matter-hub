@@ -109,7 +109,11 @@ export class ServerModeServerNode extends ServerNode {
         ? (trimToLength(sanitizeMatterString(nodeLabel ?? ""), 32, "...") ??
           undefined)
         : undefined;
-    const rawSerial = trimToLength(mapping?.customSerialNumber, 32, "...");
+    const registrySerial = this.featureFlags?.useHaRegistrySerial
+      ? trimToLength(device?.serial_number, 32, "...")
+      : undefined;
+    const rawSerial =
+      trimToLength(mapping?.customSerialNumber, 32, "...") ?? registrySerial;
     const serialNumber =
       rawSerial && this.serialNumberSuffix
         ? trimToLength(`${rawSerial}${this.serialNumberSuffix}`, 32, "...")
