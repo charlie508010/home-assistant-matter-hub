@@ -286,29 +286,28 @@ export class WindowCoveringServerBase extends FeaturedBase {
               ),
             }
           : {}),
+        // Skip the legacy currentPosition* attrs: matter.js batches them
+        // before target on the wire and Apple Home reads that as opening
+        // when the cover is closing (#328).
         ...(this.features.absolutePosition && this.features.lift
           ? {
               installedOpenLimitLift: 0,
               installedClosedLimitLift: 100_00,
-              currentPositionLift: currentLift100ths,
             }
           : {}),
         ...(this.features.absolutePosition && this.features.tilt
           ? {
               installedOpenLimitTilt: 0,
               installedClosedLimitTilt: 100_00,
-              currentPositionTilt: currentTilt100ths,
             }
           : {}),
         ...(this.features.positionAwareLift
           ? {
-              currentPositionLiftPercentage: currentLift,
               currentPositionLiftPercent100ths: currentLift100ths,
             }
           : {}),
         ...(this.features.positionAwareTilt
           ? {
-              currentPositionTiltPercentage: currentTilt,
               currentPositionTiltPercent100ths: currentTilt100ths,
             }
           : {}),
