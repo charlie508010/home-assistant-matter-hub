@@ -109,14 +109,17 @@ export class ServerModeServerNode extends ServerNode {
         ? (trimToLength(sanitizeMatterString(nodeLabel ?? ""), 32, "...") ??
           undefined)
         : undefined;
+    // Reserve room for the suffix so it survives the 32-char cap (#330).
+    const maxRawLen = 32 - (this.serialNumberSuffix?.length ?? 0);
     const registrySerial = this.featureFlags?.useHaRegistrySerial
-      ? trimToLength(device?.serial_number, 32, "...")
+      ? trimToLength(device?.serial_number, maxRawLen, "...")
       : undefined;
     const rawSerial =
-      trimToLength(mapping?.customSerialNumber, 32, "...") ?? registrySerial;
+      trimToLength(mapping?.customSerialNumber, maxRawLen, "...") ??
+      registrySerial;
     const serialNumber =
       rawSerial && this.serialNumberSuffix
-        ? trimToLength(`${rawSerial}${this.serialNumberSuffix}`, 32, "...")
+        ? `${rawSerial}${this.serialNumberSuffix}`
         : rawSerial;
     const basicInformation = dropUndefined({
       vendorName:
