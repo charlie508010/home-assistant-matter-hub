@@ -216,9 +216,15 @@ const vacuumRvcRunModeConfig = {
     return isCleaning ? RvcSupportedRunMode.Cleaning : RvcSupportedRunMode.Idle;
   },
 
-  getSupportedModes: (entity: { attributes: unknown }) => {
+  getSupportedModes: (entity: { attributes: unknown }, agent: Agent) => {
     const attributes = entity.attributes as VacuumDeviceAttributes;
-    return buildSupportedModes(attributes);
+    const customAreas = agent.get(HomeAssistantEntityBehavior).state.mapping
+      ?.customServiceAreas;
+    return buildSupportedModes(
+      attributes,
+      false,
+      customAreas && customAreas.length > 0 ? customAreas : undefined,
+    );
   },
 
   // biome-ignore lint/suspicious/noConfusingVoidType: Required by ValueSetter<void> interface
