@@ -15,12 +15,19 @@ interface ChargingAttributes {
   is_charging?: boolean;
   charging?: boolean;
   status?: string;
+  battery_level?: number | string | null;
+  battery?: number | string | null;
 }
 
 function isCharging(entity: { attributes: Record<string, unknown> }): boolean {
   const attrs = entity.attributes as ChargingAttributes;
-  if (attrs.battery_icon?.includes("charging")) return true;
   if (attrs.is_charging === true || attrs.charging === true) return true;
+  if (attrs.is_charging === false || attrs.charging === false) return false;
+  const raw = attrs.battery_level ?? attrs.battery;
+  const level =
+    typeof raw === "number" ? raw : Number.parseFloat(String(raw ?? ""));
+  if (Number.isFinite(level) && level >= 100) return false;
+  if (attrs.battery_icon?.includes("charging")) return true;
   if (
     typeof attrs.status === "string" &&
     attrs.status.toLowerCase().includes("charg")
@@ -29,58 +36,65 @@ function isCharging(entity: { attributes: Record<string, unknown> }): boolean {
   return false;
 }
 
+export function mapVacuumOperationalState(entity: {
+  state: string;
+  attributes: Record<string, unknown>;
+}): RvcOperationalState.OperationalState {
+  const state = entity.state as VacuumState | "unavailable";
+
+  const cleaningStates: string[] = [
+    VacuumState.cleaning,
+    VacuumState.segment_cleaning,
+    VacuumState.zone_cleaning,
+    VacuumState.spot_cleaning,
+    VacuumState.mop_cleaning,
+  ];
+
+  let operationalState: RvcOperationalState.OperationalState;
+
+  if (state === VacuumState.docked) {
+    if (isCharging(entity)) {
+      operationalState = RvcOperationalState.OperationalState.Charging;
+    } else {
+      operationalState = RvcOperationalState.OperationalState.Docked;
+    }
+  } else if (state === VacuumState.returning) {
+    operationalState = RvcOperationalState.OperationalState.SeekingCharger;
+  } else if (cleaningStates.includes(state)) {
+    operationalState = RvcOperationalState.OperationalState.Running;
+  } else if (state === VacuumState.paused) {
+    operationalState = RvcOperationalState.OperationalState.Paused;
+  } else if (state === VacuumState.idle) {
+    // Idle could mean docked/charging or just idle
+    if (isCharging(entity)) {
+      operationalState = RvcOperationalState.OperationalState.Charging;
+    } else {
+      operationalState = RvcOperationalState.OperationalState.Stopped;
+    }
+  } else if (state === VacuumState.error || state === "unavailable") {
+    operationalState = RvcOperationalState.OperationalState.Error;
+  } else {
+    // Unknown state - log it and treat as Running if it contains "clean"
+    if (state.toLowerCase().includes("clean")) {
+      logger.info(
+        `Unknown vacuum state "${state}" contains 'clean', treating as Running`,
+      );
+      operationalState = RvcOperationalState.OperationalState.Running;
+    } else {
+      logger.info(`Unknown vacuum state "${state}", treating as Stopped`);
+      operationalState = RvcOperationalState.OperationalState.Stopped;
+    }
+  }
+
+  logger.debug(
+    `Vacuum operationalState: "${state}" -> ${RvcOperationalState.OperationalState[operationalState]}`,
+  );
+  return operationalState;
+}
+
 export const VacuumRvcOperationalStateServer = RvcOperationalStateServer({
   getOperationalState(entity): RvcOperationalState.OperationalState {
-    const state = entity.state as VacuumState | "unavailable";
-
-    const cleaningStates: string[] = [
-      VacuumState.cleaning,
-      VacuumState.segment_cleaning,
-      VacuumState.zone_cleaning,
-      VacuumState.spot_cleaning,
-      VacuumState.mop_cleaning,
-    ];
-
-    let operationalState: RvcOperationalState.OperationalState;
-
-    if (state === VacuumState.docked) {
-      if (isCharging(entity)) {
-        operationalState = RvcOperationalState.OperationalState.Charging;
-      } else {
-        operationalState = RvcOperationalState.OperationalState.Docked;
-      }
-    } else if (state === VacuumState.returning) {
-      operationalState = RvcOperationalState.OperationalState.SeekingCharger;
-    } else if (cleaningStates.includes(state)) {
-      operationalState = RvcOperationalState.OperationalState.Running;
-    } else if (state === VacuumState.paused) {
-      operationalState = RvcOperationalState.OperationalState.Paused;
-    } else if (state === VacuumState.idle) {
-      // Idle could mean docked/charging or just idle
-      if (isCharging(entity)) {
-        operationalState = RvcOperationalState.OperationalState.Charging;
-      } else {
-        operationalState = RvcOperationalState.OperationalState.Stopped;
-      }
-    } else if (state === VacuumState.error || state === "unavailable") {
-      operationalState = RvcOperationalState.OperationalState.Error;
-    } else {
-      // Unknown state - log it and treat as Running if it contains "clean"
-      if (state.toLowerCase().includes("clean")) {
-        logger.info(
-          `Unknown vacuum state "${state}" contains 'clean', treating as Running`,
-        );
-        operationalState = RvcOperationalState.OperationalState.Running;
-      } else {
-        logger.info(`Unknown vacuum state "${state}", treating as Stopped`);
-        operationalState = RvcOperationalState.OperationalState.Stopped;
-      }
-    }
-
-    logger.debug(
-      `Vacuum operationalState: "${state}" -> ${RvcOperationalState.OperationalState[operationalState]}`,
-    );
-    return operationalState;
+    return mapVacuumOperationalState(entity);
   },
   pause: (_, agent) => {
     const supportedFeatures =
