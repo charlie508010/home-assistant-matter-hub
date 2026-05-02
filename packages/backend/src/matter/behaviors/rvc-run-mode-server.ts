@@ -70,6 +70,11 @@ interface CleaningSession {
    *  without this guard a failing path would flood the log. Cleared
    *  when the vacuum returns to Idle. */
   loggedShortCircuits: Set<string>;
+  /** True once the vacuum has been observed in Cleaning state during
+   *  this session. Distinguishes a real end-of-cleaning transition
+   *  (clear currentArea) from the brief idle window between command
+   *  dispatch and the vacuum actually starting (keep currentArea). */
+  observedCleaning: boolean;
 }
 
 const cleaningSessions = new WeakMap<object, CleaningSession>();
@@ -82,6 +87,7 @@ function getSession(endpoint: object): CleaningSession {
       lastCurrentArea: null,
       activeAreas: [],
       loggedShortCircuits: new Set(),
+      observedCleaning: false,
     };
     cleaningSessions.set(endpoint, session);
   }
@@ -128,26 +134,35 @@ class RvcRunModeServerBase extends Base {
 
     if (previousMode !== newMode) {
       if (newMode === RvcSupportedRunMode.Idle) {
-        // Mid-session dock (e.g. vacuum-then-mop tool swap) or end of
-        // session. Finalize the last known cleaning room and preserve
-        // completedAreas across the transition so multi-phase sessions
-        // don't lose progress when the vacuum returns to the dock.
-        // Skip the whole branch when lastCurrentArea is null (brief idle
-        // between command dispatch and vacuum actually starting), the
-        // command handler already set currentArea correctly.
+        // End of session (or mid-session dock) cleanup.
+        //
+        // lastCurrentArea is only set when a currentRoomEntity sensor
+        // tracks room transitions; finalize the last room only in that
+        // case so completedAreas stays accurate.
         if (s.lastCurrentArea !== null) {
           s.completedAreas.add(s.lastCurrentArea);
           s.lastCurrentArea = null;
+        }
+        // Clear currentArea only when the vacuum actually went through
+        // a Cleaning state in this session. Otherwise this is the brief
+        // idle window between command dispatch and the vacuum actually
+        // starting, where the command handler already set currentArea
+        // correctly and clearing it would cause a controller flicker.
+        if (s.observedCleaning) {
           try {
             const serviceArea = this.agent.get(ServiceAreaBehavior);
-            serviceArea.state.currentArea = null;
+            if (serviceArea.state.currentArea !== null) {
+              serviceArea.state.currentArea = null;
+            }
             this.updateProgressFromTracking(serviceArea);
           } catch {
             // ServiceArea not available
           }
+          s.observedCleaning = false;
         }
         s.loggedShortCircuits.clear();
       } else if (newMode === RvcSupportedRunMode.Cleaning) {
+        s.observedCleaning = true;
         // Resume after mid-session idle. Set currentArea to the first
         // not-yet-completed area as a fallback; if a currentRoom sensor
         // is configured, updateCurrentRoomFromSensor() below will
