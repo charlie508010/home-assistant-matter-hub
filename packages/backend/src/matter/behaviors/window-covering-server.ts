@@ -125,25 +125,16 @@ export class WindowCoveringServerBase extends FeaturedBase {
   }
 
   override async initialize() {
-    // Set default values BEFORE super.initialize() to prevent validation errors.
-    // WindowCovering with PositionAware features requires valid position values.
-    if (this.features.lift) {
-      if (this.state.installedOpenLimitLift == null) {
-        this.state.installedOpenLimitLift = 0;
+    // Match the certified Eve MotionBlinds cluster profile (#328): HAMH owns
+    // operationalStatus, so disable matter.js's auto reactors, and leave the
+    // deprecated Percentage attrs undefined so they drop out of AttributeList.
+    (
+      this as unknown as {
+        internal: { disableOperationalModeHandling: boolean };
       }
-      if (this.state.installedClosedLimitLift == null) {
-        this.state.installedClosedLimitLift = 10000; // 100.00%
-      }
-    }
-    if (this.features.tilt) {
-      if (this.state.installedOpenLimitTilt == null) {
-        this.state.installedOpenLimitTilt = 0;
-      }
-      if (this.state.installedClosedLimitTilt == null) {
-        this.state.installedClosedLimitTilt = 10000; // 100.00%
-      }
-    }
+    ).internal.disableOperationalModeHandling = true;
     if (this.features.positionAwareLift) {
+      this.state.currentPositionLiftPercentage = undefined;
       if (this.state.currentPositionLiftPercent100ths === undefined) {
         this.state.currentPositionLiftPercent100ths = null;
       }
@@ -152,6 +143,7 @@ export class WindowCoveringServerBase extends FeaturedBase {
       }
     }
     if (this.features.positionAwareTilt) {
+      this.state.currentPositionTiltPercentage = undefined;
       if (this.state.currentPositionTiltPercent100ths === undefined) {
         this.state.currentPositionTiltPercent100ths = null;
       }
@@ -286,21 +278,6 @@ export class WindowCoveringServerBase extends FeaturedBase {
               ),
             }
           : {}),
-        // Skip the legacy currentPosition* attrs: matter.js batches them
-        // before target on the wire and Apple Home reads that as opening
-        // when the cover is closing (#328).
-        ...(this.features.absolutePosition && this.features.lift
-          ? {
-              installedOpenLimitLift: 0,
-              installedClosedLimitLift: 100_00,
-            }
-          : {}),
-        ...(this.features.absolutePosition && this.features.tilt
-          ? {
-              installedOpenLimitTilt: 0,
-              installedClosedLimitTilt: 100_00,
-            }
-          : {}),
         ...(this.features.positionAwareLift
           ? {
               currentPositionLiftPercent100ths: currentLift100ths,
@@ -336,7 +313,7 @@ export class WindowCoveringServerBase extends FeaturedBase {
     const currentTilt = this.state.currentPositionTiltPercent100ths ?? 0;
 
     logger.info(
-      `handleMovement: type=${MovementType[type]}, direction=${MovementDirection[direction]}, target=${targetPercent100ths}, currentLift=${currentLift}, currentTilt=${currentTilt}, absolutePosition=${this.features.absolutePosition}`,
+      `handleMovement: type=${MovementType[type]}, direction=${MovementDirection[direction]}, target=${targetPercent100ths}, currentLift=${currentLift}, currentTilt=${currentTilt}`,
     );
 
     // Boundary targets (0=open, 10000=closed per Matter spec) are routed
@@ -353,7 +330,7 @@ export class WindowCoveringServerBase extends FeaturedBase {
         this.handleLiftClose();
       } else if (
         targetPercent100ths != null &&
-        this.features.absolutePosition
+        this.features.positionAwareLift
       ) {
         this.handleGoToLiftPosition(targetPercent100ths);
       } else if (direction === MovementDirection.Open) {
@@ -382,7 +359,7 @@ export class WindowCoveringServerBase extends FeaturedBase {
         this.handleTiltClose();
       } else if (
         targetPercent100ths != null &&
-        this.features.absolutePosition
+        this.features.positionAwareTilt
       ) {
         this.handleGoToTiltPosition(targetPercent100ths);
       } else if (direction === MovementDirection.Open) {

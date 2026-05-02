@@ -17,16 +17,10 @@ import { IdentifyServer } from "../../../behaviors/identify-server.js";
 import { DefaultPowerSourceServer } from "../../../behaviors/power-source-server.js";
 import { CoverWindowCoveringServer } from "./behaviors/cover-window-covering-server.js";
 
-// Cover device_class values that represent garage-style barriers.
-// These get Lift + PositionAwareLift WITHOUT AbsolutePosition so that
-// controllers show discrete Open/Close buttons instead of a slider (#55).
-const DISCRETE_COVER_CLASSES = new Set(["garage", "gate"]);
-
 const CoverDeviceType = (
   supportedFeatures: number,
   hasBattery: boolean,
   entityId: string,
-  isDiscrete: boolean,
 ) => {
   const features: FeatureSelection<WindowCovering.Complete> = new Set();
 
@@ -38,9 +32,6 @@ const CoverDeviceType = (
   if (testBit(supportedFeatures, CoverSupportedFeatures.support_open)) {
     features.add("Lift");
     features.add("PositionAwareLift");
-    if (!isDiscrete) {
-      features.add("AbsolutePosition");
-    }
   } else {
     // Fallback: add features even if support_open is not set so the
     // WindowCovering device comes up with a valid descriptor.
@@ -49,14 +40,10 @@ const CoverDeviceType = (
     );
     features.add("Lift");
     features.add("PositionAwareLift");
-    if (!isDiscrete) {
-      features.add("AbsolutePosition");
-    }
   }
 
   if (testBit(supportedFeatures, CoverSupportedFeatures.support_open_tilt)) {
     features.add("Tilt");
-    // Same logic for tilt - only add PositionAwareTilt if position control is supported
     if (
       testBit(
         supportedFeatures,
@@ -64,7 +51,6 @@ const CoverDeviceType = (
       )
     ) {
       features.add("PositionAwareTilt");
-      features.add("AbsolutePosition");
     }
   }
 
@@ -113,22 +99,10 @@ export function CoverDevice(
     );
   }
 
-  const deviceClass = (attributes as Record<string, unknown>).device_class;
-  const isDiscrete =
-    typeof deviceClass === "string" &&
-    DISCRETE_COVER_CLASSES.has(deviceClass.toLowerCase());
-
-  if (isDiscrete) {
-    logger.info(
-      `[${entityId}] Garage/gate cover (device_class=${deviceClass}): using discrete Open/Close mode`,
-    );
-  }
-
   return CoverDeviceType(
     attributes.supported_features ?? 0,
     hasBattery,
     entityId,
-    isDiscrete,
   ).set({
     homeAssistantEntity,
   });
