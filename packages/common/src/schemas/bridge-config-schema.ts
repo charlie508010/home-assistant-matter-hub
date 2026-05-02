@@ -63,6 +63,12 @@ const homeAssistantMatcherSchema: JSONSchema7 = {
             "Regex tested against device-label slugs and display names. Matches ALL entities of a device whose label matches. Example: '^(matter|voice).*'.",
         },
         {
+          const: "any_field_regex",
+          title: "any_field_regex",
+          description:
+            "Regex tested against a single-line key=value haystack covering entity_id, domain, platform, area, entity_category, device_class, entity_labels, entity_label_names, device_labels, device_label_names, device_name, product_name. Use lookaheads for AND, alternation for OR. Example: '(?=.*domain=light)(?=.*area=living_room)|(?=.*domain=switch)(?=.*entity_labels=.*\\bvoice\\b)'.",
+        },
+        {
           const: "area",
           title: "area",
           description:

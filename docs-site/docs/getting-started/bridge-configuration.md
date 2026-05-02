@@ -67,6 +67,7 @@ A include- or exclude-item is an object having a `type` and a `value` property.
 | `device_label` | Match entities by their parent device's label. All entities of that device match. | `smart_home` |
 | `entity_label_regex` | Regex tested against entity-label slugs and display names. | `^(matter\|voice).*` |
 | `device_label_regex` | Regex tested against device-label slugs and display names. All entities of a matching device are included. | `^(matter\|voice).*` |
+| `any_field_regex` | One regex tested against a single-line haystack of all entity fields. Use lookaheads for AND, alternation for OR. | see below |
 | `area` | Match entities by their area slug. | `living_room` |
 | `entity_category` | Match entities by their category. | `config`, `diagnostic` |
 | `device_name` | Match entities by their device name (case-insensitive, wildcards). | `Living Room*` |
@@ -88,6 +89,22 @@ A include- or exclude-item is an object having a `type` and a `value` property.
 **Regex** uses full JavaScript regular expressions:
 - More powerful for complex patterns
 - Example: `^(light|switch)\.kitchen_.*` matches kitchen lights and switches
+
+### Any Field Regex
+
+`any_field_regex` runs one regex against a single-line haystack built per entity, with fields joined by spaces:
+
+```
+entity_id=... domain=... platform=... area=... entity_category=... device_class=... entity_labels=slug1,slug2 entity_label_names=Display 1,Display 2 device_labels=slug1 device_label_names=Display 1 device_name=... product_name=...
+```
+
+To express AND, stack lookaheads. To express OR, use alternation. Example: include lights in the `living_room` area **or** switches carrying the `voice` label:
+
+```
+(?=.*\bdomain=light\b)(?=.*\barea=living_room\b)|(?=.*\bdomain=switch\b)(?=.*\bentity_labels=.*\bvoice\b)
+```
+
+`\b` anchors keep `domain=light` from matching `domain=lightning`. The same matcher also works in the `exclude` list — give it the inverse pattern.
 
 ### Device Name Filter
 

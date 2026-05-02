@@ -536,6 +536,108 @@ describe("matchEntityFilter.testMatcher", () => {
     ).toBeFalsy();
   });
 
+  it("should match any_field_regex against domain", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.AnyFieldRegex,
+          value: "domain=light",
+        },
+        undefined,
+        registry,
+      ),
+    ).toBeTruthy();
+  });
+  it("should match any_field_regex with AND via lookahead", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.AnyFieldRegex,
+          value: "(?=.*domain=light)(?=.*platform=hue)",
+        },
+        undefined,
+        registry,
+      ),
+    ).toBeTruthy();
+  });
+  it("should not match any_field_regex when AND group fails", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.AnyFieldRegex,
+          value: "(?=.*domain=light)(?=.*platform=zwave)",
+        },
+        undefined,
+        registry,
+      ),
+    ).toBeFalsy();
+  });
+  it("should match any_field_regex with OR via alternation", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.AnyFieldRegex,
+          value: "domain=switch|domain=light",
+        },
+        undefined,
+        registry,
+      ),
+    ).toBeTruthy();
+  });
+  it("should match any_field_regex against entity label slug", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.AnyFieldRegex,
+          value: "entity_labels=.*\\btest_label\\b",
+        },
+        undefined,
+        registry,
+      ),
+    ).toBeTruthy();
+  });
+  it("should match any_field_regex against device label display name", () => {
+    const entityWithoutLabel = { ...registry, labels: [] };
+    const deviceWithLabel = { ...deviceRegistry, labels: ["matter_v2"] };
+    const labelRegistry = [{ label_id: "matter_v2", name: "Matter" }];
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.AnyFieldRegex,
+          value: "device_label_names=.*\\bMatter\\b",
+        },
+        deviceWithLabel,
+        entityWithoutLabel,
+        undefined,
+        labelRegistry,
+      ),
+    ).toBeTruthy();
+  });
+  it("should match any_field_regex against area from device", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.AnyFieldRegex,
+          value: "area=area_id",
+        },
+        deviceRegistry,
+        registry,
+      ),
+    ).toBeTruthy();
+  });
+  it("should return false for invalid any_field_regex", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.AnyFieldRegex,
+          value: "[invalid(regex",
+        },
+        undefined,
+        registry,
+      ),
+    ).toBeFalsy();
+  });
+
   it("should match the device name", () => {
     expect(
       testMatcher(

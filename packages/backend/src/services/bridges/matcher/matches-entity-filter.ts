@@ -58,6 +58,14 @@ export function testMatcher(
       return testLabelRegex(matcher.value, entity?.labels, labels);
     case "device_label_regex":
       return testLabelRegex(matcher.value, device?.labels, labels);
+    case "any_field_regex":
+      return testAnyFieldRegex(
+        matcher.value,
+        entity,
+        device,
+        entityState,
+        labels,
+      );
     case "entity_category":
       return entity?.entity_category === matcher.value;
     case "platform":
@@ -123,6 +131,65 @@ function testLabelRegex(
     }
   }
   return false;
+}
+
+function testAnyFieldRegex(
+  pattern: string,
+  entity: HomeAssistantEntityRegistry,
+  device: HomeAssistantDeviceRegistry | undefined,
+  entityState: HomeAssistantEntityState | undefined,
+  labels: HomeAssistantLabel[] | undefined,
+): boolean {
+  let regex: RegExp;
+  try {
+    regex = new RegExp(pattern);
+  } catch {
+    return false;
+  }
+  return regex.test(buildEntityHaystack(entity, device, entityState, labels));
+}
+
+function buildEntityHaystack(
+  entity: HomeAssistantEntityRegistry,
+  device: HomeAssistantDeviceRegistry | undefined,
+  entityState: HomeAssistantEntityState | undefined,
+  labels: HomeAssistantLabel[] | undefined,
+): string {
+  const domain = entity.entity_id.split(".")[0];
+  const entityArea =
+    entity.area_id ??
+    (typeof device?.area_id === "string" ? device.area_id : "");
+  const entityCategory =
+    typeof entity.entity_category === "string" ? entity.entity_category : "";
+  const deviceClass =
+    typeof entityState?.attributes?.device_class === "string"
+      ? entityState.attributes.device_class
+      : "";
+  const entityLabelSlugs = entity.labels ?? [];
+  const deviceLabelSlugs = device?.labels ?? [];
+  const entityLabelNames = entityLabelSlugs
+    .map((slug) => labels?.find((l) => l.label_id === slug)?.name ?? "")
+    .filter((name) => name.length > 0);
+  const deviceLabelNames = deviceLabelSlugs
+    .map((slug) => labels?.find((l) => l.label_id === slug)?.name ?? "")
+    .filter((name) => name.length > 0);
+  const deviceName =
+    device?.name_by_user ?? device?.name ?? device?.default_name ?? "";
+  const productName = device?.model ?? device?.default_model ?? "";
+  return [
+    `entity_id=${entity.entity_id}`,
+    `domain=${domain}`,
+    `platform=${entity.platform ?? ""}`,
+    `area=${entityArea ?? ""}`,
+    `entity_category=${entityCategory}`,
+    `device_class=${deviceClass}`,
+    `entity_labels=${entityLabelSlugs.join(",")}`,
+    `entity_label_names=${entityLabelNames.join(",")}`,
+    `device_labels=${deviceLabelSlugs.join(",")}`,
+    `device_label_names=${deviceLabelNames.join(",")}`,
+    `device_name=${deviceName}`,
+    `product_name=${productName}`,
+  ].join(" ");
 }
 
 function testDeviceName(
