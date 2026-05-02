@@ -456,6 +456,86 @@ describe("matchEntityFilter.testMatcher", () => {
     ).toBeFalsy();
   });
 
+  it("should match entity label by regex (slug)", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.EntityLabelRegex,
+          value: "^test_.*$",
+        },
+        undefined,
+        registry,
+      ),
+    ).toBeTruthy();
+  });
+  it("should not match entity label regex when entity has no labels", () => {
+    const entityWithoutLabel = { ...registry, labels: [] };
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.EntityLabelRegex,
+          value: ".*",
+        },
+        undefined,
+        entityWithoutLabel,
+      ),
+    ).toBeFalsy();
+  });
+  it("should match entity label regex against display name", () => {
+    const entityWithLabel = { ...registry, labels: ["matter_v2"] };
+    const labels = [{ label_id: "matter_v2", name: "Matter" }];
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.EntityLabelRegex,
+          value: "^Matter$",
+        },
+        undefined,
+        entityWithLabel,
+        undefined,
+        labels,
+      ),
+    ).toBeTruthy();
+  });
+  it("should match device label by regex", () => {
+    const entityWithoutLabel = { ...registry, labels: [] };
+    const deviceWithLabel = { ...deviceRegistry, labels: ["matter_room"] };
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.DeviceLabelRegex,
+          value: "^matter_.*",
+        },
+        deviceWithLabel,
+        entityWithoutLabel,
+      ),
+    ).toBeTruthy();
+  });
+  it("should not match device label regex against entity-only labels", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.DeviceLabelRegex,
+          value: "^test_.*$",
+        },
+        deviceRegistry,
+        registry,
+      ),
+    ).toBeFalsy();
+  });
+  it("should return false for invalid label regex", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.EntityLabelRegex,
+          value: "[invalid(regex",
+        },
+        undefined,
+        registry,
+      ),
+    ).toBeFalsy();
+  });
+
   it("should match the device name", () => {
     expect(
       testMatcher(

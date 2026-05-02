@@ -60,11 +60,13 @@ A include- or exclude-item is an object having a `type` and a `value` property.
 | Type | Description | Example Value |
 |------|-------------|---------------|
 | `pattern` | Wildcard pattern matching entity IDs. Use `*` as wildcard. | `light.living_room_*` |
-| `regex` | Regular expression matching entity IDs. Full regex support. | `^light\.(kitchen\|bedroom)_.*` |
+| `regex` | Regex tested against entity IDs only. For labels use `entity_label_regex` / `device_label_regex`. | `^light\.(kitchen\|bedroom)_.*` |
 | `domain` | Match entities by their domain (the part before the dot). | `light`, `switch`, `sensor` |
 | `platform` | Match entities by their integration/platform. | `hue`, `zwave`, `mqtt` |
 | `entity_label` | Match entities by their label. Accepts display name or slug. Only checks entity-level labels. | `Voice Control` |
 | `device_label` | Match entities by their parent device's label. All entities of that device match. | `smart_home` |
+| `entity_label_regex` | Regex tested against entity-label slugs and display names. | `^(matter\|voice).*` |
+| `device_label_regex` | Regex tested against device-label slugs and display names. All entities of a matching device are included. | `^(matter\|voice).*` |
 | `area` | Match entities by their area slug. | `living_room` |
 | `entity_category` | Match entities by their category. | `config`, `diagnostic` |
 | `device_name` | Match entities by their device name (case-insensitive, wildcards). | `Living Room*` |

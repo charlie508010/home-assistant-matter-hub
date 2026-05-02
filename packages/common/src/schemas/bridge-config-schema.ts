@@ -18,7 +18,7 @@ const homeAssistantMatcherSchema: JSONSchema7 = {
           const: "regex",
           title: "regex",
           description:
-            "Full regular expression matching entity IDs. Use ^ and $ for anchors. Example: '^(light|switch)\\.kitchen_.*' matches all kitchen lights and switches.",
+            "Regex tested against the entity_id only (e.g. 'light.kitchen_lamp'). For labels use entity_label_regex or device_label_regex. Example: '^(light|switch)\\.kitchen_.*'.",
         },
         {
           const: "domain",
@@ -49,6 +49,18 @@ const homeAssistantMatcherSchema: JSONSchema7 = {
           title: "device_label",
           description:
             "Matches ALL entities of a device if the device has this label. Use this to include a complete device with all its entities.",
+        },
+        {
+          const: "entity_label_regex",
+          title: "entity_label_regex",
+          description:
+            "Regex tested against entity-label slugs and display names. Matches if any label assigned to the entity matches. Example: '^(matter|voice).*'.",
+        },
+        {
+          const: "device_label_regex",
+          title: "device_label_regex",
+          description:
+            "Regex tested against device-label slugs and display names. Matches ALL entities of a device whose label matches. Example: '^(matter|voice).*'.",
         },
         {
           const: "area",

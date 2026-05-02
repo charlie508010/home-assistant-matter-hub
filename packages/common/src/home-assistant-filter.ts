@@ -7,6 +7,8 @@ export enum HomeAssistantMatcherType {
   Label = "label",
   EntityLabel = "entity_label",
   DeviceLabel = "device_label",
+  EntityLabelRegex = "entity_label_regex",
+  DeviceLabelRegex = "device_label_regex",
   Area = "area",
   EntityCategory = "entity_category",
   DeviceName = "device_name",

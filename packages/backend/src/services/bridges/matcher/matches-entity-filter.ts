@@ -54,6 +54,10 @@ export function testMatcher(
       const slug = resolveLabelValue(matcher.value, labels);
       return !!device?.labels && device.labels.includes(slug);
     }
+    case "entity_label_regex":
+      return testLabelRegex(matcher.value, entity?.labels, labels);
+    case "device_label_regex":
+      return testLabelRegex(matcher.value, device?.labels, labels);
     case "entity_category":
       return entity?.entity_category === matcher.value;
     case "platform":
@@ -93,6 +97,32 @@ function testRegex(pattern: string, value: string): boolean {
   } catch {
     return false;
   }
+}
+
+function testLabelRegex(
+  pattern: string,
+  assigned: string[] | undefined,
+  labels?: HomeAssistantLabel[],
+): boolean {
+  if (!assigned?.length) {
+    return false;
+  }
+  let regex: RegExp;
+  try {
+    regex = new RegExp(pattern);
+  } catch {
+    return false;
+  }
+  for (const slug of assigned) {
+    if (regex.test(slug)) {
+      return true;
+    }
+    const named = labels?.find((l) => l.label_id === slug)?.name;
+    if (named && regex.test(named)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function testDeviceName(
