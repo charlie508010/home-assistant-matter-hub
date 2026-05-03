@@ -267,13 +267,10 @@ export class WindowCoveringServerBase extends FeaturedBase {
             : this.features.tilt
               ? WindowCovering.EndProductType.TiltOnlyInteriorBlind
               : WindowCovering.EndProductType.RollerShade),
-        operationalStatus: {
-          global: movementStatus,
-          ...(this.features.lift ? { lift: movementStatus } : {}),
-          ...(this.features.tilt ? { tilt: movementStatus } : {}),
-        },
-        // Target before current so Apple Home derives the right direction
-        // at the start of an externally-driven movement (#328).
+        // Target before operationalStatus so the wire order matches the
+        // certified Eve MotionBlinds (state, target, current). Patch insertion
+        // order propagates into matter.js's changeList via for-in over values
+        // (Datasource.js:414), then through attrsChanged.emit (#328).
         ...(this.features.positionAwareLift
           ? {
               targetPositionLiftPercent100ths: inferTarget(
@@ -290,6 +287,11 @@ export class WindowCoveringServerBase extends FeaturedBase {
               ),
             }
           : {}),
+        operationalStatus: {
+          global: movementStatus,
+          ...(this.features.lift ? { lift: movementStatus } : {}),
+          ...(this.features.tilt ? { tilt: movementStatus } : {}),
+        },
         ...(this.features.positionAwareLift && !startedMoving
           ? {
               currentPositionLiftPercent100ths: currentLift100ths,
