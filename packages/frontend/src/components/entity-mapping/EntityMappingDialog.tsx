@@ -106,6 +106,7 @@ export function EntityMappingDialog({
   const [disableClimateOnOff, setDisableClimateOnOff] = useState(false);
   const [disableClimateFanControl, setDisableClimateFanControl] =
     useState(false);
+  const [climateKeepModeOnIdle, setClimateKeepModeOnIdle] = useState(false);
   const composedKeyRef = useRef(0);
   const [composedEntities, setComposedEntities] = useState<
     (ComposedSubEntity & { _key: number })[]
@@ -169,6 +170,7 @@ export function EntityMappingDialog({
       setDisableClimateFanControl(
         currentMapping?.disableClimateFanControl || false,
       );
+      setClimateKeepModeOnIdle(currentMapping?.climateKeepModeOnIdle || false);
       composedKeyRef.current = 0;
       setComposedEntities(
         (currentMapping?.composedEntities || []).map((e) => ({
@@ -257,6 +259,7 @@ export function EntityMappingDialog({
       coverSliderDebounceMs: parseDebounceMs(coverSliderDebounceMs),
       disableClimateOnOff: disableClimateOnOff || undefined,
       disableClimateFanControl: disableClimateFanControl || undefined,
+      climateKeepModeOnIdle: climateKeepModeOnIdle || undefined,
       composedEntities:
         composedEntities.filter((e) => e.entityId?.trim()).length > 0
           ? composedEntities
@@ -293,6 +296,7 @@ export function EntityMappingDialog({
     coverSliderDebounceMs,
     disableClimateOnOff,
     disableClimateFanControl,
+    climateKeepModeOnIdle,
     composedEntities,
     onSave,
   ]);
@@ -877,6 +881,16 @@ export function EntityMappingDialog({
                 />
               }
               label="Expose as plain Thermostat (drop FanControl), workaround for controllers like Aqara that don't recognise the air conditioner device type"
+              sx={{ mt: 1, display: "block" }}
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={climateKeepModeOnIdle}
+                  onChange={(e) => setClimateKeepModeOnIdle(e.target.checked)}
+                />
+              }
+              label="Keep last mode on Matter while off + idle (workaround for ACs that report off + hvac_action=idle during internal cleaning, so the controller's Off button stays actionable)"
               sx={{ mt: 1, display: "block" }}
             />
           </>

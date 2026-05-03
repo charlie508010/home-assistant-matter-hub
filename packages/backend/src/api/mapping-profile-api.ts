@@ -39,6 +39,7 @@ function configToProfileEntry(
     coverSliderDebounceMs: config.coverSliderDebounceMs,
     disableClimateOnOff: config.disableClimateOnOff,
     disableClimateFanControl: config.disableClimateFanControl,
+    climateKeepModeOnIdle: config.climateKeepModeOnIdle,
   };
 }
 
@@ -199,6 +200,7 @@ export function mappingProfileApi(
           coverSliderDebounceMs: entry.coverSliderDebounceMs,
           disableClimateOnOff: entry.disableClimateOnOff,
           disableClimateFanControl: entry.disableClimateFanControl,
+          climateKeepModeOnIdle: entry.climateKeepModeOnIdle,
         });
         applied++;
       } catch (e) {

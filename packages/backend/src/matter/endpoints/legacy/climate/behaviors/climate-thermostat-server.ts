@@ -114,6 +114,13 @@ function isHeatCoolOnly(modes: ClimateHvacMode[]): boolean {
  */
 const lastHvacDirection = new Map<string, "heating" | "cooling">();
 
+/**
+ * Track last known non-Off SystemMode per entity for the
+ * climateKeepModeOnIdle mapping option (#340). Lets us keep reporting the
+ * previous mode while the AC is in off + idle (internal cleaning cycle).
+ */
+const lastNonOffSystemMode = new Map<string, Thermostat.SystemMode>();
+
 function getHeatCoolOnlyDirection(
   entity: HomeAssistantEntityState,
   agent: Agent,
@@ -137,6 +144,92 @@ function getHeatCoolOnlyDirection(
   }
   // idle/off/fan: use last known direction, default to heating
   return lastHvacDirection.get(entityId) ?? "heating";
+}
+
+function computeSystemMode(
+  entity: HomeAssistantEntityState,
+  agent: Agent,
+): Thermostat.SystemMode {
+  const hvacMode = entity.state as ClimateHvacMode;
+  const systemMode =
+    hvacModeToSystemMode[hvacMode] ?? Thermostat.SystemMode.Off;
+  // Map SystemMode.Auto to the correct mode based on device capabilities.
+  // Matter AutoMode = dual setpoint = HA heat_cool.
+  // HA auto ≠ Matter Auto, it's a single-setpoint mode where the device decides.
+  if (systemMode === Thermostat.SystemMode.Auto) {
+    const modes = attributes(entity).hvac_modes ?? [];
+
+    // heat_cool-only zones: dynamically switch between Heat and Cool
+    // based on hvac_action to reflect the main system's mode (#207).
+    if (isHeatCoolOnly(modes)) {
+      const direction = getHeatCoolOnlyDirection(entity, agent);
+      return direction === "cooling"
+        ? Thermostat.SystemMode.Cool
+        : Thermostat.SystemMode.Heat;
+    }
+
+    // Mirror the autoMode flag in climate/index.ts: AutoMode is only safe
+    // when HA exposes heat_cool (dual setpoint) alongside explicit heat or
+    // cool. HA-auto-only devices fall through to dynamic Cool/Heat below
+    // because Apple Home's Auto tile doesn't write SystemMode.Auto for them
+    // (#309). #319: returning Auto on a non-AutoMode base throws
+    // ConformanceError, so the heat_cool guard also keeps us conformant.
+    const hasMatterAuto =
+      modes.includes(ClimateHvacMode.heat_cool) &&
+      (modes.includes(ClimateHvacMode.heat) ||
+        modes.includes(ClimateHvacMode.cool));
+    if (hasMatterAuto) {
+      return systemMode;
+    }
+
+    // No heat_cool: map HA auto → Heat/Cool based on device capabilities or action
+    const hasCooling = modes.some((m) => m === ClimateHvacMode.cool);
+    const hasHeating = modes.some(
+      (m) => m === ClimateHvacMode.heat || m === ClimateHvacMode.auto,
+    );
+    if (hasHeating && !hasCooling) {
+      return Thermostat.SystemMode.Heat;
+    }
+    if (hasCooling && !hasHeating) {
+      return Thermostat.SystemMode.Cool;
+    }
+    // Both heat and cool but no heat_cool: HA `auto` is single-setpoint and
+    // doesn't tell us which direction is active. Use hvac_action when
+    // present, fall back to the last direction we saw for this entity, then
+    // seed from current vs target so Apple Home doesn't flip Cool↔Heat
+    // every time the AC reaches its setpoint and hvac_action goes idle.
+    const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+    const entityId = homeAssistant.entityId;
+    const action = attributes(entity).hvac_action;
+    if (action === ClimateHvacAction.cooling) {
+      lastHvacDirection.set(entityId, "cooling");
+      return Thermostat.SystemMode.Cool;
+    }
+    if (action === ClimateHvacAction.heating) {
+      lastHvacDirection.set(entityId, "heating");
+      return Thermostat.SystemMode.Heat;
+    }
+    const remembered = lastHvacDirection.get(entityId);
+    if (remembered) {
+      return remembered === "cooling"
+        ? Thermostat.SystemMode.Cool
+        : Thermostat.SystemMode.Heat;
+    }
+    const current = attributes(entity).current_temperature;
+    const target = attributes(entity).temperature;
+    if (typeof current === "number" && typeof target === "number") {
+      if (current > target) {
+        lastHvacDirection.set(entityId, "cooling");
+        return Thermostat.SystemMode.Cool;
+      }
+      if (current < target) {
+        lastHvacDirection.set(entityId, "heating");
+        return Thermostat.SystemMode.Heat;
+      }
+    }
+    return Thermostat.SystemMode.Cool;
+  }
+  return systemMode;
 }
 
 const config: ThermostatServerConfig = {
@@ -167,86 +260,23 @@ const config: ThermostatServerConfig = {
     getTemp(agent, entity, "target_temperature") ??
     getTemp(agent, entity, "temperature"),
   getSystemMode: (entity, agent) => {
-    const hvacMode = entity.state as ClimateHvacMode;
-    const systemMode =
-      hvacModeToSystemMode[hvacMode] ?? Thermostat.SystemMode.Off;
-    // Map SystemMode.Auto to the correct mode based on device capabilities.
-    // Matter AutoMode = dual setpoint = HA heat_cool.
-    // HA auto ≠ Matter Auto, it's a single-setpoint mode where the device decides.
-    if (systemMode === Thermostat.SystemMode.Auto) {
-      const modes = attributes(entity).hvac_modes ?? [];
-
-      // heat_cool-only zones: dynamically switch between Heat and Cool
-      // based on hvac_action to reflect the main system's mode (#207).
-      if (isHeatCoolOnly(modes)) {
-        const direction = getHeatCoolOnlyDirection(entity, agent);
-        return direction === "cooling"
-          ? Thermostat.SystemMode.Cool
-          : Thermostat.SystemMode.Heat;
-      }
-
-      // Mirror the autoMode flag in climate/index.ts: AutoMode is only safe
-      // when HA exposes heat_cool (dual setpoint) alongside explicit heat or
-      // cool. HA-auto-only devices fall through to dynamic Cool/Heat below
-      // because Apple Home's Auto tile doesn't write SystemMode.Auto for them
-      // (#309). #319: returning Auto on a non-AutoMode base throws
-      // ConformanceError, so the heat_cool guard also keeps us conformant.
-      const hasMatterAuto =
-        modes.includes(ClimateHvacMode.heat_cool) &&
-        (modes.includes(ClimateHvacMode.heat) ||
-          modes.includes(ClimateHvacMode.cool));
-      if (hasMatterAuto) {
-        return systemMode;
-      }
-
-      // No heat_cool: map HA auto → Heat/Cool based on device capabilities or action
-      const hasCooling = modes.some((m) => m === ClimateHvacMode.cool);
-      const hasHeating = modes.some(
-        (m) => m === ClimateHvacMode.heat || m === ClimateHvacMode.auto,
-      );
-      if (hasHeating && !hasCooling) {
-        return Thermostat.SystemMode.Heat;
-      }
-      if (hasCooling && !hasHeating) {
-        return Thermostat.SystemMode.Cool;
-      }
-      // Both heat and cool but no heat_cool: HA `auto` is single-setpoint and
-      // doesn't tell us which direction is active. Use hvac_action when
-      // present, fall back to the last direction we saw for this entity, then
-      // seed from current vs target so Apple Home doesn't flip Cool↔Heat
-      // every time the AC reaches its setpoint and hvac_action goes idle.
-      const homeAssistant = agent.get(HomeAssistantEntityBehavior);
-      const entityId = homeAssistant.entityId;
-      const action = attributes(entity).hvac_action;
-      if (action === ClimateHvacAction.cooling) {
-        lastHvacDirection.set(entityId, "cooling");
-        return Thermostat.SystemMode.Cool;
-      }
-      if (action === ClimateHvacAction.heating) {
-        lastHvacDirection.set(entityId, "heating");
-        return Thermostat.SystemMode.Heat;
-      }
-      const remembered = lastHvacDirection.get(entityId);
-      if (remembered) {
-        return remembered === "cooling"
-          ? Thermostat.SystemMode.Cool
-          : Thermostat.SystemMode.Heat;
-      }
-      const current = attributes(entity).current_temperature;
-      const target = attributes(entity).temperature;
-      if (typeof current === "number" && typeof target === "number") {
-        if (current > target) {
-          lastHvacDirection.set(entityId, "cooling");
-          return Thermostat.SystemMode.Cool;
-        }
-        if (current < target) {
-          lastHvacDirection.set(entityId, "heating");
-          return Thermostat.SystemMode.Heat;
-        }
-      }
-      return Thermostat.SystemMode.Cool;
+    const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+    const entityId = homeAssistant.entityId;
+    const computed = computeSystemMode(entity, agent);
+    if (computed !== Thermostat.SystemMode.Off) {
+      lastNonOffSystemMode.set(entityId, computed);
+      return computed;
     }
-    return systemMode;
+    if (
+      homeAssistant.state.mapping?.climateKeepModeOnIdle === true &&
+      attributes(entity).hvac_action === ClimateHvacAction.idle
+    ) {
+      const remembered = lastNonOffSystemMode.get(entityId);
+      if (remembered !== undefined) {
+        return remembered;
+      }
+    }
+    return computed;
   },
   getRunningMode: (entity) => {
     const action = attributes(entity).hvac_action;

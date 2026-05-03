@@ -57,6 +57,7 @@ export function entityMappingApi(
       coverSliderDebounceMs: body.coverSliderDebounceMs,
       disableClimateOnOff: body.disableClimateOnOff,
       disableClimateFanControl: body.disableClimateFanControl,
+      climateKeepModeOnIdle: body.climateKeepModeOnIdle,
       composedEntities: body.composedEntities,
     };
 

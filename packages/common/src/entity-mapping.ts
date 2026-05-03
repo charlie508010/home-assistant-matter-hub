@@ -224,6 +224,15 @@ export interface EntityMappingConfig {
    */
   readonly disableClimateFanControl?: boolean;
   /**
+   * Optional: While the climate entity is off + hvac_action=idle (e.g. an AC
+   * running an internal cleaning cycle after power-off), keep reporting the
+   * last known operating mode on the Matter side instead of switching to Off.
+   * Lets the Matter controller's Off button stay actionable so the cleaning
+   * cycle can be cancelled. HA and Matter intentionally diverge until the
+   * entity reports a real mode again.
+   */
+  readonly climateKeepModeOnIdle?: boolean;
+  /**
    * Auto-populated at runtime when the vacuum supports HA 2026.3 CLEAN_AREA.
    * Maps HA areas (from the user's segment-to-area mapping in HA) to Matter
    * ServiceArea area IDs. When set, vacuum.clean_area is used instead of
@@ -273,6 +282,7 @@ export interface EntityMappingRequest {
   readonly coverSliderDebounceMs?: number;
   readonly disableClimateOnOff?: boolean;
   readonly disableClimateFanControl?: boolean;
+  readonly climateKeepModeOnIdle?: boolean;
   readonly composedEntities?: ComposedSubEntity[];
 }
 

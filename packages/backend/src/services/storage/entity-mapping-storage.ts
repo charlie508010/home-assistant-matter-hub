@@ -139,6 +139,7 @@ export class EntityMappingStorage extends Service {
       coverSliderDebounceMs: sanitizeDebounceMs(request.coverSliderDebounceMs),
       disableClimateOnOff: request.disableClimateOnOff || undefined,
       disableClimateFanControl: request.disableClimateFanControl || undefined,
+      climateKeepModeOnIdle: request.climateKeepModeOnIdle || undefined,
       composedEntities:
         request.composedEntities?.filter((e) => e.entityId?.trim()) ??
         undefined,
@@ -173,6 +174,7 @@ export class EntityMappingStorage extends Service {
       !config.coverSliderDebounceMs &&
       !config.disableClimateOnOff &&
       !config.disableClimateFanControl &&
+      !config.climateKeepModeOnIdle &&
       (!config.composedEntities || config.composedEntities.length === 0)
     ) {
       bridgeMap.delete(request.entityId);

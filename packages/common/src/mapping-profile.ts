@@ -30,6 +30,7 @@ export interface MappingProfileEntry {
   readonly coverSliderDebounceMs?: number;
   readonly disableClimateOnOff?: boolean;
   readonly disableClimateFanControl?: boolean;
+  readonly climateKeepModeOnIdle?: boolean;
 }
 
 export interface MappingProfile {
