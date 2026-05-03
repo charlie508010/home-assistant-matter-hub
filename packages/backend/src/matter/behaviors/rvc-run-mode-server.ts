@@ -178,6 +178,20 @@ class RvcRunModeServerBase extends Base {
       }
     }
 
+    // The session WeakMap doesn't survive restarts but cluster state
+    // does, so currentArea can be stale on boot. Force it null when
+    // idle with no active session.
+    if (newMode === RvcSupportedRunMode.Idle && s.activeAreas.length === 0) {
+      try {
+        const serviceArea = this.agent.get(ServiceAreaBehavior);
+        if (serviceArea.state.currentArea !== null) {
+          serviceArea.state.currentArea = null;
+        }
+      } catch {
+        // ServiceArea not available
+      }
+    }
+
     // Dynamic room tracking: when cleaning and a currentRoomEntity is
     // configured, read the sensor to update currentArea in real time.
     if (newMode === RvcSupportedRunMode.Cleaning) {
