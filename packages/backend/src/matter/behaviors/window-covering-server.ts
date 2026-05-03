@@ -238,6 +238,18 @@ export class WindowCoveringServerBase extends FeaturedBase {
     const overrideType = config.getCoverType?.(state, this.agent);
     const overrideEndProduct = config.getEndProductType?.(state, this.agent);
 
+    // On the Stopped -> Moving transition, write only operationalStatus and
+    // target. Apple Home derives direction from target-vs-current; if a fresh
+    // current update lands at the controller before/with the new target, the
+    // UI briefly shows the wrong direction. Skipping current here lets the
+    // first subscription report carry state + target alone, and the next HA
+    // tick (~50-1000ms later) carries current on its own (#328).
+    const previousStatus = (
+      this.state.operationalStatus as { global?: number } | undefined
+    )?.global;
+    const startedMoving =
+      !isStopped && previousStatus === MovementStatus.Stopped;
+
     const appliedPatch = applyPatchState<WindowCoveringServerBase.State>(
       this.state,
       {
@@ -278,12 +290,12 @@ export class WindowCoveringServerBase extends FeaturedBase {
               ),
             }
           : {}),
-        ...(this.features.positionAwareLift
+        ...(this.features.positionAwareLift && !startedMoving
           ? {
               currentPositionLiftPercent100ths: currentLift100ths,
             }
           : {}),
-        ...(this.features.positionAwareTilt
+        ...(this.features.positionAwareTilt && !startedMoving
           ? {
               currentPositionTiltPercent100ths: currentTilt100ths,
             }
