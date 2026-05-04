@@ -10,6 +10,7 @@ export interface StartOptions {
   "home-assistant-url": string;
   "home-assistant-access-token": string;
   "home-assistant-refresh-interval": number;
+  "ha-message-timeout": number;
   "http-auth-username": string | undefined;
   "http-auth-password": string | undefined;
   "http-base-path": string | undefined;

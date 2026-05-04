@@ -150,13 +150,16 @@ export class HomeAssistantRegistry extends Service {
     // Fire the five HA queries in parallel. Label and area registries aren't
     // guaranteed on older HA versions, catch and fall back to empty arrays
     // without failing the whole reload.
+    const timeoutMs = this.options.messageTimeoutMs;
     const [entityRegistry, statesList, deviceRegistry, labels, areas] =
       await Promise.all([
-        getRegistry(connection),
+        getRegistry(connection, timeoutMs),
         getStates(connection),
-        getDeviceRegistry(connection),
-        getLabelRegistry(connection).catch(() => [] as HomeAssistantLabel[]),
-        getAreaRegistry(connection).catch(
+        getDeviceRegistry(connection, timeoutMs),
+        getLabelRegistry(connection, timeoutMs).catch(
+          () => [] as HomeAssistantLabel[],
+        ),
+        getAreaRegistry(connection, timeoutMs).catch(
           () => [] as Array<{ area_id: string; name: string }>,
         ),
       ]);

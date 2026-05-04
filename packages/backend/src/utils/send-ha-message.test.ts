@@ -59,7 +59,7 @@ describe("sendHaMessage", () => {
     clearSpy.mockRestore();
   });
 
-  it("exposes a 30s default timeout", () => {
-    expect(HA_MESSAGE_TIMEOUT_MS).toBe(30_000);
+  it("exposes a 60s default timeout", () => {
+    expect(HA_MESSAGE_TIMEOUT_MS).toBe(60_000);
   });
 });

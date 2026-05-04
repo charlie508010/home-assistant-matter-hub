@@ -65,6 +65,7 @@ export class Options {
       url: this.startOptions.homeAssistantUrl,
       accessToken: this.startOptions.homeAssistantAccessToken,
       refreshInterval: this.startOptions.homeAssistantRefreshInterval,
+      messageTimeoutMs: this.startOptions.haMessageTimeout,
     };
   }
 

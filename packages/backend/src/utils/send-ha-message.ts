@@ -1,6 +1,6 @@
 import type { Connection } from "home-assistant-js-websocket";
 
-export const HA_MESSAGE_TIMEOUT_MS = 30_000;
+export const HA_MESSAGE_TIMEOUT_MS = 60_000;
 
 /**
  * Wrap `connection.sendMessagePromise` with a hard timeout so a hung or

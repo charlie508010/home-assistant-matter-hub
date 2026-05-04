@@ -38,6 +38,7 @@ export interface HomeAssistantClientProps {
   readonly url: string;
   readonly accessToken: string;
   readonly refreshInterval: number;
+  readonly messageTimeoutMs: number;
 }
 
 export class HomeAssistantClient extends Service {

@@ -76,6 +76,12 @@ export function startOptionsBuilder(yargs: Argv): Argv<StartOptions> {
         "The refresh rate (in seconds) to detect new devices & entities or their configurations",
       default: 60,
     })
+    .option("ha-message-timeout", {
+      type: "number",
+      description:
+        "Timeout in milliseconds for individual Home Assistant WebSocket requests (registry fetches, action calls). Raise this if you see 'HA message ... timed out' warnings on a large or slow HA instance.",
+      default: 60_000,
+    })
     .option("http-auth-username", {
       type: "string",
       description: "Username for HTTP basic authentication (optional)",
