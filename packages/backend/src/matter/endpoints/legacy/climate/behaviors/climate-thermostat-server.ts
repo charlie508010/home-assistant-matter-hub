@@ -114,12 +114,12 @@ function isHeatCoolOnly(modes: ClimateHvacMode[]): boolean {
  */
 const lastHvacDirection = new Map<string, "heating" | "cooling">();
 
-/**
- * Track last known non-Off SystemMode per entity for the
- * climateKeepModeOnIdle mapping option (#340). Lets us keep reporting the
- * previous mode while the AC is in off + idle (internal cleaning cycle).
- */
-const lastNonOffSystemMode = new Map<string, Thermostat.SystemMode>();
+// climateKeepModeOnIdle (#340): arm on non-Off, disarm on hvac_action=off.
+interface ClimateFreezeState {
+  lastNonOffMode: Thermostat.SystemMode;
+  pending: boolean;
+}
+const climateFreezeState = new Map<string, ClimateFreezeState>();
 
 function getHeatCoolOnlyDirection(
   entity: HomeAssistantEntityState,
@@ -263,19 +263,37 @@ const config: ThermostatServerConfig = {
     const homeAssistant = agent.get(HomeAssistantEntityBehavior);
     const entityId = homeAssistant.entityId;
     const computed = computeSystemMode(entity, agent);
+
     if (computed !== Thermostat.SystemMode.Off) {
-      lastNonOffSystemMode.set(entityId, computed);
+      const existing = climateFreezeState.get(entityId);
+      if (existing) {
+        existing.lastNonOffMode = computed;
+        existing.pending = true;
+      } else {
+        climateFreezeState.set(entityId, {
+          lastNonOffMode: computed,
+          pending: true,
+        });
+      }
       return computed;
     }
-    if (
-      homeAssistant.state.mapping?.climateKeepModeOnIdle === true &&
-      attributes(entity).hvac_action === ClimateHvacAction.idle
-    ) {
-      const remembered = lastNonOffSystemMode.get(entityId);
-      if (remembered !== undefined) {
-        return remembered;
+
+    const action = attributes(entity).hvac_action;
+    if (action === ClimateHvacAction.off) {
+      const existing = climateFreezeState.get(entityId);
+      if (existing) {
+        existing.pending = false;
+      }
+      return computed;
+    }
+
+    if (homeAssistant.state.mapping?.climateKeepModeOnIdle === true) {
+      const existing = climateFreezeState.get(entityId);
+      if (existing?.pending) {
+        return existing.lastNonOffMode;
       }
     }
+
     return computed;
   },
   getRunningMode: (entity) => {
