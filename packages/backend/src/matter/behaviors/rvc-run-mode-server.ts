@@ -8,6 +8,7 @@ import { ServiceArea } from "@matter/main/clusters";
 import { ModeBase } from "@matter/main/clusters/mode-base";
 import { RvcRunMode } from "@matter/main/clusters/rvc-run-mode";
 import { EntityStateProvider } from "../../services/bridges/entity-state-provider.js";
+import type { HomeAssistantAction } from "../../services/home-assistant/home-assistant-actions.js";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
@@ -54,7 +55,7 @@ export function isRoomMode(mode: number): boolean {
  * keyed by the stable Agent identity survives across calls and is
  * automatically cleaned up when the endpoint is garbage-collected.
  */
-interface CleaningSession {
+export interface CleaningSession {
   /** Areas that the vacuum has already finished cleaning in this session */
   completedAreas: Set<number>;
   /** Last known currentArea, used to detect room transitions */
@@ -70,16 +71,19 @@ interface CleaningSession {
    *  without this guard a failing path would flood the log. Cleared
    *  when the vacuum returns to Idle. */
   loggedShortCircuits: Set<string>;
-  /** True once the vacuum has been observed in Cleaning state during
-   *  this session. Distinguishes a real end-of-cleaning transition
-   *  (clear currentArea) from the brief idle window between command
-   *  dispatch and the vacuum actually starting (keep currentArea). */
+  /** True once we've seen the vacuum actually in Cleaning state this
+   *  session. Tells real end-of-cleaning from the brief idle right
+   *  after dispatch (where we keep currentArea, not clear it). */
   observedCleaning: boolean;
+  /** Per-area actions fired one at a time as the vacuum docks between
+   *  rooms. Roborock's app_segment_clean replaces the segment list on
+   *  each call, so dispatching all N upfront only cleans one room. */
+  pendingDispatches: { areaId: number; action: HomeAssistantAction }[];
 }
 
 const cleaningSessions = new WeakMap<object, CleaningSession>();
 
-function getSession(endpoint: object): CleaningSession {
+export function getSession(endpoint: object): CleaningSession {
   let session = cleaningSessions.get(endpoint);
   if (!session) {
     session = {
@@ -88,6 +92,7 @@ function getSession(endpoint: object): CleaningSession {
       activeAreas: [],
       loggedShortCircuits: new Set(),
       observedCleaning: false,
+      pendingDispatches: [],
     };
     cleaningSessions.set(endpoint, session);
   }
@@ -143,15 +148,36 @@ class RvcRunModeServerBase extends Base {
           s.completedAreas.add(s.lastCurrentArea);
           s.lastCurrentArea = null;
         }
-        // Clear currentArea only when the vacuum actually went through
-        // a Cleaning state in this session. Otherwise this is the brief
-        // idle window between command dispatch and the vacuum actually
-        // starting, where the command handler already set currentArea
-        // correctly and clearing it would cause a controller flicker.
+        // Between-rooms gap: fire the next queued action and skip the
+        // end-of-cleaning cleanup. Gated on observedCleaning so the
+        // brief idle right after the first dispatch doesn't fire it.
+        if (s.pendingDispatches.length > 0 && s.observedCleaning) {
+          try {
+            const serviceArea = this.agent.get(ServiceAreaBehavior);
+            const prev = serviceArea.state.currentArea;
+            if (typeof prev === "number") {
+              s.completedAreas.add(prev);
+            }
+            const next = s.pendingDispatches.shift();
+            if (next) {
+              const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+              homeAssistant.callAction(next.action);
+              this.trySetCurrentArea(next.areaId);
+            }
+          } catch {
+            // ServiceArea or HA behavior not available
+          }
+          s.loggedShortCircuits.clear();
+          return;
+        }
+        // Real end of cleaning. Skip on the brief post-dispatch idle
+        // (observedCleaning false there).
         if (s.observedCleaning) {
           try {
             const serviceArea = this.agent.get(ServiceAreaBehavior);
-            if (serviceArea.state.currentArea !== null) {
+            const last = serviceArea.state.currentArea;
+            if (typeof last === "number") {
+              s.completedAreas.add(last);
               serviceArea.state.currentArea = null;
             }
             this.updateProgressFromTracking(serviceArea);
@@ -464,6 +490,7 @@ class RvcRunModeServerBase extends Base {
           s.completedAreas.clear();
           s.lastCurrentArea = null;
           s.loggedShortCircuits.clear();
+          s.pendingDispatches = [];
           this.trySetCurrentArea(s.activeAreas[0]);
           homeAssistant.callAction(this.state.config.start(void 0, this.agent));
           this.state.currentMode = newMode;
@@ -482,6 +509,7 @@ class RvcRunModeServerBase extends Base {
         s.completedAreas.clear();
         s.lastCurrentArea = null;
         s.loggedShortCircuits.clear();
+        s.pendingDispatches = [];
         this.trySetCurrentArea(areaId);
         homeAssistant.callAction(
           this.state.config.cleanRoom(newMode, this.agent),
@@ -504,6 +532,7 @@ class RvcRunModeServerBase extends Base {
             s.completedAreas.clear();
             s.lastCurrentArea = null;
             s.loggedShortCircuits.clear();
+            s.pendingDispatches = [];
             this.trySetCurrentArea(s.activeAreas[0]);
           }
         } catch {
@@ -519,6 +548,8 @@ class RvcRunModeServerBase extends Base {
         s.lastCurrentArea = null;
         s.activeAreas = [];
         s.loggedShortCircuits.clear();
+        s.pendingDispatches = [];
+        s.observedCleaning = false;
         homeAssistant.callAction(
           this.state.config.returnToBase(void 0, this.agent),
         );

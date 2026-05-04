@@ -12,6 +12,8 @@ import { RvcRunMode } from "@matter/main/clusters";
 import { testBit } from "../../../../../utils/test-bit.js";
 import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistant-entity-behavior.js";
 import {
+  type CleaningSession,
+  getSession,
   RvcRunModeServer,
   RvcSupportedRunMode,
 } from "../../../../behaviors/rvc-run-mode-server.js";
@@ -135,18 +137,18 @@ function buildSupportedModes(
 }
 
 /**
- * Handle custom service areas: call the configured HA service for each selected area.
- * Custom areas use sequential IDs (1, 2, 3...) matching createCustomServiceAreaServer.
+ * Build the primary action for custom service areas and queue the rest
+ * for sequential dispatch. Custom areas use 1-based IDs matching
+ * createCustomServiceAreaServer.
  */
 function handleCustomServiceAreas(
   selectedAreas: number[],
   customAreas: CustomServiceArea[],
-  homeAssistant: HomeAssistantEntityBehavior,
+  session: CleaningSession,
 ) {
-  // Map area IDs back to custom area configs (IDs are 1-based index)
   const matched = selectedAreas
-    .map((areaId) => customAreas[areaId - 1])
-    .filter(Boolean);
+    .map((areaId) => ({ areaId, area: customAreas[areaId - 1] }))
+    .filter((m): m is { areaId: number; area: CustomServiceArea } => !!m.area);
 
   if (matched.length === 0) {
     logger.warn(
@@ -156,21 +158,16 @@ function handleCustomServiceAreas(
   }
 
   logger.info(
-    `Custom service areas: calling ${matched.length} service(s): ${matched.map((a) => `${a.service} (${a.name})`).join(", ")}`,
+    `Custom service areas: ${matched.length} room(s) queued: ${matched.map(({ area }) => `${area.service} (${area.name})`).join(", ")}`,
   );
 
-  // Dispatch additional areas (2..N) directly
-  for (let i = 1; i < matched.length; i++) {
-    const area = matched[i];
-    homeAssistant.callAction({
-      action: area.service,
-      target: area.target,
-      data: area.data,
-    });
-  }
+  // Queue rest; the first action is fired by the caller.
+  session.pendingDispatches = matched.slice(1).map(({ areaId, area }) => ({
+    areaId,
+    action: { action: area.service, target: area.target, data: area.data },
+  }));
 
-  // Return the first area as the primary action
-  const first = matched[0];
+  const first = matched[0].area;
   return {
     action: first.service,
     target: first.target,
@@ -241,15 +238,12 @@ const vacuumRvcRunModeConfig = {
         const homeAssistant = agent.get(HomeAssistantEntityBehavior);
         const entity = homeAssistant.entity;
         const attributes = entity.state.attributes as VacuumDeviceAttributes;
+        const session = getSession(homeAssistant.endpoint);
 
         // Check for user-defined custom service areas first (lawn mowers, generic zone robots)
         const customAreas = homeAssistant.state.mapping?.customServiceAreas;
         if (customAreas && customAreas.length > 0) {
-          return handleCustomServiceAreas(
-            selectedAreas,
-            customAreas,
-            homeAssistant,
-          );
+          return handleCustomServiceAreas(selectedAreas, customAreas, session);
         }
 
         // HA 2026.3 CLEAN_AREA: resolve selected ServiceArea IDs to HA area IDs
@@ -267,37 +261,33 @@ const vacuumRvcRunModeConfig = {
           }
         }
 
-        // Check if we have button entities mapped for rooms (Roborock integration)
+        // Roborock button entities: each press triggers app_segment_clean
+        // for one segment, so they need the same one-at-a-time dispatch.
         const roomEntities = homeAssistant.state.mapping?.roomEntities;
         if (roomEntities && roomEntities.length > 0) {
-          // Find button entity IDs for selected areas
-          const buttonEntityIds: string[] = [];
+          const matched: { areaId: number; entityId: string }[] = [];
           for (const areaId of selectedAreas) {
-            const buttonEntityId = roomEntities.find(
-              (id) => toAreaId(id) === areaId,
-            );
-            if (buttonEntityId) {
-              buttonEntityIds.push(buttonEntityId);
+            const entityId = roomEntities.find((id) => toAreaId(id) === areaId);
+            if (entityId) {
+              matched.push({ areaId, entityId });
             }
           }
 
-          if (buttonEntityIds.length > 0) {
+          if (matched.length > 0) {
             logger.info(
-              `Roborock: Pressing button entities for selected rooms: ${buttonEntityIds.join(", ")}`,
+              `Roborock: ${matched.length} room button(s) queued: ${matched.map((m) => m.entityId).join(", ")}`,
             );
 
-            // Dispatch extra button presses directly, the caller can only
-            // handle a single returned action, so press buttons 1..N here.
-            for (let i = 1; i < buttonEntityIds.length; i++) {
-              homeAssistant.callAction({
-                action: "button.press",
-                target: buttonEntityIds[i],
-              });
-            }
+            session.pendingDispatches = matched
+              .slice(1)
+              .map(({ areaId, entityId }) => ({
+                areaId,
+                action: { action: "button.press", target: entityId },
+              }));
 
             return {
               action: "button.press",
-              target: buttonEntityIds[0],
+              target: matched[0].entityId,
             };
           }
         }
