@@ -58,6 +58,10 @@ namespace StandalonePowerServer {
 const PowerServer = StandalonePowerServer.set({
   powerMode: ElectricalPowerMeasurement.PowerMode.Ac,
   numberOfMeasurementTypes: 1,
+  // SmartThings keeps the endpoint in a "device not yet updated" state
+  // when activePower stays null. Seed 0 so the cluster reports a value
+  // for energy/voltage/current-only sensors that never feed activePower.
+  activePower: 0,
   accuracy: [
     {
       measurementType: ElectricalPowerMeasurement.MeasurementType.ActivePower,
