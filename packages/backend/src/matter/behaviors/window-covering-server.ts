@@ -94,6 +94,20 @@ export class WindowCoveringServerBase extends FeaturedBase {
   private static readonly DEBOUNCE_SUBSEQUENT_MS = 150;
   private static readonly COMMAND_SEQUENCE_THRESHOLD_MS = 600;
 
+  // Apple's HomeKit only forwards one attribute per multi-attribute Matter
+  // report — target goes out in its own transaction (#328).
+  private deferredTargetTimer: ReturnType<typeof setTimeout> | null = null;
+  private deferredTargetLift: number | null | undefined = undefined;
+  private deferredTargetTilt: number | null | undefined = undefined;
+  private deferredTargetEntityId: string | null = null;
+  // Must clear matter.js's 50ms subscription send window.
+  private static readonly DEFERRED_TARGET_DELAY_MS = 100;
+
+  // Hold back current updates for a short window after motion starts so
+  // state and target reach Apple Home before any position update (#328).
+  private motionStartedAt = 0;
+  private static readonly MOTION_START_CURRENT_GUARD_MS = 250;
+
   // Per-entity override wins over per-bridge flag; both must be > 0 to count.
   private resolveDebounceOverride(
     homeAssistant: HomeAssistantEntityBehavior,
@@ -119,8 +133,16 @@ export class WindowCoveringServerBase extends FeaturedBase {
       clearTimeout(this.tiltDebounceTimer);
       this.tiltDebounceTimer = null;
     }
+    if (this.deferredTargetTimer) {
+      clearTimeout(this.deferredTargetTimer);
+      this.deferredTargetTimer = null;
+    }
     this.pendingLiftAction = null;
     this.pendingTiltAction = null;
+    this.deferredTargetLift = undefined;
+    this.deferredTargetTilt = undefined;
+    this.deferredTargetEntityId = null;
+    this.motionStartedAt = 0;
     await super[Symbol.asyncDispose]();
   }
 
@@ -238,17 +260,38 @@ export class WindowCoveringServerBase extends FeaturedBase {
     const overrideType = config.getCoverType?.(state, this.agent);
     const overrideEndProduct = config.getEndProductType?.(state, this.agent);
 
-    // On the Stopped -> Moving transition, write only operationalStatus and
-    // target. Apple Home derives direction from target-vs-current; if a fresh
-    // current update lands at the controller before/with the new target, the
-    // UI briefly shows the wrong direction. Skipping current here lets the
-    // first subscription report carry state + target alone, and the next HA
-    // tick (~50-1000ms later) carries current on its own (#328).
+    // Hold current writes during the motion-start window so state and
+    // target reach Apple Home before any position update (#328).
     const previousStatus = (
       this.state.operationalStatus as { global?: number } | undefined
     )?.global;
     const startedMoving =
       !isStopped && previousStatus === MovementStatus.Stopped;
+    if (startedMoving) {
+      this.motionStartedAt = Date.now();
+    } else if (isStopped) {
+      this.motionStartedAt = 0;
+    }
+    const inMotionStartGuard =
+      !isStopped &&
+      this.motionStartedAt > 0 &&
+      Date.now() - this.motionStartedAt <
+        WindowCoveringServerBase.MOTION_START_CURRENT_GUARD_MS;
+    const skipCurrent = startedMoving || inMotionStartGuard;
+
+    // Computed now; written below in a separate transaction (#328).
+    const liftTarget100ths = this.features.positionAwareLift
+      ? inferTarget(
+          currentLift100ths,
+          this.state.targetPositionLiftPercent100ths,
+        )
+      : undefined;
+    const tiltTarget100ths = this.features.positionAwareTilt
+      ? inferTarget(
+          currentTilt100ths,
+          this.state.targetPositionTiltPercent100ths,
+        )
+      : undefined;
 
     const appliedPatch = applyPatchState<WindowCoveringServerBase.State>(
       this.state,
@@ -267,43 +310,73 @@ export class WindowCoveringServerBase extends FeaturedBase {
             : this.features.tilt
               ? WindowCovering.EndProductType.TiltOnlyInteriorBlind
               : WindowCovering.EndProductType.RollerShade),
-        // Target before operationalStatus so the wire order matches the
-        // certified Eve MotionBlinds (state, target, current). Patch insertion
-        // order propagates into matter.js's changeList via for-in over values
-        // (Datasource.js:414), then through attrsChanged.emit (#328).
-        ...(this.features.positionAwareLift
-          ? {
-              targetPositionLiftPercent100ths: inferTarget(
-                currentLift100ths,
-                this.state.targetPositionLiftPercent100ths,
-              ),
-            }
-          : {}),
-        ...(this.features.positionAwareTilt
-          ? {
-              targetPositionTiltPercent100ths: inferTarget(
-                currentTilt100ths,
-                this.state.targetPositionTiltPercent100ths,
-              ),
-            }
-          : {}),
         operationalStatus: {
           global: movementStatus,
           ...(this.features.lift ? { lift: movementStatus } : {}),
           ...(this.features.tilt ? { tilt: movementStatus } : {}),
         },
-        ...(this.features.positionAwareLift && !startedMoving
+        ...(this.features.positionAwareLift && !skipCurrent
           ? {
               currentPositionLiftPercent100ths: currentLift100ths,
             }
           : {}),
-        ...(this.features.positionAwareTilt && !startedMoving
+        ...(this.features.positionAwareTilt && !skipCurrent
           ? {
               currentPositionTiltPercent100ths: currentTilt100ths,
             }
           : {}),
       },
     );
+
+    // Push target out in its own transaction = its own subscription report.
+    const endpoint = this.endpoint;
+    this.deferredTargetLift = liftTarget100ths;
+    this.deferredTargetTilt = tiltTarget100ths;
+    this.deferredTargetEntityId = entity.entity_id;
+    if (this.deferredTargetTimer) {
+      clearTimeout(this.deferredTargetTimer);
+    }
+    this.deferredTargetTimer = setTimeout(() => {
+      this.deferredTargetTimer = null;
+      const lift = this.deferredTargetLift;
+      const tilt = this.deferredTargetTilt;
+      const eid = this.deferredTargetEntityId;
+      this.deferredTargetLift = undefined;
+      this.deferredTargetTilt = undefined;
+      this.deferredTargetEntityId = null;
+      if (lift === undefined && tilt === undefined) {
+        return;
+      }
+
+      Promise.resolve(
+        endpoint.act((agent) => {
+          const beh = agent.get(WindowCoveringServerBase);
+          const written: Record<string, number | null> = {};
+          if (lift !== undefined && beh.features.positionAwareLift) {
+            beh.state.targetPositionLiftPercent100ths = lift;
+            written.targetPositionLiftPercent100ths = lift;
+          }
+          if (tilt !== undefined && beh.features.positionAwareTilt) {
+            beh.state.targetPositionTiltPercent100ths = tilt;
+            written.targetPositionTiltPercent100ths = tilt;
+          }
+          if (Object.keys(written).length > 0) {
+            logger.debug(
+              `Cover ${eid ?? "?"} deferred target: ${JSON.stringify(written)}`,
+            );
+          }
+        }),
+      ).catch((e: unknown) => {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (
+          msg.includes("Endpoint storage inaccessible") ||
+          msg.includes("destroyed")
+        ) {
+          return;
+        }
+        logger.debug(`Cover ${eid ?? "?"} deferred target failed: ${msg}`);
+      });
+    }, WindowCoveringServerBase.DEFERRED_TARGET_DELAY_MS);
 
     if (Object.keys(appliedPatch).length > 0) {
       // Log operational status changes (movement start/stop) at INFO,
