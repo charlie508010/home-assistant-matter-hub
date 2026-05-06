@@ -13,6 +13,7 @@ import { applyPatchState } from "../../../../../utils/apply-patch-state.js";
 import { BasicInformationServer } from "../../../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../../behaviors/identify-server.js";
+import { HaPowerTopologyServer } from "../../../../behaviors/power-topology-server.js";
 
 // biome-ignore lint/correctness/noUnusedVariables: Used via namespace
 class StandalonePowerServer extends PowerBase {
@@ -124,6 +125,9 @@ namespace StandaloneEnergyServer {
 }
 
 const EnergyServer = StandaloneEnergyServer.set({
+  // Match the activePower=0 default so SmartThings doesn't show "- kWh"
+  // on a SolarPower endpoint whose mapped entity only carries power data.
+  cumulativeEnergyImported: { energy: 0 },
   accuracy: {
     measurementType:
       ElectricalPowerMeasurement.MeasurementType.ElectricalEnergy,
@@ -144,6 +148,7 @@ export const ElectricalSensorType = SolarPowerDevice.with(
   BasicInformationServer,
   IdentifyServer,
   HomeAssistantEntityBehavior,
+  HaPowerTopologyServer,
   PowerServer,
   EnergyServer,
 );

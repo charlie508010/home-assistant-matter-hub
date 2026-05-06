@@ -44,6 +44,7 @@ export enum ClusterId {
   pm10ConcentrationMeasurement = "pm10ConcentrationMeasurement",
   pm25ConcentrationMeasurement = "pm25ConcentrationMeasurement",
   powerSource = "powerSource",
+  powerTopology = "powerTopology",
   pressureMeasurement = "pressureMeasurement",
   relativeHumidityMeasurement = "relativeHumidityMeasurement",
   smokeCoAlarm = "smokeCoAlarm",
