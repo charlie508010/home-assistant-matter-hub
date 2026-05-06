@@ -38,6 +38,7 @@ import {
 } from "../../behaviors/humidity-measurement-server.js";
 import { IdentifyServer } from "../../behaviors/identify-server.js";
 import { PowerSourceServer } from "../../behaviors/power-source-server.js";
+import { HaPowerTopologyServer } from "../../behaviors/power-topology-server.js";
 import {
   type TemperatureMeasurementConfig,
   TemperatureMeasurementServer,
@@ -261,6 +262,9 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
       parentType = parentType.with(PowerSourceServer(batteryConfig));
     }
 
+    if (config.powerEntityId || config.energyEntityId) {
+      parentType = parentType.with(HaPowerTopologyServer);
+    }
     if (config.powerEntityId) {
       parentType = parentType.with(HaElectricalPowerMeasurementServer);
     }

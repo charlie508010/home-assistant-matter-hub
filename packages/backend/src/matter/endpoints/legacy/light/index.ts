@@ -6,6 +6,7 @@ import type { EndpointType } from "@matter/main";
 import { HaElectricalEnergyMeasurementServer } from "../../../behaviors/electrical-energy-measurement-server.js";
 import { HaElectricalPowerMeasurementServer } from "../../../behaviors/electrical-power-measurement-server.js";
 import type { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
+import { HaPowerTopologyServer } from "../../../behaviors/power-topology-server.js";
 import {
   DimmableLightType,
   DimmableLightWithBatteryType,
@@ -78,6 +79,9 @@ export function LightDevice(
 
   // biome-ignore lint/suspicious/noExplicitAny: Union type doesn't support .with() directly
   let device: any = deviceType;
+  if (hasPowerEntity || hasEnergyEntity) {
+    device = device.with(HaPowerTopologyServer);
+  }
   if (hasPowerEntity) {
     device = device.with(HaElectricalPowerMeasurementServer);
   }

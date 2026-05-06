@@ -65,6 +65,10 @@ namespace ElectricalEnergyMeasurementServerBase {
 
 export const HaElectricalEnergyMeasurementServer =
   ElectricalEnergyMeasurementServerBase.set({
+    // Match the activePower=0 default in HaElectricalPowerMeasurementServer
+    // so SmartThings doesn't show "- kWh" before the first state update or
+    // when an entity only carries power (not energy) data.
+    cumulativeEnergyImported: { energy: 0 },
     accuracy: {
       measurementType:
         ElectricalPowerMeasurement.MeasurementType.ElectricalEnergy,

@@ -8,6 +8,7 @@ import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-e
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
 import { OnOffServer } from "../../../behaviors/on-off-server.js";
 import { DefaultPowerSourceServer } from "../../../behaviors/power-source-server.js";
+import { HaPowerTopologyServer } from "../../../behaviors/power-topology-server.js";
 
 const SwitchOnOffServer = OnOffServer();
 
@@ -47,6 +48,9 @@ export function SwitchDevice(
       ? SwitchWithBatteryEndpointType
       : SwitchEndpointType;
 
+  if (hasPowerEntity || hasEnergyEntity) {
+    device = device.with(HaPowerTopologyServer);
+  }
   if (hasPowerEntity) {
     device = device.with(HaElectricalPowerMeasurementServer);
   }
