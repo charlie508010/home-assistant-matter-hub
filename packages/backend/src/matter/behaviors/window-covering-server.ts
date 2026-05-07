@@ -352,11 +352,20 @@ export class WindowCoveringServerBase extends FeaturedBase {
         endpoint.act((agent) => {
           const beh = agent.get(WindowCoveringServerBase);
           const written: Record<string, number | null> = {};
-          if (lift !== undefined && beh.features.positionAwareLift) {
+          // skip no-op writes; direct assignment bypasses dedup
+          if (
+            lift !== undefined &&
+            beh.features.positionAwareLift &&
+            beh.state.targetPositionLiftPercent100ths !== lift
+          ) {
             beh.state.targetPositionLiftPercent100ths = lift;
             written.targetPositionLiftPercent100ths = lift;
           }
-          if (tilt !== undefined && beh.features.positionAwareTilt) {
+          if (
+            tilt !== undefined &&
+            beh.features.positionAwareTilt &&
+            beh.state.targetPositionTiltPercent100ths !== tilt
+          ) {
             beh.state.targetPositionTiltPercent100ths = tilt;
             written.targetPositionTiltPercent100ths = tilt;
           }
@@ -370,7 +379,9 @@ export class WindowCoveringServerBase extends FeaturedBase {
         const msg = e instanceof Error ? e.message : String(e);
         if (
           msg.includes("Endpoint storage inaccessible") ||
-          msg.includes("destroyed")
+          msg.includes("destroyed") ||
+          msg.includes("is closed") ||
+          msg.includes("is closing")
         ) {
           return;
         }
