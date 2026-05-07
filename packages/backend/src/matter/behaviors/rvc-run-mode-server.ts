@@ -137,6 +137,12 @@ class RvcRunModeServerBase extends Base {
       { force: true },
     );
 
+    // changeToMode already set currentMode=Cleaning, so the cleaning event
+    // often arrives without a transition. Latch the flag here instead.
+    if (newMode === RvcSupportedRunMode.Cleaning) {
+      s.observedCleaning = true;
+    }
+
     if (previousMode !== newMode) {
       if (newMode === RvcSupportedRunMode.Idle) {
         // End of session (or mid-session dock) cleanup.
@@ -188,7 +194,6 @@ class RvcRunModeServerBase extends Base {
         }
         s.loggedShortCircuits.clear();
       } else if (newMode === RvcSupportedRunMode.Cleaning) {
-        s.observedCleaning = true;
         // Resume after mid-session idle. Set currentArea to the first
         // not-yet-completed area as a fallback; if a currentRoom sensor
         // is configured, updateCurrentRoomFromSensor() below will
