@@ -220,6 +220,8 @@ export class ServerModeBridge {
       // Re-evaluate auto force sync setting after config update
       if (this.status.code === BridgeStatus.Running) {
         this.startAutoForceSyncIfEnabled();
+        // Re-read sessionMaxAgeHours so UI changes apply without restart (#287)
+        this.startSessionRotation();
       }
     } catch (e) {
       const reason = "Failed to update server mode bridge due to error:";
@@ -501,8 +503,17 @@ export class ServerModeBridge {
     }
   }
 
-  // Read HAMH_MATTER_SESSION_MAX_AGE_HOURS. 0 disables, otherwise clamped to range.
+  // Resolve session rotation max age. Bridge config wins, then env var,
+  // then built-in default. 0 disables, otherwise clamped to range.
   private readSessionMaxAgeHours(): number {
+    const { min, max } = SESSION_MAX_AGE_HOURS_RANGE;
+    const fromConfig = this.dataProvider.sessionMaxAgeHours;
+    if (fromConfig != null && Number.isFinite(fromConfig) && fromConfig >= 0) {
+      if (fromConfig === 0) return 0;
+      if (fromConfig < min) return min;
+      if (fromConfig > max) return max;
+      return fromConfig;
+    }
     const raw = process.env.HAMH_MATTER_SESSION_MAX_AGE_HOURS;
     if (raw == null || raw === "") return DEFAULT_SESSION_MAX_AGE_HOURS;
     const n = Number.parseInt(raw, 10);
@@ -513,7 +524,6 @@ export class ServerModeBridge {
       return DEFAULT_SESSION_MAX_AGE_HOURS;
     }
     if (n === 0) return 0;
-    const { min, max } = SESSION_MAX_AGE_HOURS_RANGE;
     if (n < min) return min;
     if (n > max) return max;
     return n;

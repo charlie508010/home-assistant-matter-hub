@@ -58,6 +58,9 @@ export class BridgeDataProvider extends Service implements BridgeData {
   get serialNumberSuffix(): string | undefined {
     return this.data.serialNumberSuffix;
   }
+  get sessionMaxAgeHours(): number | undefined {
+    return this.data.sessionMaxAgeHours;
+  }
 
   /************************************************
    * Functions
@@ -90,6 +93,7 @@ export class BridgeDataProvider extends Service implements BridgeData {
       icon: this.icon,
       priority: this.priority,
       serialNumberSuffix: this.serialNumberSuffix,
+      sessionMaxAgeHours: this.sessionMaxAgeHours,
       status: status.code,
       statusReason: status.reason,
       commissioning: commissioning

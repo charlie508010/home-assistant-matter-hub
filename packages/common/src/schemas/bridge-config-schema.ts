@@ -379,6 +379,17 @@ export const bridgeConfigSchema: JSONSchema7 = {
         "and bypass cached device data. Leave empty for default behavior.",
       maxLength: 16,
     },
+    sessionMaxAgeHours: {
+      title: "Session Rotation Max Age (hours)",
+      type: "number",
+      description:
+        "Server Mode only. Rotate matter sessions older than this many hours " +
+        "so iPhone clients re-subscribe and Apple Home unsticks 'Updating' " +
+        "tiles. Set 0 to disable rotation. Range 0-168, default 4. (#287)",
+      default: 4,
+      minimum: 0,
+      maximum: 168,
+    },
     filter: homeAssistantFilterSchema,
     featureFlags: featureFlagSchema,
   },

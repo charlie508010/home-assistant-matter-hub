@@ -443,6 +443,14 @@ Rebooting the iPhone clears it for a few minutes. Pressing "Locate" in the Home 
 
 This one sits on Apple's side. HAMH already pushes a keepalive every 55 seconds and forces fresh subscription reports for exactly this kind of stale tile. The bridge is sending data correctly, the iPhone just stops listening once the subscription has expired.
 
+#### Built-in session rotation
+
+Recent alpha builds rotate matter sessions automatically. Every 5 minutes the bridge looks for sessions older than the configured max age that still hold subscriptions, and gracefully closes them. The iPhone reacts by re-establishing CASE and re-subscribing, which clears the "Updating" tile without you doing anything.
+
+Tune the threshold per bridge under **Bridge Settings → Session Rotation Max Age (hours)**. Default is 4. Set a smaller value if your tile gets stuck faster than that, or `0` to disable rotation entirely and rely on the manual workaround below. The change applies live, no add-on or Docker restart needed. Look for `Rotating session` lines in the logs to confirm the timer fired.
+
+A system-wide fallback is also available for advanced setups via the `HAMH_MATTER_SESSION_MAX_AGE_HOURS` environment variable (Docker `-e` flag or `.env` file). The bridge setting always wins when both are set.
+
 #### Workaround
 
 Run an HA automation that calls `vacuum.locate` on a schedule. The Identify command goes through a different path in iOS than the live state subscription and tends to wake the tile back up:

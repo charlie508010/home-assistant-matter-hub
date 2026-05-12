@@ -154,6 +154,13 @@ export interface BridgeConfig {
    * and bypass their cached device data.
    */
   readonly serialNumberSuffix?: string;
+  /**
+   * Server Mode only. Rotate matter sessions older than this many hours so
+   * iPhone clients re-establish CASE and re-subscribe, which unsticks
+   * Apple Home "Updating" tiles (#287). 0 disables. Range 0..168.
+   * Falls back to HAMH_MATTER_SESSION_MAX_AGE_HOURS, then 4.
+   */
+  readonly sessionMaxAgeHours?: number;
 }
 
 export interface CreateBridgeRequest extends BridgeConfig {}
