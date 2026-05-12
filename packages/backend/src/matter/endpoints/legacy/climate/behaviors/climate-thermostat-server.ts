@@ -114,12 +114,15 @@ function isHeatCoolOnly(modes: ClimateHvacMode[]): boolean {
  */
 const lastHvacDirection = new Map<string, "heating" | "cooling">();
 
-// climateKeepModeOnIdle (#340): arm on non-Off, disarm on hvac_action=off.
+// climateKeepModeOnIdle (#340): arm on non-Off, clear only after two consecutive
+// hvac_action=off events so the brief off+off HA emits before off+idle (internal
+// cleaning) doesn't drop the freeze on the cool->off+idle path.
 interface ClimateFreezeState {
   lastNonOffMode: Thermostat.SystemMode;
   pending: boolean;
+  confirmedOff: boolean;
 }
-const climateFreezeState = new Map<string, ClimateFreezeState>();
+export const climateFreezeState = new Map<string, ClimateFreezeState>();
 
 function getHeatCoolOnlyDirection(
   entity: HomeAssistantEntityState,
@@ -232,6 +235,49 @@ function computeSystemMode(
   return systemMode;
 }
 
+export function applyClimateFreezeForKeepModeOnIdle(
+  computed: Thermostat.SystemMode,
+  entity: HomeAssistantEntityState,
+  entityId: string,
+  keepModeOnIdle: boolean,
+): Thermostat.SystemMode {
+  if (computed !== Thermostat.SystemMode.Off) {
+    const existing = climateFreezeState.get(entityId);
+    if (existing) {
+      existing.lastNonOffMode = computed;
+      existing.pending = true;
+      existing.confirmedOff = false;
+    } else {
+      climateFreezeState.set(entityId, {
+        lastNonOffMode: computed,
+        pending: true,
+        confirmedOff: false,
+      });
+    }
+    return computed;
+  }
+
+  const action = attributes(entity).hvac_action;
+  const existing = climateFreezeState.get(entityId);
+  if (action === ClimateHvacAction.off) {
+    if (existing) {
+      if (existing.confirmedOff) {
+        existing.pending = false;
+        existing.confirmedOff = false;
+      } else {
+        existing.confirmedOff = true;
+      }
+    }
+  } else if (existing) {
+    existing.confirmedOff = false;
+  }
+
+  if (keepModeOnIdle && existing?.pending) {
+    return existing.lastNonOffMode;
+  }
+  return computed;
+}
+
 const config: ThermostatServerConfig = {
   // Temperature range (target_temp_low/high) only works in heat_cool mode.
   // In heat or cool mode, HA expects a single "temperature" value.
@@ -261,40 +307,13 @@ const config: ThermostatServerConfig = {
     getTemp(agent, entity, "temperature"),
   getSystemMode: (entity, agent) => {
     const homeAssistant = agent.get(HomeAssistantEntityBehavior);
-    const entityId = homeAssistant.entityId;
     const computed = computeSystemMode(entity, agent);
-
-    if (computed !== Thermostat.SystemMode.Off) {
-      const existing = climateFreezeState.get(entityId);
-      if (existing) {
-        existing.lastNonOffMode = computed;
-        existing.pending = true;
-      } else {
-        climateFreezeState.set(entityId, {
-          lastNonOffMode: computed,
-          pending: true,
-        });
-      }
-      return computed;
-    }
-
-    const action = attributes(entity).hvac_action;
-    if (action === ClimateHvacAction.off) {
-      const existing = climateFreezeState.get(entityId);
-      if (existing) {
-        existing.pending = false;
-      }
-      return computed;
-    }
-
-    if (homeAssistant.state.mapping?.climateKeepModeOnIdle === true) {
-      const existing = climateFreezeState.get(entityId);
-      if (existing?.pending) {
-        return existing.lastNonOffMode;
-      }
-    }
-
-    return computed;
+    return applyClimateFreezeForKeepModeOnIdle(
+      computed,
+      entity,
+      homeAssistant.entityId,
+      homeAssistant.state.mapping?.climateKeepModeOnIdle === true,
+    );
   },
   getRunningMode: (entity) => {
     const action = attributes(entity).hvac_action;
