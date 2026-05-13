@@ -38,9 +38,9 @@ RUN printf '%s\n' \
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD wget -qO /dev/null http://localhost:8482/api/health/live || exit 1
 
-# Dynamic heap sizing: 25% of effective memory, clamped to 256-1024MB.
+# Dynamic heap sizing: 25% of effective memory, clamped to 256-2048MB.
 # Checks cgroup limits (Docker), then MemAvailable, then MemTotal.
-# Override with: docker run -e NODE_OPTIONS="--max-old-space-size=1024" ...
+# Override with: docker run -e NODE_OPTIONS="--max-old-space-size=2048" ...
 CMD total_mem_mb=$(awk '/MemTotal/ {printf "%d", $2/1024}' /proc/meminfo 2>/dev/null); \
     avail_mem_mb=$(awk '/MemAvailable/ {printf "%d", $2/1024}' /proc/meminfo 2>/dev/null); \
     cgroup_limit_mb=""; \
@@ -65,7 +65,7 @@ CMD total_mem_mb=$(awk '/MemTotal/ {printf "%d", $2/1024}' /proc/meminfo 2>/dev/
     if [ "$effective_mem" -eq 0 ]; then heap_size=256; \
     else heap_size=$((effective_mem / 4)); \
       [ "$heap_size" -lt 256 ] && heap_size=256; \
-      [ "$heap_size" -gt 1024 ] && heap_size=1024; \
+      [ "$heap_size" -gt 2048 ] && heap_size=2048; \
     fi; \
     echo "Memory: total=${total_mem_mb:-?}MB, available=${avail_mem_mb:-?}MB, cgroup=${cgroup_limit_mb:-none}MB -> heap: ${heap_size}MB"; \
     export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=${heap_size}}"; \

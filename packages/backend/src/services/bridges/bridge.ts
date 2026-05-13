@@ -9,7 +9,7 @@ import { DeviceAdvertiser, SessionManager } from "@matter/main/protocol";
 import type { BetterLogger, LoggerService } from "../../core/app/logger.js";
 import { BridgeServerNode } from "../../matter/endpoints/bridge-server-node.js";
 import { ensureCommissioningConfig } from "../../utils/ensure-commissioning-config.js";
-import { logMemoryUsage } from "../../utils/log-memory.js";
+import { isHeapUnderPressure, logMemoryUsage } from "../../utils/log-memory.js";
 import { diagnosticEventBus } from "../diagnostics/diagnostic-event-bus.js";
 import type {
   BridgeDataProvider,
@@ -636,6 +636,13 @@ export class Bridge {
     }
 
     if (!this.dataProvider.featureFlags?.autoForceSync) {
+      return 0;
+    }
+
+    if (isHeapUnderPressure()) {
+      this.log.warn(
+        "Force sync skipped: heap under pressure, reduce entities or raise NODE_OPTIONS=--max-old-space-size",
+      );
       return 0;
     }
 
