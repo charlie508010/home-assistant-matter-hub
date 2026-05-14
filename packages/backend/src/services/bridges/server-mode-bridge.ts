@@ -29,9 +29,24 @@ const AUTO_FORCE_SYNC_INTERVAL_MS = 90_000;
 const DEAD_SESSION_TIMEOUT_MS = 60_000;
 
 // Rotate sessions so iPhone re-subscribes and the tile unsticks (#287).
-const DEFAULT_SESSION_MAX_AGE_HOURS = 4;
-const SESSION_MAX_AGE_HOURS_RANGE = { min: 1, max: 168 };
+export const DEFAULT_SESSION_MAX_AGE_HOURS = 4;
+export const SESSION_MAX_AGE_HOURS_RANGE = { min: 1, max: 168 };
 const ROTATION_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+
+// Returns the parsed hours, 0 (disabled), or null when the raw value is
+// malformed and the caller should log + fall back to the default.
+export function parseSessionMaxAgeHours(
+  raw: string | undefined | null,
+): number | null {
+  if (raw == null || raw === "") return DEFAULT_SESSION_MAX_AGE_HOURS;
+  const n = Number.parseInt(raw, 10);
+  if (Number.isNaN(n) || n < 0) return null;
+  if (n === 0) return 0;
+  const { min, max } = SESSION_MAX_AGE_HOURS_RANGE;
+  if (n < min) return min;
+  if (n > max) return max;
+  return n;
+}
 
 /**
  * ServerModeBridge exposes a single device as a standalone Matter device.
@@ -515,18 +530,14 @@ export class ServerModeBridge {
       return fromConfig;
     }
     const raw = process.env.HAMH_MATTER_SESSION_MAX_AGE_HOURS;
-    if (raw == null || raw === "") return DEFAULT_SESSION_MAX_AGE_HOURS;
-    const n = Number.parseInt(raw, 10);
-    if (Number.isNaN(n) || n < 0) {
+    const parsed = parseSessionMaxAgeHours(raw);
+    if (parsed == null) {
       this.log.warn(
         `Invalid HAMH_MATTER_SESSION_MAX_AGE_HOURS=${raw}, falling back to ${DEFAULT_SESSION_MAX_AGE_HOURS}h`,
       );
       return DEFAULT_SESSION_MAX_AGE_HOURS;
     }
-    if (n === 0) return 0;
-    if (n < min) return min;
-    if (n > max) return max;
-    return n;
+    return parsed;
   }
 
   // Gracefully close sessions older than maxSessionAgeMs so controllers
