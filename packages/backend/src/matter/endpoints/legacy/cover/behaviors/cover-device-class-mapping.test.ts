@@ -96,10 +96,12 @@ describe("deviceClassMapping", () => {
     );
   });
 
-  it("maps window to Rollershade + Unknown", () => {
+  it("maps window to Rollershade + RollerShade", () => {
     const mapping = deviceClassMapping(entity("window"));
     expect(mapping?.type).toBe(WindowCovering.WindowCoveringType.Rollershade);
-    expect(mapping?.endProductType).toBe(WindowCovering.EndProductType.Unknown);
+    expect(mapping?.endProductType).toBe(
+      WindowCovering.EndProductType.RollerShade,
+    );
   });
 
   it("covers every documented key", () => {

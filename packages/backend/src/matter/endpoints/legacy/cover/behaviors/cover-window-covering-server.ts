@@ -54,12 +54,13 @@ export const DEVICE_CLASS_TO_MATTER_TYPE: Record<
     type: WindowCovering.WindowCoveringType.Rollershade,
     endProductType: WindowCovering.EndProductType.RollerShade,
   },
-  // Velux-style motorized roof/casement windows. There's no Matter
-  // WindowCoveringType for "window", so we map to lift-only Rollershade
-  // and use Unknown end-product to avoid implying a specific physical form.
+  // Velux-style motorized roof/casement windows. No Matter WindowCoveringType
+  // for "window", so map to Rollershade + RollerShade (the spec default pair).
+  // EndProductType is a FixedAttribute, and Alexa's routine picker drops
+  // devices it can't categorize - Unknown (255) lands there (#312).
   window: {
     type: WindowCovering.WindowCoveringType.Rollershade,
-    endProductType: WindowCovering.EndProductType.Unknown,
+    endProductType: WindowCovering.EndProductType.RollerShade,
   },
 };
 
