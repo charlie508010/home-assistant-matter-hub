@@ -324,6 +324,11 @@ export class ServerModeVacuumEndpoint extends EntityEndpoint {
    */
   private async pushKeepalive() {
     try {
+      await this.construction.ready;
+    } catch {
+      return;
+    }
+    try {
       this.keepaliveCounter++;
       const counter = this.keepaliveCounter;
       logger.info(`Keepalive #${counter} for ${this.entityId}`);
