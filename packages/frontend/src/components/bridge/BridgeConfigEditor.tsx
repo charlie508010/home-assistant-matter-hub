@@ -23,6 +23,7 @@ import { BridgeIconUpload } from "./BridgeIconUpload.tsx";
 import { FilterPreview } from "./FilterPreview.tsx";
 import { BridgeObjectFieldTemplate } from "./rjsf/BridgeObjectFieldTemplate.tsx";
 import { CompactArrayFieldTemplate } from "./rjsf/CompactArrayFieldTemplate.tsx";
+import { EntityFilterRuleField } from "./rjsf/EntityFilterRuleField.tsx";
 import { FeatureFlagsField } from "./rjsf/FeatureFlagsField.tsx";
 
 enum BridgeEditorMode {
@@ -206,17 +207,22 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
                   "ui:options": {
                     ArrayFieldTemplate: CompactArrayFieldTemplate,
                   },
+                  items: { "ui:field": "entityFilterRule" },
                 },
                 exclude: {
                   "ui:options": {
                     ArrayFieldTemplate: CompactArrayFieldTemplate,
                   },
+                  items: { "ui:field": "entityFilterRule" },
                 },
               },
             }}
             customValidate={validatePort}
             templates={{ ObjectFieldTemplate: BridgeObjectFieldTemplate }}
-            fields={{ featureFlags: FeatureFlagsField }}
+            fields={{
+              featureFlags: FeatureFlagsField,
+              entityFilterRule: EntityFilterRuleField,
+            }}
           />
         )}
 
