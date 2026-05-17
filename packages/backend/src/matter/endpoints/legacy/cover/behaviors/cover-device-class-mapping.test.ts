@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEVICE_CLASS_TO_MATTER_TYPE,
   deviceClassMapping,
+  liftShouldUseTilt,
 } from "./cover-window-covering-server.js";
 
 const entity = (
@@ -113,5 +114,31 @@ describe("deviceClassMapping", () => {
       "shutter",
       "window",
     ]);
+  });
+});
+
+describe("liftShouldUseTilt", () => {
+  it("is true for a tilt-only cover (#350, supported_features=240)", () => {
+    expect(liftShouldUseTilt(240)).toBe(true);
+  });
+
+  it("is true for tilt open/close without set_tilt_position (48)", () => {
+    expect(liftShouldUseTilt(48)).toBe(true);
+  });
+
+  it("is false for a lift-only cover (7 = open+close+set_position)", () => {
+    expect(liftShouldUseTilt(7)).toBe(false);
+  });
+
+  it("is false for a lift+tilt cover (23, #323)", () => {
+    expect(liftShouldUseTilt(23)).toBe(false);
+  });
+
+  it("is false for a binary cover (3 = open+close, #78)", () => {
+    expect(liftShouldUseTilt(3)).toBe(false);
+  });
+
+  it("is false when no features are set (0)", () => {
+    expect(liftShouldUseTilt(0)).toBe(false);
   });
 });

@@ -176,6 +176,64 @@ const supportsTiltPositionControl = (agent: Agent): boolean => {
   );
 };
 
+/**
+ * Tilt-only covers (e.g. SwitchBot Blind Tilt, supported_features=240)
+ * expose no support_open, so HA rejects cover.open_cover and
+ * cover.set_cover_position (#350). When the entity has tilt, Lift
+ * commands from controllers must be routed to the tilt services.
+ */
+export const liftShouldUseTilt = (supportedFeatures: number): boolean =>
+  (supportedFeatures & CoverSupportedFeatures.support_open) === 0 &&
+  (supportedFeatures & CoverSupportedFeatures.support_open_tilt) !== 0;
+
+const liftFallsBackToTilt = (agent: Agent): boolean => {
+  const homeAssistant = agent.get(HomeAssistantEntityBehavior);
+  const supportedFeatures =
+    attributes(homeAssistant.entity.state).supported_features ?? 0;
+  return liftShouldUseTilt(supportedFeatures);
+};
+
+const openLiftAction = (agent: Agent) => ({
+  action: shouldSwapOpenClose(agent) ? "cover.close_cover" : "cover.open_cover",
+});
+
+const closeLiftAction = (agent: Agent) => ({
+  action: shouldSwapOpenClose(agent) ? "cover.open_cover" : "cover.close_cover",
+});
+
+const openTiltAction = (agent: Agent) => ({
+  action: shouldSwapOpenClose(agent)
+    ? "cover.close_cover_tilt"
+    : "cover.open_cover_tilt",
+});
+
+const closeTiltAction = (agent: Agent) => ({
+  action: shouldSwapOpenClose(agent)
+    ? "cover.open_cover_tilt"
+    : "cover.close_cover_tilt",
+});
+
+const setTiltPositionAction = (position: number, agent: Agent) => {
+  // For binary tilt covers (no tilt position support), translate to open/close tilt
+  if (!supportsTiltPositionControl(agent)) {
+    const adjustedPosition = adjustPositionForWriting(position, agent);
+    const shouldOpen = adjustedPosition != null && adjustedPosition >= 50;
+    const swapped = shouldSwapOpenClose(agent);
+    if (shouldOpen) {
+      return {
+        action: swapped ? "cover.close_cover_tilt" : "cover.open_cover_tilt",
+      };
+    }
+    return {
+      action: swapped ? "cover.open_cover_tilt" : "cover.close_cover_tilt",
+    };
+  }
+  return {
+    action: "cover.set_cover_tilt_position",
+    data: { tilt_position: adjustPositionForWriting(position, agent) },
+  };
+};
+
 const config: WindowCoveringConfig = {
   getCurrentLiftPosition: (entity, agent) => {
     let position = attributes(entity).current_position;
@@ -226,18 +284,19 @@ const config: WindowCoveringConfig = {
 
   stopCover: () => ({ action: "cover.stop_cover" }),
 
-  // Open/close can be swapped via coverSwapOpenClose flag for Alexa compatibility
-  openCoverLift: (_, agent) => ({
-    action: shouldSwapOpenClose(agent)
-      ? "cover.close_cover"
-      : "cover.open_cover",
-  }),
-  closeCoverLift: (_, agent) => ({
-    action: shouldSwapOpenClose(agent)
-      ? "cover.open_cover"
-      : "cover.close_cover",
-  }),
+  // Open/close can be swapped via coverSwapOpenClose flag for Alexa
+  // compatibility. Tilt-only covers route Lift commands to tilt (#350).
+  openCoverLift: (_, agent) =>
+    liftFallsBackToTilt(agent) ? openTiltAction(agent) : openLiftAction(agent),
+  closeCoverLift: (_, agent) =>
+    liftFallsBackToTilt(agent)
+      ? closeTiltAction(agent)
+      : closeLiftAction(agent),
   setLiftPosition: (position, agent) => {
+    // Tilt-only cover: HA rejects cover.set_cover_position, use tilt (#350)
+    if (liftFallsBackToTilt(agent)) {
+      return setTiltPositionAction(position, agent);
+    }
     // For binary covers (no position support), translate position to open/close
     // Matter position: 0=open, 100=closed (after inversion from HA semantics)
     if (!supportsPositionControl(agent)) {
@@ -259,36 +318,9 @@ const config: WindowCoveringConfig = {
   },
 
   // Tilt open/close also respects the swap flag
-  openCoverTilt: (_, agent) => ({
-    action: shouldSwapOpenClose(agent)
-      ? "cover.close_cover_tilt"
-      : "cover.open_cover_tilt",
-  }),
-  closeCoverTilt: (_, agent) => ({
-    action: shouldSwapOpenClose(agent)
-      ? "cover.open_cover_tilt"
-      : "cover.close_cover_tilt",
-  }),
-  setTiltPosition: (position, agent) => {
-    // For binary tilt covers (no tilt position support), translate to open/close tilt
-    if (!supportsTiltPositionControl(agent)) {
-      const adjustedPosition = adjustPositionForWriting(position, agent);
-      const shouldOpen = adjustedPosition != null && adjustedPosition >= 50;
-      const swapped = shouldSwapOpenClose(agent);
-      if (shouldOpen) {
-        return {
-          action: swapped ? "cover.close_cover_tilt" : "cover.open_cover_tilt",
-        };
-      }
-      return {
-        action: swapped ? "cover.open_cover_tilt" : "cover.close_cover_tilt",
-      };
-    }
-    return {
-      action: "cover.set_cover_tilt_position",
-      data: { tilt_position: adjustPositionForWriting(position, agent) },
-    };
-  },
+  openCoverTilt: (_, agent) => openTiltAction(agent),
+  closeCoverTilt: (_, agent) => closeTiltAction(agent),
+  setTiltPosition: (position, agent) => setTiltPositionAction(position, agent),
 };
 
 export const CoverWindowCoveringServer = WindowCoveringServer(config);
