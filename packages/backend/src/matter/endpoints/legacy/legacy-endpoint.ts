@@ -514,12 +514,17 @@ export class LegacyEndpoint extends EntityEndpoint {
     // even when the actual device state/attributes are identical.
     // Skipping these prevents unnecessary Matter subscription reports
     // and reduces MRP traffic that can cause session loss.
-    if (
-      !mappedChanged &&
-      state.state === this.lastState?.state &&
-      isEqual(state.attributes, this.lastState?.attributes)
-    ) {
-      return;
+    if (!mappedChanged) {
+      // Same state object ref: the HA diff never touched this entity.
+      if (state === this.lastState) return;
+      // Reused attributes ref skips the deep compare on the hot path.
+      if (
+        state.state === this.lastState?.state &&
+        (state.attributes === this.lastState?.attributes ||
+          isEqual(state.attributes, this.lastState?.attributes))
+      ) {
+        return;
+      }
     }
 
     if (mappedChanged) {

@@ -166,8 +166,35 @@ export const entitiesColl = (conn: Connection, entityIds: string[]) => {
   throw new Error(`Home Assistant version ${conn.haVersion} is not supported`);
 };
 
+// processEvent shallow-copies the state map and only swaps the object ref
+// for entities the HA diff actually touched, so a per-entity reference
+// compare yields the exact changed set in O(n) pointer checks. undefined
+// prev (first emit) returns null = "treat as all"; a reconnect rebuilds
+// every ref so the diff naturally covers everything.
+export function diffEntityRefs(
+  prev: HassEntities | undefined,
+  next: HassEntities,
+): Set<string> | null {
+  if (!prev) return null;
+  const changed = new Set<string>();
+  for (const id in next) {
+    if (next[id] !== prev[id]) changed.add(id);
+  }
+  for (const id in prev) {
+    if (!(id in next)) changed.add(id);
+  }
+  return changed;
+}
+
 export const subscribeEntities = (
   conn: Connection,
-  onChange: (state: HassEntities) => void,
+  onChange: (state: HassEntities, changed: ReadonlySet<string> | null) => void,
   entityIds: string[],
-): UnsubscribeFunc => entitiesColl(conn, entityIds).subscribe(onChange);
+): UnsubscribeFunc => {
+  let prev: HassEntities | undefined;
+  return entitiesColl(conn, entityIds).subscribe((state) => {
+    const changed = diffEntityRefs(prev, state);
+    prev = state;
+    onChange(state, changed);
+  });
+};

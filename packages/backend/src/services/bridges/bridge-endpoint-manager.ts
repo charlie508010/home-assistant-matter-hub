@@ -386,7 +386,7 @@ export class BridgeEndpointManager extends Service {
     const subscriptionIds = this.collectSubscriptionEntityIds();
     this.unsubscribe = subscribeEntities(
       this.client.connection,
-      (e) => this.updateStates(e),
+      (e, changed) => this.updateStates(e, changed),
       subscriptionIds,
     );
   }
@@ -605,35 +605,74 @@ export class BridgeEndpointManager extends Service {
 
   private updateInFlight: Promise<void> | undefined;
   private pendingStates: HomeAssistantStates | undefined;
+  private pendingChanged: ReadonlySet<string> | null | undefined;
 
-  async updateStates(states: HomeAssistantStates): Promise<void> {
+  private mergeChanged(
+    a: ReadonlySet<string> | null,
+    b: ReadonlySet<string> | null,
+  ): ReadonlySet<string> | null {
+    if (a === null || b === null) return null;
+    const merged = new Set(a);
+    for (const id of b) merged.add(id);
+    return merged;
+  }
+
+  async updateStates(
+    states: HomeAssistantStates,
+    changed: ReadonlySet<string> | null = null,
+  ): Promise<void> {
     // Collapse bursts (HA restart, scene activation) by serializing runs.
     // If a run is already active, stash the latest batch; once the current
     // run finishes it picks up the freshest stash. Older pending batches
-    // are dropped, they're already superseded by the newer one.
+    // are dropped, but their changed sets are unioned in so no entity that
+    // changed in a dropped batch gets skipped.
     if (this.updateInFlight) {
       this.pendingStates = states;
+      this.pendingChanged =
+        this.pendingChanged === undefined
+          ? changed
+          : this.mergeChanged(this.pendingChanged, changed);
       return this.updateInFlight;
     }
-    this.updateInFlight = this.runUpdateStates(states).finally(() => {
+    this.updateInFlight = this.runUpdateStates(states, changed).finally(() => {
       this.updateInFlight = undefined;
       const queued = this.pendingStates;
+      const queuedChanged = this.pendingChanged;
       this.pendingStates = undefined;
+      this.pendingChanged = undefined;
       if (queued) {
-        void this.updateStates(queued);
+        void this.updateStates(
+          queued,
+          queuedChanged === undefined ? null : queuedChanged,
+        );
       }
     });
     return this.updateInFlight;
   }
 
-  private async runUpdateStates(states: HomeAssistantStates): Promise<void> {
+  private async runUpdateStates(
+    states: HomeAssistantStates,
+    changed: ReadonlySet<string> | null,
+  ): Promise<void> {
     const startMs = performance.now();
 
     // Merge subscription states into registry so EntityStateProvider
     // reads fresh values for mapped entities (battery, humidity, etc.)
     this.registry.mergeExternalStates(states);
 
-    const endpoints = this.root.parts.map((p) => p as EntityEndpoint);
+    const allEndpoints = this.root.parts.map((p) => p as EntityEndpoint);
+    // One HA event arrives as the full state map. Hand it only to endpoints
+    // whose own entity or a mapped sub-entity actually changed, so a single
+    // entity update no longer fans out to every endpoint.
+    const endpoints =
+      changed === null
+        ? allEndpoints
+        : allEndpoints.filter(
+            (e) =>
+              changed.has(e.entityId) ||
+              e.mappedEntityIds.some((id) => changed.has(id)),
+          );
+    if (endpoints.length === 0) return;
     // Process state updates in parallel for faster response times
     // Use allSettled so one failing endpoint doesn't block all others
     const results = await Promise.allSettled(
