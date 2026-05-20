@@ -1,6 +1,4 @@
 import { createRequire } from "node:module";
-import os from "node:os";
-import path from "node:path";
 import { VendorId } from "@matter/main";
 import type { ArgumentsCamelCase } from "yargs";
 import type { WebApiProps } from "../../api/web-api.js";
@@ -9,7 +7,7 @@ import type { BridgeServiceProps } from "../../services/bridges/bridge-service.j
 import type { HomeAssistantClientProps } from "../../services/home-assistant/home-assistant-client.js";
 import type { LoggerServiceProps } from "./logger.js";
 import type { MdnsOptions } from "./mdns.js";
-import type { StorageOptions } from "./storage.js";
+import { resolveActiveStorageRoot, type StorageOptions } from "./storage.js";
 
 function resolveAppVersion(): string {
   try {
@@ -94,10 +92,7 @@ export class Options {
 
   private resolveStorageLocation(): string {
     const storageLocation = notEmpty(this.startOptions.storageLocation);
-    const homedir = os.homedir();
-    return storageLocation
-      ? path.resolve(storageLocation.replace(/^~\//, `${homedir}/`))
-      : path.join(homedir, ".home-assistant-matter-hub");
+    return resolveActiveStorageRoot(storageLocation);
   }
 
   get bridgeService(): BridgeServiceProps {
