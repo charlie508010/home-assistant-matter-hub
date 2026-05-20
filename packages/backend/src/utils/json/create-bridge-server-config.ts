@@ -1,18 +1,28 @@
 import crypto from "node:crypto";
 import type { BridgeData } from "@home-assistant-matter-hub/common";
+import {
+  IcdManagementServer,
+  OtaSoftwareUpdateRequestorServer,
+} from "@matter/main/behaviors";
 import { AggregatorEndpoint } from "@matter/main/endpoints";
 import { type Node, ServerNode } from "@matter/main/node";
 import { VendorId } from "@matter/main/types";
 import { trimToLength } from "../trim-to-length.js";
 
-export type BridgeServerNodeConfig =
-  Node.Configuration<ServerNode.RootEndpoint>;
+const BridgeRootEndpoint = ServerNode.RootEndpoint.with(
+  OtaSoftwareUpdateRequestorServer,
+  IcdManagementServer,
+);
+
+export type BridgeServerNodeConfig = Node.Configuration<
+  typeof BridgeRootEndpoint
+>;
 
 export function createBridgeServerConfig(
   data: BridgeData,
 ): BridgeServerNodeConfig {
   return {
-    type: ServerNode.RootEndpoint,
+    type: BridgeRootEndpoint,
     id: data.id,
     network: {
       port: data.port,
