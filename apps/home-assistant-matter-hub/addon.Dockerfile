@@ -49,6 +49,7 @@ RUN printf '%s\n' \
       '}' > /install/package.json \
  && cd /install \
  && npm install --omit=dev --no-audit --no-fund \
+ && grep -F 'return [40, 31, 63, 48, 60, 62, 51, 49, 42, 70, 29]' /install/node_modules/home-assistant-matter-hub/dist/backend/cli.js >/dev/null \
  && ln -s /install/node_modules/.bin/home-assistant-matter-hub /usr/local/bin/home-assistant-matter-hub \
  && rm /install/package.tgz
 

@@ -51,6 +51,10 @@ fi
 bashio::log.info "Memory: total=${total_mem_mb:-?}MB, available=${avail_mem_mb:-?}MB, cgroup=${cgroup_limit_mb:-none}MB → using ${mem_source} (${effective_mem}MB) → heap: ${heap_size}MB"
 export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=${heap_size}}"
 export APP_VERSION="${APP_VERSION:-$(bashio::addon.version)}"
+storage_backend="$(bashio::config 'storage_backend')"
+storage_backend="${storage_backend:-file}"
+export HAMH_STORAGE_BACKEND="${storage_backend}"
+bashio::log.info "Storage backend: ${HAMH_STORAGE_BACKEND}"
 
 exec home-assistant-matter-hub start \
   --log-level=$(bashio::config 'app_log_level') \
