@@ -58,7 +58,9 @@
     "export": "Exportieren",
     "exportAll": "Alle exportieren",
     "wizard": "Assistent",
-    "add": "Hinzufügen"
+    "add": "Hinzufügen",
+    "yes": "ja",
+    "no": "nein"
   },
   "nav": {
     "bridges": "Bridges",
@@ -111,7 +113,8 @@
     "authDisabled": "Authentifizierung deaktiviert.",
     "authRemoveFailed": "Authentifizierungseinstellungen konnten nicht entfernt werden",
     "httpAuthTitle": "HTTP-Authentifizierung",
-    "httpAuthManagedExternally": "HTTP-Authentifizierung wird über die Add-on-/App-Konfiguration verwaltet. Setze dort http_auth_enabled, http_auth_username und http_auth_password oder verwende die Umgebungsvariablen HAMH_HTTP_AUTH_USERNAME und HAMH_HTTP_AUTH_PASSWORD."
+    "httpAuthManagedExternally": "HTTP-Authentifizierung wird über die Add-on-/App-Konfiguration verwaltet. Setze dort http_auth_enabled, http_auth_username und http_auth_password oder verwende die Umgebungsvariablen HAMH_HTTP_AUTH_USERNAME und HAMH_HTTP_AUTH_PASSWORD.",
+    "network": "Netzwerk"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -305,7 +308,19 @@
     "message": "Nachricht",
     "networkInterfaces": "Netzwerkschnittstellen",
     "interfaceName": "Schnittstelle",
-    "refresh": "Aktualisieren"
+    "refresh": "Aktualisieren",
+    "ipv6Available": "IPv6 verfügbar: {{status}}",
+    "ipv4Available": "IPv4 verfügbar: {{status}}",
+    "mdnsAllInterfaces": "mDNS: alle Schnittstellen",
+    "matterAlexaStatus": "Matter/Alexa Netzwerkstatus: {{status}}",
+    "ipv6MatterHint": "IPv6 sollte für Matter/Alexa aktiviert bleiben. Matter nutzt häufig IPv6-Link-Local-Adressen für operative Verbindungen.",
+    "showNetworkDetails": "Netzwerkdetails anzeigen",
+    "hideNetworkDetails": "Netzwerkdetails ausblenden",
+    "networkStatus": {
+      "pass": "OK",
+      "warn": "Warnung",
+      "fail": "Fehler"
+    }
   },
   "mapping": {
     "title": "Entity-Zuordnungen",

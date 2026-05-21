@@ -78,6 +78,10 @@ export function NetworkDiagnosticCard() {
   const passCount = data?.checks.filter((c) => c.status === "pass").length ?? 0;
   const warnCount = data?.checks.filter((c) => c.status === "warn").length ?? 0;
   const failCount = data?.checks.filter((c) => c.status === "fail").length ?? 0;
+  const externalInterfaces = data?.interfaces.filter((i) => !i.internal) ?? [];
+  const ipv4Available = externalInterfaces.some((i) => i.ipv4.length > 0);
+  const ipv6Available = externalInterfaces.some((i) => i.ipv6.length > 0);
+  const matterStatus = failCount > 0 ? "fail" : warnCount > 0 ? "warn" : "pass";
 
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
@@ -104,6 +108,22 @@ export function NetworkDiagnosticCard() {
       {data && (
         <>
           <Box display="flex" gap={1} mb={1.5} flexWrap="wrap">
+            <Chip
+              label={t("health.ipv6Available", {
+                status: ipv6Available ? t("common.yes") : t("common.no"),
+              })}
+              color={ipv6Available ? "success" : "error"}
+              size="small"
+              variant="outlined"
+            />
+            <Chip
+              label={t("health.ipv4Available", {
+                status: ipv4Available ? t("common.yes") : t("common.no"),
+              })}
+              color={ipv4Available ? "success" : "warning"}
+              size="small"
+              variant="outlined"
+            />
             {passCount > 0 && (
               <Chip
                 label={`${passCount} ${t("health.checksPassed")}`}
@@ -132,17 +152,24 @@ export function NetworkDiagnosticCard() {
               label={
                 data.matterConfig.boundInterface
                   ? `mDNS: ${data.matterConfig.boundInterface}`
-                  : "mDNS: all interfaces"
+                  : t("health.mdnsAllInterfaces")
               }
               size="small"
               variant="outlined"
             />
             <Chip
-              label={`IPv4: ${data.matterConfig.ipv4Enabled ? "on" : "off"}`}
+              label={t("health.matterAlexaStatus", {
+                status: t(`health.networkStatus.${matterStatus}`),
+              })}
+              color={statusColor(matterStatus)}
               size="small"
               variant="outlined"
             />
           </Box>
+
+          <Alert severity="info" variant="outlined" sx={{ mb: 1.5 }}>
+            {t("health.ipv6MatterHint")}
+          </Alert>
 
           {data.checks
             .filter((c) => c.status !== "pass")
@@ -166,7 +193,9 @@ export function NetworkDiagnosticCard() {
             onClick={() => setExpanded(!expanded)}
             sx={{ mt: 0.5 }}
           >
-            {expanded ? t("health.hideDetails") : t("health.showDetails")}
+            {expanded
+              ? t("health.hideNetworkDetails")
+              : t("health.showNetworkDetails")}
           </Button>
 
           <Collapse in={expanded}>
@@ -224,23 +253,21 @@ export function NetworkDiagnosticCard() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {data.interfaces
-                  .filter((i) => !i.internal)
-                  .map((iface) => (
-                    <TableRow key={iface.name}>
-                      <TableCell>{iface.name}</TableCell>
-                      <TableCell>{iface.ipv4.join(", ") || "-"}</TableCell>
-                      <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{ wordBreak: "break-all", maxWidth: 240 }}
-                        >
-                          {iface.ipv6.join(", ") || "-"}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>{iface.mac}</TableCell>
-                    </TableRow>
-                  ))}
+                {externalInterfaces.map((iface) => (
+                  <TableRow key={iface.name}>
+                    <TableCell>{iface.name}</TableCell>
+                    <TableCell>{iface.ipv4.join(", ") || "-"}</TableCell>
+                    <TableCell>
+                      <Typography
+                        variant="body2"
+                        sx={{ wordBreak: "break-all", maxWidth: 240 }}
+                      >
+                        {iface.ipv6.join(", ") || "-"}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>{iface.mac}</TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </Collapse>

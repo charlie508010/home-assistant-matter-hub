@@ -58,7 +58,9 @@
     "export": "Export",
     "exportAll": "Export All",
     "wizard": "Wizard",
-    "add": "Add"
+    "add": "Add",
+    "yes": "yes",
+    "no": "no"
   },
   "nav": {
     "bridges": "Bridges",
@@ -111,7 +113,8 @@
     "authDisabled": "Authentication disabled.",
     "authRemoveFailed": "Failed to remove auth settings",
     "httpAuthTitle": "HTTP Authentication",
-    "httpAuthManagedExternally": "HTTP authentication is managed through the add-on/app configuration. Set http_auth_enabled, http_auth_username, and http_auth_password there, or use the HAMH_HTTP_AUTH_USERNAME and HAMH_HTTP_AUTH_PASSWORD environment variables."
+    "httpAuthManagedExternally": "HTTP authentication is managed through the add-on/app configuration. Set http_auth_enabled, http_auth_username, and http_auth_password there, or use the HAMH_HTTP_AUTH_USERNAME and HAMH_HTTP_AUTH_PASSWORD environment variables.",
+    "network": "Network"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -305,7 +308,19 @@
     "message": "Message",
     "networkInterfaces": "Network Interfaces",
     "interfaceName": "Interface",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "ipv6Available": "IPv6 available: {{status}}",
+    "ipv4Available": "IPv4 available: {{status}}",
+    "mdnsAllInterfaces": "mDNS: all interfaces",
+    "matterAlexaStatus": "Matter/Alexa network status: {{status}}",
+    "ipv6MatterHint": "IPv6 should remain enabled for Matter/Alexa. Matter frequently uses IPv6 link-local addresses for operational connections.",
+    "showNetworkDetails": "Show network details",
+    "hideNetworkDetails": "Hide network details",
+    "networkStatus": {
+      "pass": "OK",
+      "warn": "warning",
+      "fail": "error"
+    }
   },
   "mapping": {
     "title": "Entity Mappings",
