@@ -163,7 +163,7 @@
     "multiPair": "Multi-Fabric-Kopplung",
     "deleteBridge": "Bridge löschen",
     "deleteConfirm": "Möchtest du diese Bridge wirklich löschen?",
-    "featureFlags": "Feature Flags",
+    "featureFlags": "Funktionsschalter",
     "failedEntitiesCount": "{{count}} Entity/Entities konnten nicht geladen werden.",
     "clickToShow": "Klicke, um Details anzuzeigen.",
     "clickToHide": "Klicke, um Details auszublenden.",
@@ -576,7 +576,7 @@
     "stepController": "Controller",
     "stepBridgeInfo": "Bridge-Info",
     "stepEntityFilter": "Entity-Filter",
-    "stepFeatureFlags": "Feature Flags",
+    "stepFeatureFlags": "Funktionsschalter",
     "stepReview": "Überprüfen & Erstellen",
     "autoCompose": "Geräte automatisch zusammensetzen",
     "autoForceSyncFlag": "Auto-Synchronisation",
@@ -608,16 +608,85 @@
     "createBridge": "Bridge erstellen",
     "searchRules": "Regeln suchen...",
     "templateDescription": "Wähle eine Vorlage für einen schnellen Start oder überspringe sie, um eine benutzerdefinierte Bridge zu erstellen.",
-    "controllerDescription": "Welchen Matter-Controller wirst du verwenden? Dies optimiert die Feature Flags für deinen Controller.",
-    "controllerHint": "Du kannst Feature Flags jederzeit in den nächsten Schritten oder nach der Bridge-Erstellung anpassen.",
+    "controllerDescription": "Welchen Matter-Controller verwendest du? Dadurch werden die Funktionsschalter für deinen Controller optimiert.",
+    "controllerHint": "Du kannst die Funktionsschalter jederzeit in den nächsten Schritten oder nach der Bridge-Erstellung anpassen.",
     "templateApplied": "Vorlage \"{{name}}\" angewendet. Passe Name und Port unten an.",
     "filterPreConfiguredFrom": "Filter ist aus der Vorlage \"{{name}}\" vorkonfiguriert. Du kannst ihn unten anpassen.",
-    "featureFlagsDescription": "Feature Flags steuern, wie Geräte für Matter-Controller bereitgestellt werden.",
+    "featureFlagsDescription": "Funktionsschalter steuern, wie Geräte für Matter-Controller bereitgestellt werden.",
     "recommendedFlags": "Empfohlene Flags für {{name}} sind vorausgewählt.",
     "selectFlags": "Wähle die Flags, die zu deiner Einrichtung passen.",
     "reviewDescription": "Überprüfe deine Bridge-Konfiguration:",
     "bridgesToCreate": "Zu erstellende Bridges ({{count}})",
     "bridgesCreated": "{{count}} Bridge(s) bereits in dieser Sitzung erstellt",
     "addAnother": "Weitere hinzufügen"
+  },
+  "featureFlags": {
+    "title": "Funktionsschalter",
+    "flags": {
+      "coverDoNotInvertPercentage": {
+        "title": "Prozentwerte für Rollläden nicht invertieren",
+        "description": "Prozentwerte für Rollläden nicht invertieren, damit sie Home Assistant entsprechen (nicht Matter-konform)."
+      },
+      "coverUseHomeAssistantPercentage": {
+        "title": "Home-Assistant-Prozentwerte für Rollläden verwenden (Alexa-freundlich)",
+        "description": "Zeigt Rollladen-Prozentwerte in Matter-Controllern wie Alexa passend zu Home Assistant an. Dadurch entspricht die angezeigte Prozentzahl Home Assistant; die Bedeutung unterscheidet sich aber: In HA bedeutet ein höherer Wert weiter geöffnet, in Alexa wird ein höherer Wert typischerweise als weiter geschlossen interpretiert. Öffnen/Schließen-Befehle funktionieren weiterhin korrekt."
+      },
+      "coverSwapOpenClose": {
+        "title": "Öffnen/Schließen für Rollläden tauschen",
+        "description": "Tauscht Öffnen/Schließen-Befehle und invertiert die Positionsmeldung für Rollläden. Aktiviere dies, wenn Alexa-Sprachbefehle vertauscht sind (z.B. 'schließen' öffnet den Rollladen und umgekehrt)."
+      },
+      "includeHiddenEntities": {
+        "title": "Versteckte Entitäten einbeziehen",
+        "description": "Entitäten einbeziehen, die in Home Assistant als versteckt markiert sind."
+      },
+      "serverMode": {
+        "title": "Servermodus (für Saugroboter)",
+        "description": "Stellt das Gerät als eigenständiges Matter-Gerät statt als gebridgtes Gerät bereit. Dies ist erforderlich, damit Apple Home Siri-Sprachbefehle für Saugroboter korrekt unterstützt. WICHTIG: Wenn der Servermodus aktiv ist, darf nur EIN Gerät in dieser Bridge sein."
+      },
+      "autoBatteryMapping": {
+        "title": "Automatische Batterie-Zuordnung",
+        "description": "Ordnet Batteriesensoren desselben Home-Assistant-Geräts automatisch der Hauptentität zu. Wenn aktiviert, werden Batteriesensoren in ihre übergeordneten Geräte integriert statt als separate Geräte angezeigt."
+      },
+      "autoHumidityMapping": {
+        "title": "Automatische Luftfeuchte-Zuordnung",
+        "description": "Kombiniert Luftfeuchtesensoren desselben Home-Assistant-Geräts automatisch mit Temperatursensoren. Wenn aktiviert, werden Luftfeuchtesensoren in Temperatursensoren integriert, um kombinierte Temperatur-/Luftfeuchte-Sensoren zu erstellen."
+      },
+      "autoPressureMapping": {
+        "title": "Automatische Druck-Zuordnung",
+        "description": "Kombiniert Drucksensoren desselben Home-Assistant-Geräts automatisch mit Temperatursensoren. Wenn aktiviert, werden Drucksensoren in Temperatursensoren integriert, um kombinierte Sensorgeräte zu erstellen."
+      },
+      "autoComposedDevices": {
+        "title": "Automatisch zusammengesetzte Geräte",
+        "description": "Hauptschalter: Kombiniert zusammengehörige Entitäten desselben Home-Assistant-Geräts in einem einzigen Matter-Endpoint. Aktiviert Batterie-, Luftfeuchte-, Druck-, Leistungs- und Energie-Zuordnung auf einmal; ein Shelly Plug erscheint dann als ein Gerät mit Leistungsmessung statt als mehrere Einzelgeräte."
+      },
+      "autoForceSync": {
+        "title": "Automatische Synchronisation erzwingen",
+        "description": "Vergleicht und sendet alle Gerätezustände alle 90 Sekunden an verbundene Controller. Aktiviere dies, wenn Geräte nach längerer Zeit nicht mehr synchron sind. Prüfungen auf tote Sitzungen laufen unabhängig von dieser Einstellung immer."
+      },
+      "productNameFromNodeLabel": {
+        "title": "Produktname aus Node-Label",
+        "description": "Meldet das Node-Label der Entität (benutzerdefinierter Name / Friendly Name / Entity-ID) als Matter-productName. Nützlich für Controller wie Aqara, die productName statt nodeLabel als Gerätenamen anzeigen. Ein pro Entität gesetzter customProductName hat weiterhin Vorrang."
+      },
+      "preferEntityRegistryName": {
+        "title": "Entity-Registry-Namen bevorzugen (HA-2026.4-Workaround)",
+        "description": "Verwendet den Entity-Registry-Namen (oder original_name) als nodeLabel statt des zusammengesetzten friendly_name. Seit Home Assistant 2026.4 wird friendly_name mit dem Gerätenamen vorangestellt, was Sprachbefehle mit kurzen Entity-Namen stören kann. Reihenfolge: customName -> Registry-Name -> Registry-original_name -> friendly_name -> Entity-ID. Matter hat kein Alias-Konzept; es wird nur geändert, welcher einzelne Name gemeldet wird."
+      },
+      "vacuumOnOff": {
+        "title": "Saugroboter: OnOff-Cluster einbeziehen (Alexa)",
+        "description": "Fügt Saugroboter-Endpoints einen OnOff-Cluster hinzu. Alexa benötigt diesen (PowerController), damit Saugroboter in der App angezeigt werden. Ohne ihn koppelt Alexa das Gerät, zeigt es aber nicht an. Im Servermodus ist dies automatisch aktiv; nur für Bridge-Modus aktivieren. WARNUNG: OnOff ist nicht Teil der Matter-RVC-Gerätetyp-Spezifikation. Dies kann Apple Home ('Aktualisieren') und Google Home stören."
+      },
+      "alexaPreserveBrightnessOnTurnOn": {
+        "title": "Alexa: Helligkeit beim Einschalten beibehalten",
+        "description": "Workaround für Alexa, wenn Lichthelligkeit nach einer Subscription-Erneuerung auf 100 % gesetzt wird. Wenn aktiviert, ignoriert die Bridge Helligkeitsbefehle auf 100 %, die innerhalb von 200 ms nach einem Einschaltbefehl für dasselbe Licht kommen. WARNUNG: Stört Apple-Home-Siri-Befehle wie 'Raum auf 100 % setzen', die dasselbe Muster on() + moveToLevel(254) verwenden. Nur für reine Alexa-Bridges aktivieren."
+      },
+      "useHaRegistrySerial": {
+        "title": "HA-Registry-Seriennummer verwenden",
+        "description": "Verwendet die serial_number aus der Home-Assistant-Geräteregistry als Fallback, wenn keine customSerialNumber pro Entität konfiguriert ist. Standardmäßig aus, weil das Ändern der serialNumber nach dem Koppeln Controller verwirren kann. Eine customSerialNumber pro Entität hat weiterhin Vorrang."
+      },
+      "coverSliderDebounceMs": {
+        "title": "Rollladen-Slider-Entprellung (ms)",
+        "description": "Überschreibt das Entprellfenster für Rollladen-Positionsupdates dieser Bridge. Manche Controller senden Slider-Updates während des Ziehens, wodurch Rollläden zu Zwischenzielen fahren. Setze die Zeit, die die Bridge nach dem letzten Update wartet, bevor der finale Wert an Home Assistant gesendet wird. 0 behält die eingebaute zweistufige Entprellung (400 ms initial / 150 ms danach), passend für die meisten Controller. Probiere 800-1500 ms für langsame Rollläden. Eine pro Entität gesetzte Einstellung für einen einzelnen Rollladen hat Vorrang."
+      }
+    }
   }
 }

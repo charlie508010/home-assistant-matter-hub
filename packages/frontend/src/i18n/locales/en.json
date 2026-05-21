@@ -619,5 +619,74 @@
     "importJson": "Import JSON",
     "importSuccess": "Imported {{count}} translation(s).",
     "importFailed": "Failed to import: invalid JSON format."
+  },
+  "featureFlags": {
+    "title": "Feature Flags",
+    "flags": {
+      "coverDoNotInvertPercentage": {
+        "title": "Do not invert Percentages for Covers",
+        "description": "Do not invert the percentage of covers to match Home Assistant (not Matter compliant)"
+      },
+      "coverUseHomeAssistantPercentage": {
+        "title": "Use Home Assistant Percentage for Covers (Alexa-friendly)",
+        "description": "Display cover percentages matching Home Assistant values in Matter controllers like Alexa. This makes the displayed percentage match what you see in Home Assistant, but the semantic meaning differs: in HA, higher percentage = more open; in Alexa, higher percentage is typically interpreted as more closed. Open/Close commands will still work correctly."
+      },
+      "coverSwapOpenClose": {
+        "title": "Swap Open/Close for Covers",
+        "description": "Swap open/close commands and invert position reporting for covers. Enable this if Alexa voice commands are reversed (saying 'close' opens the blinds and vice versa)."
+      },
+      "includeHiddenEntities": {
+        "title": "Include Hidden Entities",
+        "description": "Include entities that are marked as hidden in Home Assistant."
+      },
+      "serverMode": {
+        "title": "Server Mode (for Robot Vacuums)",
+        "description": "Expose the device as a standalone Matter device instead of a bridged device. This is required for Apple Home to properly support Siri voice commands for Robot Vacuums. IMPORTANT: Only ONE device should be in this bridge when server mode is enabled."
+      },
+      "autoBatteryMapping": {
+        "title": "Auto Battery Mapping",
+        "description": "Automatically assign battery sensors from the same Home Assistant device to the main entity. When enabled, battery sensors will be merged into their parent devices instead of appearing as separate devices."
+      },
+      "autoHumidityMapping": {
+        "title": "Auto Humidity Mapping",
+        "description": "Automatically combine humidity sensors with temperature sensors from the same Home Assistant device. When enabled, humidity sensors will be merged into temperature sensors to create combined TemperatureHumiditySensor devices."
+      },
+      "autoPressureMapping": {
+        "title": "Auto Pressure Mapping",
+        "description": "Automatically combine pressure sensors with temperature sensors from the same Home Assistant device. When enabled, pressure sensors will be merged into temperature sensors to create combined sensor devices."
+      },
+      "autoComposedDevices": {
+        "title": "Auto Composed Devices",
+        "description": "Master toggle: combine related entities from the same Home Assistant device into a single Matter endpoint. Turns on battery, humidity, pressure, power, and energy auto-mapping at once; a Shelly Plug shows up as one device with power monitoring instead of several siblings."
+      },
+      "autoForceSync": {
+        "title": "Auto Force Sync",
+        "description": "Periodically compare and push all device states to connected controllers every 90 seconds. Enable this if devices get out of sync after extended periods. Health checks for dead sessions always run regardless of this setting."
+      },
+      "productNameFromNodeLabel": {
+        "title": "Product Name from Node Label",
+        "description": "Report the entity's node label (custom name / friendly name / entity id) as the Matter productName. Useful for controllers like Aqara that display productName as the device name instead of nodeLabel. A per-entity customProductName still takes precedence."
+      },
+      "preferEntityRegistryName": {
+        "title": "Prefer Entity Registry Name (HA 2026.4 workaround)",
+        "description": "Use the entity registry name (or original_name) as nodeLabel instead of the composed friendly_name. Since Home Assistant 2026.4, friendly_name is prefixed with the device name, which breaks voice commands that relied on the short entity name. Resolution order: customName -> registry name -> registry original_name -> friendly_name -> entity_id. Matter has no alias concept, this only changes which single name is reported."
+      },
+      "vacuumOnOff": {
+        "title": "Vacuum: Include OnOff Cluster (Alexa)",
+        "description": "Add an OnOff cluster to robot vacuum endpoints. Alexa REQUIRES this (PowerController) to show robotic vacuums in the app. Without it, Alexa commissions the device but never displays it. In Server Mode this is enabled automatically, only check this for bridge mode. WARNING: OnOff is NOT part of the Matter RVC device type specification. Enabling this may break Apple Home (shows 'Updating') and Google Home."
+      },
+      "alexaPreserveBrightnessOnTurnOn": {
+        "title": "Alexa: Preserve Brightness on Turn-On",
+        "description": "Workaround for Alexa resetting light brightness to 100% after subscription renewal. When enabled, the bridge ignores brightness commands that set lights to 100% within 200ms of a turn-on command for the same light. WARNING: breaks Apple Home's 'set room to 100%' Siri commands, which use the same on() + moveToLevel(254) pattern. Only enable on Alexa-only bridges."
+      },
+      "useHaRegistrySerial": {
+        "title": "Use HA Registry Serial Number",
+        "description": "Fall back to the Home Assistant device registry serial_number when no per-entity customSerialNumber is configured. Default off because changing serialNumber after commissioning can confuse controllers. A per-entity customSerialNumber still takes precedence."
+      },
+      "coverSliderDebounceMs": {
+        "title": "Cover Slider Debounce (ms)",
+        "description": "Override the cover position-update debounce window for this bridge. Some controllers stream slider updates while the user is still dragging, causing covers to start moving toward an intermediate target. Set to the time the bridge should wait after the last update before sending the final value to Home Assistant. 0 keeps the built-in two-phase debounce (400 ms initial / 150 ms subsequent), which fits most controllers. Try 800-1500 ms for slow blinds. A per-entity override on a single cover wins over this flag."
+      }
+    }
   }
 }

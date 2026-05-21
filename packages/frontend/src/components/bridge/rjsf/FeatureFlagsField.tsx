@@ -9,8 +9,10 @@ import Typography from "@mui/material/Typography";
 import type { FieldProps } from "@rjsf/utils";
 import type { JSONSchema7 } from "json-schema";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 export function FeatureFlagsField(props: FieldProps) {
+  const { t } = useTranslation();
   const {
     schema,
     formData = {},
@@ -20,6 +22,13 @@ export function FeatureFlagsField(props: FieldProps) {
     fieldPathId,
   } = props;
   const properties = (schema.properties ?? {}) as Record<string, JSONSchema7>;
+
+  const translateFlag = (
+    key: string,
+    field: "title" | "description",
+    fallback?: string,
+  ) =>
+    t(`featureFlags.flags.${key}.${field}`, { defaultValue: fallback ?? key });
 
   const handleToggle = useCallback(
     (key: string, checked: boolean) => {
@@ -31,7 +40,7 @@ export function FeatureFlagsField(props: FieldProps) {
   return (
     <Box>
       <Typography variant="h6" sx={{ mb: 2 }}>
-        Feature Flags
+        {t("featureFlags.title")}
       </Typography>
       <Grid container spacing={2}>
         {Object.entries(properties).map(([key, flagSchema]) => {
@@ -82,11 +91,11 @@ export function FeatureFlagsField(props: FieldProps) {
                           fontWeight={600}
                           sx={{ lineHeight: 1.3 }}
                         >
-                          {flagSchema.title ?? key}
+                          {translateFlag(key, "title", flagSchema.title)}
                         </Typography>
                         {value && (
                           <Chip
-                            label="Active"
+                            label={t("common.active")}
                             size="small"
                             color="primary"
                             variant="outlined"
@@ -108,7 +117,11 @@ export function FeatureFlagsField(props: FieldProps) {
                       color="text.secondary"
                       sx={{ mt: 1, lineHeight: 1.4, flex: 1 }}
                     >
-                      {flagSchema.description}
+                      {translateFlag(
+                        key,
+                        "description",
+                        flagSchema.description,
+                      )}
                     </Typography>
                   </CardContent>
                 </CardActionArea>

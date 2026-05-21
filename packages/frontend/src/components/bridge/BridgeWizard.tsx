@@ -79,35 +79,13 @@ const stepKeys = [
 
 interface FlagOption {
   key: keyof BridgeFeatureFlags;
-  label: string;
-  description: string;
 }
 
 const wizardFlags: FlagOption[] = [
-  {
-    key: "autoComposedDevices",
-    label: "Auto Compose Devices",
-    description:
-      "Combine related entities (battery, humidity, pressure, power, energy) from the same HA device into a single Matter endpoint.",
-  },
-  {
-    key: "autoForceSync",
-    label: "Auto Force Sync",
-    description:
-      "Periodically push all device states to controllers. Recommended for Google Home and Alexa to prevent devices from going offline.",
-  },
-  {
-    key: "coverSwapOpenClose",
-    label: "Invert Cover Direction",
-    description:
-      "Swap open/close direction for covers. Use this if your covers show the wrong position in Matter controllers.",
-  },
-  {
-    key: "includeHiddenEntities",
-    label: "Include Hidden Entities",
-    description:
-      "Also expose entities that are marked as hidden in Home Assistant.",
-  },
+  { key: "autoComposedDevices" },
+  { key: "autoForceSync" },
+  { key: "coverSwapOpenClose" },
+  { key: "includeHiddenEntities" },
 ];
 
 export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
@@ -467,10 +445,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
         margin="normal"
         helperText={t("bridgeWizard.portAutoAssign")}
       />
-      <Tooltip
-        title="Required for Robot Vacuums to work with Apple Home (Siri) and Alexa. Server Mode bridges support only ONE device."
-        placement="right"
-      >
+      <Tooltip title={t("bridgeWizard.serverModeTooltip")} placement="right">
         <FormControlLabel
           control={
             <Checkbox
@@ -616,7 +591,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
                 }
               />
             }
-            label={flag.label}
+            label={t(`featureFlags.flags.${flag.key}.title`)}
           />
           <Typography
             variant="caption"
@@ -624,7 +599,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
             display="block"
             sx={{ ml: 7, mt: -0.5 }}
           >
-            {flag.description}
+            {t(`featureFlags.flags.${flag.key}.description`)}
           </Typography>
         </Box>
       ))}
