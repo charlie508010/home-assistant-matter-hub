@@ -29,7 +29,7 @@ import {
 import {
   cloneSchema,
   localizeFilterSchema,
-} from "../../components/bridge/BridgeConfigEditor.tsx";
+} from "../../components/bridge/bridge-config-schema-localization.ts";
 import { CompactArrayFieldTemplate } from "../../components/bridge/rjsf/CompactArrayFieldTemplate.tsx";
 import { EntityFilterRuleField } from "../../components/bridge/rjsf/EntityFilterRuleField.tsx";
 import { FormEditor } from "../../components/misc/editors/FormEditor.tsx";
