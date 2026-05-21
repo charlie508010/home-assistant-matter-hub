@@ -42,7 +42,7 @@ index a6786485017dd7789ee6a8fc4f0d9033dcdb2ae2..032dd4958a7f9b70f7003774d755b7da
 diff --git a/dist/cjs/node/server/InteractionServer.js b/dist/cjs/node/server/InteractionServer.js
 --- a/dist/cjs/node/server/InteractionServer.js
 +++ b/dist/cjs/node/server/InteractionServer.js
-@@ -80,6 +80,48 @@ var import_ServerSubscription = require("./ServerSubscription.js");
+@@ -80,6 +80,49 @@ var import_ServerSubscription = require("./ServerSubscription.js");
   * SPDX-License-Identifier: Apache-2.0
   */
  const logger = import_general.Logger.get("InteractionServer");
@@ -75,6 +75,7 @@ diff --git a/dist/cjs/node/server/InteractionServer.js b/dist/cjs/node/server/In
 +}
 +function hamhLogReadDiagnostics(nodeId, protocol, attributeRequests) {
 +  if (!attributeRequests?.length) return;
++  if (globalThis.process?.env?.HAMH_LOG_CONTROLLER_READS !== "true") return;
 +  const registry = globalThis.__HAMH_MATTER_READ_DIAGNOSTICS__?.bridges;
 +  const endpointMap = registry?.[String(nodeId)] ?? registry?.default;
 +  for (const path of attributeRequests) {
@@ -83,7 +84,7 @@ diff --git a/dist/cjs/node/server/InteractionServer.js b/dist/cjs/node/server/In
 +    const clusterName = hamhReadName(hamhReadClusterNames, path.clusterId);
 +    const attributeName = hamhAttributeName(path.clusterId, path.attributeId);
 +    const name = endpoint?.name ?? endpoint?.friendlyName ?? endpoint?.registryName ?? endpoint?.endpointName ?? "<unknown>";
-+    logger.info(
++    logger.debug(
 +      `Alexa/Controller read endpoint=${endpointId ?? "<wildcard>"} endpointType=${endpoint?.endpointName ?? "<unknown>"} entity=${endpoint?.entityId ?? (endpointId === void 0 ? "<wildcard>" : "<unknown>")} name=${JSON.stringify(name)} deviceTypeList=${JSON.stringify(endpoint?.deviceTypeList ?? null)} cluster=${clusterName}(${hamhFormatReadId(path.clusterId)}) attribute=${attributeName}(${hamhFormatReadId(path.attributeId)}) path=${protocol.inspectPath(path)}`
 +    );
 +  }
@@ -313,7 +314,7 @@ index 8c49c246e1c8225d1668f1540724554f0c6134cf..0f2e0443678d247822918f4c2bf509e0
 diff --git a/dist/esm/node/server/InteractionServer.js b/dist/esm/node/server/InteractionServer.js
 --- a/dist/esm/node/server/InteractionServer.js
 +++ b/dist/esm/node/server/InteractionServer.js
-@@ -91,5 +91,47 @@ import { OnlineServerInteraction } from "./OnlineServerInteraction.js";
+@@ -91,5 +91,48 @@ import { OnlineServerInteraction } from "./OnlineServerInteraction.js";
  import { ServerSubscription, ServerSubscriptionConfig } from "./ServerSubscription.js";
  const logger = Logger.get("InteractionServer");
 +const hamhReadClusterNames = /* @__PURE__ */ new Map([
@@ -345,6 +346,7 @@ diff --git a/dist/esm/node/server/InteractionServer.js b/dist/esm/node/server/In
 +}
 +function hamhLogReadDiagnostics(nodeId, protocol, attributeRequests) {
 +  if (!attributeRequests?.length) return;
++  if (globalThis.process?.env?.HAMH_LOG_CONTROLLER_READS !== "true") return;
 +  const registry = globalThis.__HAMH_MATTER_READ_DIAGNOSTICS__?.bridges;
 +  const endpointMap = registry?.[String(nodeId)] ?? registry?.default;
 +  for (const path of attributeRequests) {
@@ -353,7 +355,7 @@ diff --git a/dist/esm/node/server/InteractionServer.js b/dist/esm/node/server/In
 +    const clusterName = hamhReadName(hamhReadClusterNames, path.clusterId);
 +    const attributeName = hamhAttributeName(path.clusterId, path.attributeId);
 +    const name = endpoint?.name ?? endpoint?.friendlyName ?? endpoint?.registryName ?? endpoint?.endpointName ?? "<unknown>";
-+    logger.info(
++    logger.debug(
 +      `Alexa/Controller read endpoint=${endpointId ?? "<wildcard>"} endpointType=${endpoint?.endpointName ?? "<unknown>"} entity=${endpoint?.entityId ?? (endpointId === void 0 ? "<wildcard>" : "<unknown>")} name=${JSON.stringify(name)} deviceTypeList=${JSON.stringify(endpoint?.deviceTypeList ?? null)} cluster=${clusterName}(${hamhFormatReadId(path.clusterId)}) attribute=${attributeName}(${hamhFormatReadId(path.attributeId)}) path=${protocol.inspectPath(path)}`
 +    );
 +  }
@@ -611,7 +613,7 @@ index afd68c38e8109e00aacc90156957cd90dd3a17ee..cad0b098956679533d621207e6f58cd1
 diff --git a/src/node/server/InteractionServer.ts b/src/node/server/InteractionServer.ts
 --- a/src/node/server/InteractionServer.ts
 +++ b/src/node/server/InteractionServer.ts
-@@ -73,5 +73,78 @@ import { ServerSubscription, ServerSubscriptionConfig, ServerSubscriptionContext
+@@ -73,5 +73,79 @@ import { ServerSubscription, ServerSubscriptionConfig, ServerSubscriptionContext
  
  const logger = Logger.get("InteractionServer");
 +const hamhReadClusterNames = new Map<number, string>([
@@ -670,6 +672,7 @@ diff --git a/src/node/server/InteractionServer.ts b/src/node/server/InteractionS
 +
 +function hamhLogReadDiagnostics(nodeId: unknown, protocol: { inspectPath(path: unknown): string }, attributeRequests?: any[]) {
 +    if (!attributeRequests?.length) return;
++    if ((globalThis as any).process?.env?.HAMH_LOG_CONTROLLER_READS !== "true") return;
 +
 +    const registry = (globalThis as any).__HAMH_MATTER_READ_DIAGNOSTICS__?.bridges;
 +    const endpointMap = registry?.[String(nodeId)] ?? registry?.default;
@@ -682,7 +685,7 @@ diff --git a/src/node/server/InteractionServer.ts b/src/node/server/InteractionS
 +        const name =
 +            endpoint?.name ?? endpoint?.friendlyName ?? endpoint?.registryName ?? endpoint?.endpointName ?? "<unknown>";
 +
-+        logger.info(
++        logger.debug(
 +            `Alexa/Controller read endpoint=${endpointId ?? "<wildcard>"} endpointType=${endpoint?.endpointName ?? "<unknown>"} entity=${endpoint?.entityId ?? (endpointId === undefined ? "<wildcard>" : "<unknown>")} name=${JSON.stringify(name)} deviceTypeList=${JSON.stringify(endpoint?.deviceTypeList ?? null)} cluster=${clusterName}(${hamhFormatReadId(path.clusterId)}) attribute=${attributeName}(${hamhFormatReadId(path.attributeId)}) path=${protocol.inspectPath(path)}`,
 +        );
 +    }
