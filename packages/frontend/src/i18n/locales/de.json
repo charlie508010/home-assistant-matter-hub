@@ -57,7 +57,8 @@
     "import": "Importieren",
     "export": "Exportieren",
     "exportAll": "Alle exportieren",
-    "wizard": "Assistent"
+    "wizard": "Assistent",
+    "add": "Hinzufügen"
   },
   "nav": {
     "bridges": "Bridges",
@@ -618,7 +619,18 @@
     "reviewDescription": "Überprüfe deine Bridge-Konfiguration:",
     "bridgesToCreate": "Zu erstellende Bridges ({{count}})",
     "bridgesCreated": "{{count}} Bridge(s) bereits in dieser Sitzung erstellt",
-    "addAnother": "Weitere hinzufügen"
+    "addAnother": "Weitere hinzufügen",
+    "serverModeEnabledTitle": "Servermodus aktiviert:",
+    "serverModeEnabledDescription": "Diese Bridge stellt ein einzelnes Gerät als eigenständiges Matter-Gerät bereit. Füge nur EIN Gerät hinzu, z.B. deinen Saugroboter. Das ist für Apple-Home-Siri-Befehle und Alexa-Erkennung erforderlich.",
+    "serverModeOneEntityPrefix": "Der Servermodus benötigt genau",
+    "serverModeOneEntityStrong": "eine",
+    "serverModeOneEntitySuffix": "Entity. Passe den Filter so an, dass nur dein Gerät passt, z.B.",
+    "entityIdLabel": "Entity-ID",
+    "serverModeEntityHelper": "Der Servermodus unterstützt nur EIN Gerät. Gib die genaue Entity-ID ein, z.B. vacuum.my_vacuum.",
+    "templatePreconfiguredHelper": "Durch Vorlage vorkonfiguriert. Nach dem Erstellen im vollständigen Editor anpassbar.",
+    "wildcardHelper": "Nutze * für alle oder Muster wie light.*, switch.*",
+    "entityListHelper": "Gib konkrete Entity-IDs durch Kommas getrennt ein",
+    "templateLabel": "Vorlage: {{name}}"
   },
   "featureFlags": {
     "title": "Funktionsschalter",
@@ -686,6 +698,158 @@
       "coverSliderDebounceMs": {
         "title": "Rollladen-Slider-Entprellung (ms)",
         "description": "Überschreibt das Entprellfenster für Rollladen-Positionsupdates dieser Bridge. Manche Controller senden Slider-Updates während des Ziehens, wodurch Rollläden zu Zwischenzielen fahren. Setze die Zeit, die die Bridge nach dem letzten Update wartet, bevor der finale Wert an Home Assistant gesendet wird. 0 behält die eingebaute zweistufige Entprellung (400 ms initial / 150 ms danach), passend für die meisten Controller. Probiere 800-1500 ms für langsame Rollläden. Eine pro Entität gesetzte Einstellung für einen einzelnen Rollladen hat Vorrang."
+      }
+    },
+    "sections": {
+      "covers": "Rollläden / Cover",
+      "vacuum": "Saugroboter",
+      "homeAssistant": "Home Assistant / Registry",
+      "autoMapping": "Automatische Zuordnung",
+      "alexa": "Alexa-Kompatibilität",
+      "stability": "Synchronisation & Stabilität",
+      "other": "Weitere Optionen"
+    }
+  },
+  "bridgeConfig": {
+    "title": "Bridge-Konfiguration",
+    "documentation": {
+      "prefix": "Bitte lies",
+      "link": "die Dokumentation",
+      "suffix": "für korrekte Bridge-Konfigurationen.",
+      "labelsHint": "Besonders wenn du Labels verwendest, beachte den Abschnitt \"Labels\"."
+    },
+    "communityTip": {
+      "title": "Community-Tipp:",
+      "description": "Nutzer berichten, dass Bridges mit sehr vielen Geräten je nach Controller instabil werden können. Wenn Verbindungsprobleme auftreten, verteile die Geräte auf mehrere Bridges."
+    },
+    "validation": {
+      "portUsed": "Port wird bereits von der Bridge mit ID {{id}} verwendet"
+    },
+    "warnings": {
+      "serverModeSingleDevice": "Servermodus ist aktiviert. In dieser Bridge darf nur EIN Gerät sein. Mehrere Geräte verursachen Fehler.",
+      "serverModeVacuumOnOffDisabled": "Servermodus mit deaktiviertem Saugroboter-OnOff: Alexa benötigt den OnOff-Cluster (PowerController) für Saugroboter. Ohne ihn wird der Saugroboter gekoppelt, erscheint aber nicht in Alexa. Nur für Apple Home deaktivieren.",
+      "vacuumOnOffBridgeMode": "Saugroboter-OnOff ist im Bridge-Modus aktiviert. Das fügt dem RVC-Gerätetyp einen nicht standardkonformen Cluster hinzu und kann Probleme mit Apple Home und Google Home verursachen.",
+      "autoForceSyncComposedDevices": "Automatische Synchronisation zusammen mit automatisch zusammengesetzten Geräten erhöht den Netzwerkverkehr. Zusammengesetzte Geräte haben mehr Cluster, daher sendet jeder Synchronisationslauf mehr Daten."
+    },
+    "fields": {
+      "name": {
+        "title": "Name"
+      },
+      "port": {
+        "title": "Port"
+      },
+      "icon": {
+        "title": "Symbol",
+        "description": "Symbol, das für diese Bridge in der Oberfläche angezeigt wird"
+      },
+      "countryCode": {
+        "title": "Ländercode",
+        "description": "ISO-3166-1-Alpha-2-Code für das Land, in dem sich der Node befindet. Nur nötig, wenn die Kopplung wegen fehlendem Ländercode fehlschlägt."
+      },
+      "priority": {
+        "title": "Startpriorität",
+        "description": "Priorität der Startreihenfolge. Niedrigere Werte starten zuerst. Standard ist 100."
+      },
+      "serialNumberSuffix": {
+        "title": "Seriennummer-Suffix",
+        "description": "Hängt an jede Entity-Seriennummer dieser Bridge ein Suffix an. Nützlich, um Controller wie Aqara dazu zu zwingen, Geräte als neu zu behandeln und gecachte Gerätedaten zu umgehen. Leer lassen für Standardverhalten."
+      },
+      "sessionMaxAgeHours": {
+        "title": "Maximales Alter der Sitzungsrotation (Stunden)",
+        "description": "Nur Servermodus. Rotiert Matter-Sitzungen, die älter als diese Anzahl Stunden sind, damit iPhone-Clients neu abonnieren und Apple Home nicht bei \"Aktualisieren\" hängen bleibt. 0 deaktiviert die Rotation. Bereich 0-168, Standard 4. (#287)"
+      }
+    },
+    "filter": {
+      "title": "Entity-Filter",
+      "include": {
+        "title": "Einbeziehen"
+      },
+      "exclude": {
+        "title": "Ausschließen"
+      },
+      "type": {
+        "title": "Typ"
+      },
+      "value": {
+        "title": "Wert",
+        "description": "Für Labels den Anzeigenamen oder die label_id (Slug) verwenden. Beides findest du auf der Labels-Seite in der Seitenleiste."
+      },
+      "includeMode": {
+        "title": "Einbeziehungsmodus",
+        "description": "Legt fest, wie Include-Regeln kombiniert werden: any trifft, wenn EINE Regel passt (ODER), all trifft nur, wenn ALLE Regeln passen (UND). Standard: any",
+        "options": {
+          "any": "Eine Regel reicht (ODER)",
+          "all": "Alle Regeln müssen passen (UND)"
+        }
+      },
+      "searchRules": "Regeln suchen...",
+      "noMatchingRules": "Keine passenden Regeln",
+      "newRule": "Neue Regel (zum Konfigurieren anklicken)",
+      "clickToCollapse": "Zum Einklappen klicken",
+      "rulesConfigured_one": "{{count}} Regel konfiguriert",
+      "rulesConfigured_other": "{{count}} Regeln konfiguriert",
+      "entityAutocompleteHelp": "Entity-ID suchen oder eintippen. Wildcards und reguläre Ausdrücke funktionieren weiterhin.",
+      "matcherTypes": {
+        "pattern": {
+          "title": "Muster",
+          "description": "Wildcard-Muster für Entity-IDs. Verwende * als Platzhalter. Beispiel: light.wohnzimmer_* trifft alle Lichter im Wohnzimmer."
+        },
+        "regex": {
+          "title": "Regulärer Ausdruck",
+          "description": "Regulärer Ausdruck gegen die entity_id. Für Labels nutze entity_label_regex oder device_label_regex. Beispiel: ^(light|switch)\\.kitchen_.*."
+        },
+        "domain": {
+          "title": "Domain",
+          "description": "Filtert Entities nach ihrer Domain, also dem Teil vor dem Punkt. Beispiel: light, switch, sensor."
+        },
+        "platform": {
+          "title": "Plattform",
+          "description": "Filtert Entities nach Integration/Plattform. Beispiel: hue, zwave, mqtt."
+        },
+        "label": {
+          "title": "Label (veraltet)",
+          "description": "Veraltet: Nutze stattdessen entity_label oder device_label. Verhält sich wie entity_label."
+        },
+        "entity_label": {
+          "title": "Entity-Label",
+          "description": "Trifft nur Entities, denen dieses Label direkt zugewiesen ist. Andere Entities desselben Geräts werden nicht automatisch einbezogen."
+        },
+        "device_label": {
+          "title": "Geräte-Label",
+          "description": "Trifft alle Entities eines Geräts, wenn das Gerät dieses Label hat. Nutze dies, um ein vollständiges Gerät mit allen Entities einzubeziehen."
+        },
+        "entity_label_regex": {
+          "title": "Entity-Label-RegEx",
+          "description": "Regulärer Ausdruck gegen Entity-Label-Slugs und Anzeigenamen. Trifft, wenn ein der Entity zugewiesenes Label passt. Beispiel: ^(matter|voice).* ."
+        },
+        "device_label_regex": {
+          "title": "Geräte-Label-RegEx",
+          "description": "Regulärer Ausdruck gegen Geräte-Label-Slugs und Anzeigenamen. Trifft alle Entities eines Geräts, dessen Label passt. Beispiel: ^(matter|voice).* ."
+        },
+        "any_field_regex": {
+          "title": "RegEx über alle Felder",
+          "description": "Regulärer Ausdruck gegen eine einzeilige key=value-Sammlung aus entity_id, Domain, Plattform, Bereich, Entity-Kategorie, Geräteklasse, Entity-Labels, Geräte-Labels, Gerätename und Produktname. Nutze Lookaheads für UND und Alternativen für ODER."
+        },
+        "area": {
+          "title": "Bereich",
+          "description": "Filtert Entities nach Bereichs-Slug. Beispiel: living_room, bedroom."
+        },
+        "entity_category": {
+          "title": "Entity-Kategorie",
+          "description": "Filtert Entities nach Kategorie. Beispiel: config oder diagnostic, um Konfigurations-Entities auszuschließen."
+        },
+        "device_name": {
+          "title": "Gerätename",
+          "description": "Filtert Entities nach Gerätename. Unterstützt Wildcards. Beispiel: *Philips* trifft alle Philips-Geräte."
+        },
+        "product_name": {
+          "title": "Produktname",
+          "description": "Filtert Entities nach Produkt-/Modellname. Unterstützt Wildcards. Beispiel: Hue*Bulb."
+        },
+        "device_class": {
+          "title": "Geräteklasse",
+          "description": "Filtert Entities nach device_class-Attribut. Beispiel: temperature, motion, door, window."
+        }
       }
     }
   }

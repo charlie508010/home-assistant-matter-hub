@@ -466,10 +466,8 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
       </Tooltip>
       {currentBridge.serverMode && (
         <Alert severity="info" sx={{ mt: 1 }}>
-          <strong>Server Mode enabled:</strong> This bridge will expose a single
-          device as a standalone Matter device. Add only ONE device (e.g., your
-          vacuum) to this bridge. This is required for Apple Home Siri commands
-          and Alexa discovery.
+          <strong>{t("bridgeWizard.serverModeEnabledTitle")}</strong>{" "}
+          {t("bridgeWizard.serverModeEnabledDescription")}
         </Alert>
       )}
       {bridges.length > 0 && (
@@ -502,9 +500,10 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
       </Typography>
       {currentBridge.serverMode && (
         <Alert severity="warning" sx={{ mt: 1, mb: 1 }}>
-          Server Mode requires exactly <strong>one</strong> entity. Change the
-          filter to match only your device (e.g., <code>vacuum.my_vacuum</code>
-          ).
+          {t("bridgeWizard.serverModeOneEntityPrefix")}{" "}
+          <strong>{t("bridgeWizard.serverModeOneEntityStrong")}</strong>{" "}
+          {t("bridgeWizard.serverModeOneEntitySuffix")}{" "}
+          <code>vacuum.my_vacuum</code>.
         </Alert>
       )}
       {!selectedTemplate && (
@@ -522,10 +521,10 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
         fullWidth
         label={
           currentBridge.serverMode
-            ? "Entity ID"
+            ? t("bridgeWizard.entityIdLabel")
             : useWildcard && !selectedTemplate
-              ? "Include Pattern"
-              : "Entity Filters"
+              ? t("bridgeWizard.includePattern")
+              : t("bridgeWizard.entityFilters")
         }
         value={
           selectedTemplate && !currentBridge.serverMode
@@ -543,12 +542,12 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
         }
         helperText={
           currentBridge.serverMode
-            ? "Server Mode supports only ONE device. Enter the exact entity ID (e.g., vacuum.my_vacuum)."
+            ? t("bridgeWizard.serverModeEntityHelper")
             : selectedTemplate
-              ? "Pre-configured by template. Edit in the full editor after creation."
+              ? t("bridgeWizard.templatePreconfiguredHelper")
               : useWildcard
-                ? "Use * for all, or patterns like light.*, switch.*"
-                : "Enter specific entity IDs separated by commas"
+                ? t("bridgeWizard.wildcardHelper")
+                : t("bridgeWizard.entityListHelper")
         }
         disabled={!!selectedTemplate && !currentBridge.serverMode}
       />
@@ -626,7 +625,9 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
             </Typography>
             {selectedTemplate && (
               <Chip
-                label={`Template: ${selectedTemplate.name}`}
+                label={t("bridgeWizard.templateLabel", {
+                  name: selectedTemplate.name,
+                })}
                 size="small"
                 color="info"
                 variant="outlined"
@@ -636,7 +637,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
             {currentBridge.serverMode && (
               <Chip
                 icon={<SmartToyIcon />}
-                label="Server Mode"
+                label={t("bridgeWizard.serverModeLabel")}
                 color="primary"
                 size="small"
                 sx={{ mt: 1 }}
@@ -658,7 +659,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
               </Box>
             )}
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Include:{" "}
+              {t("bridgeConfig.filter.include.title")}:{" "}
               {currentBridge.filter.include.length > 0
                 ? currentBridge.filter.include
                     .map((m) => `${m.type}:${m.value}`)
@@ -672,7 +673,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
             )}
             {(excludePattern || currentBridge.filter.exclude.length > 0) && (
               <Typography variant="body2" color="text.secondary">
-                Exclude:{" "}
+                {t("bridgeConfig.filter.exclude.title")}:{" "}
                 {currentBridge.filter.exclude.length > 0
                   ? currentBridge.filter.exclude.map((m) => m.value).join(", ")
                   : excludePattern}

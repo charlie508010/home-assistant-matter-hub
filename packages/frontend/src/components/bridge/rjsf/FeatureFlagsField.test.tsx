@@ -42,9 +42,11 @@ describe("FeatureFlagsField", () => {
   it("renders all feature flags from schema", () => {
     renderInTheme(<FeatureFlagsField {...makeProps()} />);
     expect(screen.getByText("Auto Force Sync")).toBeInTheDocument();
-    expect(screen.getByText("Server Mode")).toBeInTheDocument();
     expect(
-      screen.getByText("Periodically push state to controllers"),
+      screen.getByText("Server Mode (for Robot Vacuums)"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Periodically compare and push all device states/),
     ).toBeInTheDocument();
   });
 

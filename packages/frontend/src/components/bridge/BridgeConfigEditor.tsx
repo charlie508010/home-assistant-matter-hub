@@ -13,6 +13,8 @@ import Grid from "@mui/material/Grid";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import type { TFunction } from "i18next";
+import type { JSONSchema7 } from "json-schema";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { navigation } from "../../routes.tsx";
@@ -41,6 +43,10 @@ export interface BridgeConfigEditorProps {
 
 export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
   const { t } = useTranslation();
+  const localizedSchema = useMemo(
+    () => localizeBridgeConfigSchema(bridgeConfigSchema, t),
+    [t],
+  );
   const [editorMode, setEditorMode] = useState<BridgeEditorMode>(
     BridgeEditorMode.FIELDS_EDITOR,
   );
@@ -66,13 +72,13 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
         return [
           {
             instancePath: "/port",
-            message: `Port is already used by bridge with id ${usedBy}`,
+            message: t("bridgeConfig.validation.portUsed", { id: usedBy }),
           },
         ];
       }
       return [];
     },
-    [props.bridgeId, props.usedPorts],
+    [props.bridgeId, props.usedPorts, t],
   );
 
   const onChange = (data: object | undefined, isValid: boolean) => {
@@ -106,42 +112,33 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
     if (flags?.serverMode) {
       result.push({
         severity: "warning",
-        message:
-          "Server Mode is enabled. Only ONE device should be in this bridge. " +
-          "Multiple devices will cause errors.",
+        message: t("bridgeConfig.warnings.serverModeSingleDevice"),
       });
     }
 
     if (flags?.serverMode && flags?.vacuumOnOff === false) {
       result.push({
         severity: "warning",
-        message:
-          "Server Mode with Vacuum OnOff disabled: Alexa REQUIRES the OnOff cluster " +
-          "(PowerController) for robotic vacuums. Without it, the vacuum commissions " +
-          "but never appears in Alexa. Only disable this for Apple Home.",
+        message: t("bridgeConfig.warnings.serverModeVacuumOnOffDisabled"),
       });
     }
 
     if (!flags?.serverMode && flags?.vacuumOnOff) {
       result.push({
         severity: "warning",
-        message:
-          "Vacuum OnOff is enabled in bridge mode. This adds a non-standard cluster " +
-          "to the RVC device type which may cause issues with Apple Home and Google Home.",
+        message: t("bridgeConfig.warnings.vacuumOnOffBridgeMode"),
       });
     }
 
     if (flags?.autoForceSync && flags?.autoComposedDevices) {
       result.push({
         severity: "warning",
-        message:
-          "Auto Force Sync with Auto Composed Devices increases network traffic. " +
-          "Composed devices have more clusters, so each sync cycle sends more data.",
+        message: t("bridgeConfig.warnings.autoForceSyncComposedDevices"),
       });
     }
 
     return result;
-  }, [config]);
+  }, [config, t]);
 
   const saveAction = async () => {
     if (!isValid) {
@@ -153,21 +150,17 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
   return (
     <>
       <Alert severity="warning" variant="outlined">
-        Please consult{" "}
+        {t("bridgeConfig.documentation.prefix")}{" "}
         <Link href={navigation.faq.bridgeConfig} target="_blank">
-          the documentation
+          {t("bridgeConfig.documentation.link")}
         </Link>{" "}
-        for proper bridge configurations.{" "}
-        <strong>
-          Especially if you are using labels, see the "Labels" section.
-        </strong>
+        {t("bridgeConfig.documentation.suffix")}{" "}
+        <strong>{t("bridgeConfig.documentation.labelsHint")}</strong>
       </Alert>
 
       <Alert severity="info" variant="outlined">
-        <strong>Community tip:</strong> Users have reported that bridges with a
-        large number of devices can become unstable depending on the controller.
-        If you experience connectivity issues, consider splitting your devices
-        across multiple bridges.
+        <strong>{t("bridgeConfig.communityTip.title")}</strong>{" "}
+        {t("bridgeConfig.communityTip.description")}
       </Alert>
 
       {warnings.map((w) => (
@@ -198,7 +191,7 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
           <FormEditor
             value={config ?? {}}
             onChange={onChange}
-            schema={bridgeConfigSchema}
+            schema={localizedSchema}
             uiSchema={{
               icon: { "ui:widget": "hidden" },
               featureFlags: { "ui:field": "featureFlags" },
@@ -230,7 +223,7 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
           <JsonEditor
             value={config ?? {}}
             onChange={onChange}
-            schema={bridgeConfigSchema}
+            schema={localizedSchema}
             customValidate={validatePort}
           />
         )}
@@ -282,3 +275,125 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
     </>
   );
 };
+
+function cloneSchema(schema: JSONSchema7): JSONSchema7 {
+  return JSON.parse(JSON.stringify(schema)) as JSONSchema7;
+}
+
+function localizeBridgeConfigSchema(
+  schema: JSONSchema7,
+  t: TFunction,
+): JSONSchema7 {
+  const localized = cloneSchema(schema);
+  const properties = localized.properties as
+    | Record<string, JSONSchema7>
+    | undefined;
+
+  localized.title = t("bridgeConfig.title");
+
+  if (!properties) return localized;
+
+  localizeSchemaProperty(properties.name, t, "bridgeConfig.fields.name");
+  localizeSchemaProperty(properties.port, t, "bridgeConfig.fields.port");
+  localizeSchemaProperty(properties.icon, t, "bridgeConfig.fields.icon");
+  localizeSchemaProperty(
+    properties.countryCode,
+    t,
+    "bridgeConfig.fields.countryCode",
+  );
+  localizeSchemaProperty(
+    properties.priority,
+    t,
+    "bridgeConfig.fields.priority",
+  );
+  localizeSchemaProperty(
+    properties.serialNumberSuffix,
+    t,
+    "bridgeConfig.fields.serialNumberSuffix",
+  );
+  localizeSchemaProperty(
+    properties.sessionMaxAgeHours,
+    t,
+    "bridgeConfig.fields.sessionMaxAgeHours",
+  );
+
+  localizeFilterSchema(properties.filter, t);
+
+  return localized;
+}
+
+function localizeSchemaProperty(
+  schema: JSONSchema7 | undefined,
+  t: TFunction,
+  key: string,
+) {
+  if (!schema) return;
+  schema.title = t(`${key}.title`, { defaultValue: schema.title });
+  if (schema.description) {
+    schema.description = t(`${key}.description`, {
+      defaultValue: schema.description,
+    });
+  }
+}
+
+function localizeFilterSchema(schema: JSONSchema7 | undefined, t: TFunction) {
+  if (!schema) return;
+  schema.title = t("bridgeConfig.filter.title", {
+    defaultValue: schema.title,
+  });
+  const filterProperties = schema.properties as
+    | Record<string, JSONSchema7>
+    | undefined;
+  if (!filterProperties) return;
+
+  localizeSchemaProperty(
+    filterProperties.include,
+    t,
+    "bridgeConfig.filter.include",
+  );
+  localizeSchemaProperty(
+    filterProperties.exclude,
+    t,
+    "bridgeConfig.filter.exclude",
+  );
+  localizeSchemaProperty(
+    filterProperties.includeMode,
+    t,
+    "bridgeConfig.filter.includeMode",
+  );
+  if (filterProperties.includeMode) {
+    (
+      filterProperties.includeMode as JSONSchema7 & { enumNames?: string[] }
+    ).enumNames = [
+      t("bridgeConfig.filter.includeMode.options.any"),
+      t("bridgeConfig.filter.includeMode.options.all"),
+    ];
+  }
+
+  const matcherSchema = filterProperties.include?.items as
+    | JSONSchema7
+    | undefined;
+  localizeMatcherSchema(matcherSchema, t);
+  filterProperties.exclude.items = matcherSchema;
+}
+
+function localizeMatcherSchema(schema: JSONSchema7 | undefined, t: TFunction) {
+  const properties = schema?.properties as
+    | Record<string, JSONSchema7>
+    | undefined;
+  if (!properties) return;
+  localizeSchemaProperty(properties.type, t, "bridgeConfig.filter.type");
+  localizeSchemaProperty(properties.value, t, "bridgeConfig.filter.value");
+
+  const oneOf = properties.type.oneOf as
+    | Array<JSONSchema7 & { const?: string }>
+    | undefined;
+  for (const option of oneOf ?? []) {
+    if (!option.const) continue;
+    localizeSchemaProperty(
+      option,
+      t,
+      `bridgeConfig.filter.matcherTypes.${option.const}`,
+    );
+  }
+}
