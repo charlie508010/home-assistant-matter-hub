@@ -4,6 +4,7 @@ import {
 } from "@home-assistant-matter-hub/common";
 import type { Environment } from "@matter/general";
 import type { Endpoint } from "@matter/main";
+import { DescriptorServer } from "@matter/main/behaviors";
 import { CommissioningServer } from "@matter/main/node";
 import { DeviceAdvertiser, SessionManager } from "@matter/main/protocol";
 import type { BetterLogger, LoggerService } from "../../core/app/logger.js";
@@ -11,6 +12,10 @@ import { BridgeServerNode } from "../../matter/endpoints/bridge-server-node.js";
 import { ensureCommissioningConfig } from "../../utils/ensure-commissioning-config.js";
 import { isHeapUnderPressure, logMemoryUsage } from "../../utils/log-memory.js";
 import { diagnosticEventBus } from "../diagnostics/diagnostic-event-bus.js";
+import {
+  clearMatterReadEndpointDiagnostics,
+  setMatterReadEndpointDiagnostics,
+} from "../diagnostics/matter-read-diagnostics.js";
 import type {
   BridgeDataProvider,
   BridgeServerStatus,
@@ -28,6 +33,9 @@ const AUTO_FORCE_SYNC_INTERVAL_MS = 90_000;
 // where the controller holds a stale CASE session and never re-subscribes
 // because it doesn't know the server canceled its subscriptions (#266).
 const DEAD_SESSION_TIMEOUT_MS = 60_000;
+const ROOT_EP0_STABLE_SERVER_LIST = [
+  40, 31, 63, 48, 60, 62, 51, 49, 42, 70, 29,
+];
 
 export class Bridge {
   private readonly log: BetterLogger;
@@ -203,14 +211,102 @@ export class Bridge {
 
   async initialize(): Promise<void> {
     await this.server.construction.ready.then();
+    this.restoreRootEndpointServerList();
+    this.logRootEndpointServerListDiagnostics();
     await this.refreshDevices();
   }
+
+  private restoreRootEndpointServerList(): void {
+    try {
+      const descriptorState = this.server.stateOf(
+        DescriptorServer,
+      ) as unknown as {
+        serverList?: number[];
+      };
+
+      descriptorState.serverList = [...ROOT_EP0_STABLE_SERVER_LIST];
+    } catch (error) {
+      this.log.warnCtx("Unable to restore Root EP0 Descriptor serverList", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private logRootEndpointServerListDiagnostics(): void {
+    const activeBehaviors = [...this.server.behaviors.active].map((type) => {
+      const behavior = type as {
+        id?: string;
+        name?: string;
+        cluster?: { id?: number };
+      };
+
+      return {
+        name: behavior.name ?? behavior.id ?? "unknown",
+        id: behavior.id ?? null,
+        clusterId:
+          behavior.cluster?.id === undefined
+            ? null
+            : Number(behavior.cluster.id),
+      };
+    });
+
+    const activeBehaviorServerList = activeBehaviors
+      .map(({ clusterId }) => clusterId)
+      .filter((clusterId): clusterId is number => clusterId !== null);
+
+    const descriptorServerList = this.readRootDescriptorServerList();
+    const effectiveServerList =
+      descriptorServerList ?? activeBehaviorServerList;
+
+    this.log.info(
+      `Root EP0 effective serverList before startup: [${effectiveServerList.join(", ")}]`,
+    );
+    this.log.infoCtx("Root EP0 serverList diagnostic sources", {
+      effectiveSource:
+        descriptorServerList === undefined
+          ? "behaviors.active"
+          : "statischer Descriptor Patch / DescriptorServer.state.serverList",
+      behaviorsActiveServerList: activeBehaviorServerList,
+      descriptorServerList: descriptorServerList ?? null,
+      descriptorPatchSource: "DescriptorServer #serverList implementation",
+      rootEndpointWithSource:
+        "createBridgeServerConfig ServerNode.RootEndpoint.with(...)",
+    });
+    this.log.infoCtx("Root EP0 active behaviors before startup", {
+      behaviors: activeBehaviors,
+    });
+  }
+
+  private readRootDescriptorServerList(): number[] | undefined {
+    try {
+      const descriptorState = this.server.stateOf(DescriptorServer) as {
+        serverList?: unknown;
+      };
+      const { serverList } = descriptorState;
+
+      if (!Array.isArray(serverList)) {
+        return undefined;
+      }
+
+      return serverList
+        .map((clusterId) => Number(clusterId))
+        .filter((clusterId) => Number.isFinite(clusterId));
+    } catch (error) {
+      this.log.warnCtx("Unable to read Root EP0 Descriptor serverList", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return undefined;
+    }
+  }
+
   async dispose(): Promise<void> {
+    clearMatterReadEndpointDiagnostics(this.dataProvider.id);
     await this.stop();
   }
 
   async refreshDevices() {
     await this.endpointManager.refreshDevices();
+    this.updateMatterReadEndpointDiagnostics();
     // Prune stale entries from lastSyncedStates for entities that were removed
     const currentEntityIds = new Set(
       [...this.aggregator.parts].map(
@@ -221,6 +317,32 @@ export class Bridge {
       if (!currentEntityIds.has(entityId)) {
         this.lastSyncedStates.delete(entityId);
       }
+    }
+  }
+
+  private updateMatterReadEndpointDiagnostics(): void {
+    setMatterReadEndpointDiagnostics(this.dataProvider.id, [
+      {
+        endpointId: this.server.number,
+        endpointName: "RootNode",
+        name: "RootNode",
+        deviceTypeList: this.readEndpointDeviceTypeList(this.server),
+      },
+      {
+        endpointId: this.aggregator.number,
+        endpointName: "Aggregator",
+        name: "Aggregator",
+        deviceTypeList: this.readEndpointDeviceTypeList(this.aggregator),
+      },
+      ...this.endpointManager.getReadDiagnosticEndpointEntries(),
+    ]);
+  }
+
+  private readEndpointDeviceTypeList(endpoint: Endpoint): unknown {
+    try {
+      return endpoint.stateOf(DescriptorServer).deviceTypeList;
+    } catch {
+      return undefined;
     }
   }
 
@@ -599,9 +721,12 @@ export class Bridge {
     if (this.status.code !== BridgeStatus.Running) {
       return;
     }
+    this.log.info("Factory reset requested");
     await this.server.factoryReset();
+    this.log.info("Factory reset completed; restarting bridge");
     this.setStatus({ code: BridgeStatus.Stopped });
     await this.start();
+    this.log.info("commissioning window opened after reset/remove");
   }
 
   /**
