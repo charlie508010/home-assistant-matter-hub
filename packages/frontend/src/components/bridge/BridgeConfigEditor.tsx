@@ -199,10 +199,7 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
         {editorMode === BridgeEditorMode.FIELDS_EDITOR && (
           <>
             {(config as BridgeConfig)?.filter && (
-              <FilterPresetControls
-                filter={(config as BridgeConfig).filter}
-                onFilterChange={handleFilterChange}
-              />
+              <FilterPresetControls onFilterChange={handleFilterChange} />
             )}
             <FormEditor
               value={config ?? {}}
@@ -296,7 +293,7 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
   );
 };
 
-function cloneSchema(schema: JSONSchema7): JSONSchema7 {
+export function cloneSchema(schema: JSONSchema7): JSONSchema7 {
   return JSON.parse(JSON.stringify(schema)) as JSONSchema7;
 }
 
@@ -356,7 +353,10 @@ function localizeSchemaProperty(
   }
 }
 
-function localizeFilterSchema(schema: JSONSchema7 | undefined, t: TFunction) {
+export function localizeFilterSchema(
+  schema: JSONSchema7 | undefined,
+  t: TFunction,
+) {
   if (!schema) return;
   schema.title = t("bridgeConfig.filter.title", {
     defaultValue: schema.title,

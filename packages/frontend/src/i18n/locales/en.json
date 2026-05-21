@@ -73,6 +73,7 @@
     "startupOrder": "Startup Order",
     "lockCredentials": "Lock Credentials",
     "filterReference": "Filter Reference",
+    "filterPresets": "Filter Presets",
     "systemLogs": "System Logs",
     "lightMode": "Light Mode",
     "darkMode": "Dark Mode"
@@ -877,15 +878,24 @@
   },
   "filterPresets": {
     "title": "Entity Filter Presets",
+    "bridgeTitle": "Filter Preset",
     "selectLabel": "Select filter preset",
     "load": "Load preset",
     "detach": "Detach from preset / edit manually",
+    "manage": "Manage presets",
+    "name": "Preset name",
+    "newPreset": "New preset",
+    "duplicate": "Copy/Duplicate",
     "newName": "New preset name",
     "saveNew": "Save as new preset",
     "update": "Update preset",
     "activeManual": "Active filters: Manual",
     "activePreset": "Active filters: Preset {{name}}",
-    "help": "Loading a preset copies its rules into this bridge. Manual changes do not update the preset automatically."
+    "bridgeHelp": "Loading a preset copies its rules into this bridge. You can then edit them manually without changing the preset.",
+    "help": "Edit reusable filter presets here. Bridges copy the rules when loading a preset.",
+    "saved": "Preset saved.",
+    "deleted": "Preset deleted.",
+    "copyName": "{{name}} copy"
   },
   "bridgeIcon": {
     "bridgeIcon": "Bridge Icon",

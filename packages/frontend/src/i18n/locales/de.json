@@ -73,6 +73,7 @@
     "startupOrder": "Startreihenfolge",
     "lockCredentials": "Schloss-Zugangsdaten",
     "filterReference": "Filterreferenz",
+    "filterPresets": "Filter-Vorlagen",
     "systemLogs": "Systemlogs",
     "lightMode": "Heller Modus",
     "darkMode": "Dunkler Modus"
@@ -876,16 +877,25 @@
     }
   },
   "filterPresets": {
-    "title": "Entity-Filter-Vorlagen",
+    "title": "Filter-Vorlagen",
+    "bridgeTitle": "Filter-Vorlage",
     "selectLabel": "Filter-Vorlage auswählen",
     "load": "Vorlage laden",
     "detach": "Von Vorlage lösen / manuell bearbeiten",
+    "manage": "Vorlagen verwalten",
+    "name": "Vorlagenname",
+    "newPreset": "Neue Vorlage",
+    "duplicate": "Kopieren/Duplizieren",
     "newName": "Name der neuen Vorlage",
     "saveNew": "Als neue Vorlage speichern",
     "update": "Vorlage aktualisieren",
     "activeManual": "Aktive Filter: Manuell",
     "activePreset": "Aktive Filter: Vorlage {{name}}",
-    "help": "Beim Laden einer Vorlage werden deren Regeln in diese Bridge kopiert. Manuelle Änderungen ändern die Vorlage nicht automatisch."
+    "bridgeHelp": "Vorlage laden kopiert die Regeln in diese Bridge. Danach kannst du sie manuell ändern, ohne die Vorlage zu ändern.",
+    "help": "Bearbeite hier wiederverwendbare Filter-Vorlagen. Bridges kopieren die Regeln beim Laden.",
+    "saved": "Vorlage gespeichert.",
+    "deleted": "Vorlage gelöscht.",
+    "copyName": "{{name}} Kopie"
   },
   "bridgeIcon": {
     "bridgeIcon": "Bridge-Symbol",

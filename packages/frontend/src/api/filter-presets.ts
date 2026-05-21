@@ -35,3 +35,10 @@ export async function updateFilterPreset(
   await assertOk(res, "Failed to update filter preset");
   return parseJsonResponse<EntityFilterPreset>(res);
 }
+
+export async function deleteFilterPreset(presetId: string): Promise<void> {
+  const res = await fetch(`api/filter-presets/${presetId}`, {
+    method: "DELETE",
+  });
+  await assertOk(res, "Failed to delete filter preset");
+}
