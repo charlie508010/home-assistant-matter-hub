@@ -1,4 +1,3 @@
-import LanIcon from "@mui/icons-material/Lan";
 import SecurityIcon from "@mui/icons-material/Security";
 import SettingsIcon from "@mui/icons-material/Settings";
 import Alert from "@mui/material/Alert";
@@ -30,10 +29,6 @@ export const SettingsPage = () => {
 
       <Divider sx={{ my: 3 }} />
 
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        <LanIcon sx={{ mr: 1, verticalAlign: "middle", fontSize: 20 }} />
-        {t("settings.network")}
-      </Typography>
       <NetworkDiagnosticCard />
 
       <Divider sx={{ my: 3 }} />
