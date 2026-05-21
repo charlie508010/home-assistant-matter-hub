@@ -10,6 +10,8 @@ import { generateTemplates } from "@rjsf/mui";
 import type { ObjectFieldTemplateProps } from "@rjsf/utils";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useFilterPresetLoader } from "../FilterPresetContext.tsx";
+import { FilterPresetControls } from "../FilterPresetControls.tsx";
 
 const muiTemplates = generateTemplates();
 const DefaultObjectFieldTemplate = muiTemplates.ObjectFieldTemplate!;
@@ -26,6 +28,7 @@ export function BridgeObjectFieldTemplate(props: ObjectFieldTemplateProps) {
 
 function CollapsibleFilterTemplate(props: ObjectFieldTemplateProps) {
   const { t } = useTranslation();
+  const loadPreset = useFilterPresetLoader();
   const includeCount =
     (props.formData?.include as unknown[] | undefined)?.length ?? 0;
   const excludeCount =
@@ -75,6 +78,11 @@ function CollapsibleFilterTemplate(props: ObjectFieldTemplateProps) {
         </Typography>
       </AccordionSummary>
       <AccordionDetails sx={{ px: 2, pb: 2 }}>
+        {loadPreset && (
+          <Box sx={{ mb: 2 }}>
+            <FilterPresetControls onFilterChange={loadPreset} />
+          </Box>
+        )}
         {props.properties.map((prop) => (
           <div key={prop.name}>{prop.content}</div>
         ))}

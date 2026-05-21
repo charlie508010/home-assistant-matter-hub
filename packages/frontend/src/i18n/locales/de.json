@@ -879,8 +879,10 @@
   "filterPresets": {
     "title": "Filter-Vorlagen",
     "bridgeTitle": "Filter-Vorlage",
+    "loadDialogTitle": "Filtervorlage laden",
     "selectLabel": "Filter-Vorlage auswählen",
     "load": "Vorlage laden",
+    "loadShort": "Laden",
     "detach": "Von Vorlage lösen / manuell bearbeiten",
     "manage": "Vorlagen verwalten",
     "name": "Vorlagenname",
@@ -893,9 +895,43 @@
     "activePreset": "Aktive Filter: Vorlage {{name}}",
     "bridgeHelp": "Vorlage laden kopiert die Regeln in diese Bridge. Danach kannst du sie manuell ändern, ohne die Vorlage zu ändern.",
     "help": "Bearbeite hier wiederverwendbare Filter-Vorlagen. Bridges kopieren die Regeln beim Laden.",
+    "selectedDescription": "Diese Vorlage enthält {{include}} Include-Regeln, {{exclude}} Exclude-Regeln und nutzt Include Mode {{mode}}.",
+    "noPresets": "Noch keine Filter-Vorlagen vorhanden. Lege sie über die Seite Filter-Vorlagen an.",
     "saved": "Vorlage gespeichert.",
     "deleted": "Vorlage gelöscht.",
     "copyName": "{{name}} Kopie"
+  },
+  "filterReference": {
+    "title": "Filterreferenz",
+    "includeExclude": "Include-Regeln wählen aus, welche Home-Assistant-Entities in die Bridge übernommen werden. Exclude-Regeln entfernen danach gezielt passende Entities wieder aus der Auswahl.",
+    "includeMode": "Include Mode any bedeutet: Eine Include-Regel reicht. Include Mode all bedeutet: Alle Include-Regeln müssen gleichzeitig passen.",
+    "examples": [
+      {
+        "type": "entity_label",
+        "value": "alexa",
+        "description": "Entities mit dem Label alexa einbeziehen."
+      },
+      {
+        "type": "device_label",
+        "value": "matter",
+        "description": "Alle Entities von Geräten mit diesem Geräte-Label einbeziehen."
+      },
+      {
+        "type": "domain",
+        "value": "light",
+        "description": "Alle light.* Entities einbeziehen."
+      },
+      {
+        "type": "pattern",
+        "value": "switch.schlafzimmer_*",
+        "description": "Entity-IDs per Platzhalter filtern."
+      },
+      {
+        "type": "regex",
+        "value": "^(light|switch)\\.",
+        "description": "Entity-IDs per regulärem Ausdruck filtern."
+      }
+    ]
   },
   "bridgeIcon": {
     "bridgeIcon": "Bridge-Symbol",

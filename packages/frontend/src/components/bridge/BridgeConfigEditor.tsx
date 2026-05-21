@@ -23,8 +23,9 @@ import { FormEditor } from "../misc/editors/FormEditor";
 import { JsonEditor } from "../misc/editors/JsonEditor";
 import type { ValidationError } from "../misc/editors/validation-error.ts";
 import { BridgeIconUpload } from "./BridgeIconUpload.tsx";
-import { FilterPresetControls } from "./FilterPresetControls.tsx";
+import { FilterPresetProvider } from "./FilterPresetContext.tsx";
 import { FilterPreview } from "./FilterPreview.tsx";
+import { FilterReferenceHelp } from "./FilterReferenceHelp.tsx";
 import { BridgeObjectFieldTemplate } from "./rjsf/BridgeObjectFieldTemplate.tsx";
 import { CompactArrayFieldTemplate } from "./rjsf/CompactArrayFieldTemplate.tsx";
 import { EntityFilterRuleField } from "./rjsf/EntityFilterRuleField.tsx";
@@ -197,10 +198,7 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
         </Box>
 
         {editorMode === BridgeEditorMode.FIELDS_EDITOR && (
-          <>
-            {(config as BridgeConfig)?.filter && (
-              <FilterPresetControls onFilterChange={handleFilterChange} />
-            )}
+          <FilterPresetProvider value={handleFilterChange}>
             <FormEditor
               value={config ?? {}}
               onChange={onChange}
@@ -233,7 +231,7 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
                 entityFilterRule: EntityFilterRuleField,
               }}
             />
-          </>
+          </FilterPresetProvider>
         )}
 
         {editorMode === BridgeEditorMode.JSON_EDITOR && (
@@ -248,6 +246,8 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
         {(config as BridgeConfig)?.filter && (
           <FilterPreview filter={(config as BridgeConfig).filter} />
         )}
+
+        <FilterReferenceHelp />
 
         <Card variant="outlined">
           <CardContent>

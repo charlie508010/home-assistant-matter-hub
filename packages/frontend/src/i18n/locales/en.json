@@ -879,8 +879,10 @@
   "filterPresets": {
     "title": "Entity Filter Presets",
     "bridgeTitle": "Filter Preset",
+    "loadDialogTitle": "Load filter preset",
     "selectLabel": "Select filter preset",
     "load": "Load preset",
+    "loadShort": "Load",
     "detach": "Detach from preset / edit manually",
     "manage": "Manage presets",
     "name": "Preset name",
@@ -893,9 +895,43 @@
     "activePreset": "Active filters: Preset {{name}}",
     "bridgeHelp": "Loading a preset copies its rules into this bridge. You can then edit them manually without changing the preset.",
     "help": "Edit reusable filter presets here. Bridges copy the rules when loading a preset.",
+    "selectedDescription": "This preset contains {{include}} include rules, {{exclude}} exclude rules, and uses include mode {{mode}}.",
+    "noPresets": "No filter presets exist yet. Create them on the Filter Presets page.",
     "saved": "Preset saved.",
     "deleted": "Preset deleted.",
     "copyName": "{{name}} copy"
+  },
+  "filterReference": {
+    "title": "Filter Reference",
+    "includeExclude": "Include rules select which Home Assistant entities are added to the bridge. Exclude rules then remove matching entities from that selection.",
+    "includeMode": "Include mode any means one include rule is enough. Include mode all means all include rules must match at the same time.",
+    "examples": [
+      {
+        "type": "entity_label",
+        "value": "alexa",
+        "description": "Include entities with the alexa label."
+      },
+      {
+        "type": "device_label",
+        "value": "matter",
+        "description": "Include all entities from devices with this device label."
+      },
+      {
+        "type": "domain",
+        "value": "light",
+        "description": "Include all light.* entities."
+      },
+      {
+        "type": "pattern",
+        "value": "switch.bedroom_*",
+        "description": "Filter entity IDs with wildcards."
+      },
+      {
+        "type": "regex",
+        "value": "^(light|switch)\\.",
+        "description": "Filter entity IDs with a regular expression."
+      }
+    ]
   },
   "bridgeIcon": {
     "bridgeIcon": "Bridge Icon",
