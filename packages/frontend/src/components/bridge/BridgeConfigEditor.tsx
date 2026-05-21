@@ -193,6 +193,9 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
             onChange={onChange}
             schema={localizedSchema}
             uiSchema={{
+              "ui:submitButtonOptions": {
+                submitText: t("common.save"),
+              },
               icon: { "ui:widget": "hidden" },
               featureFlags: { "ui:field": "featureFlags" },
               filter: {

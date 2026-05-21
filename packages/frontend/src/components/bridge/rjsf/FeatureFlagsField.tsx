@@ -55,6 +55,16 @@ const FEATURE_FLAG_SECTIONS = [
   },
 ] as const;
 
+const FEATURE_FLAG_BADGES: Record<string, "workaround" | "controllerRisk"> = {
+  coverDoNotInvertPercentage: "controllerRisk",
+  coverUseHomeAssistantPercentage: "workaround",
+  coverSwapOpenClose: "workaround",
+  vacuumOnOff: "controllerRisk",
+  alexaPreserveBrightnessOnTurnOn: "controllerRisk",
+  preferEntityRegistryName: "workaround",
+  useHaRegistrySerial: "controllerRisk",
+};
+
 export function FeatureFlagsField(props: FieldProps) {
   const { t } = useTranslation();
   const {
@@ -106,6 +116,7 @@ export function FeatureFlagsField(props: FieldProps) {
       flagSchema.title?.toLowerCase().includes("deprecated") ?? false;
     const isNumber =
       flagSchema.type === "number" || flagSchema.type === "integer";
+    const badge = FEATURE_FLAG_BADGES[key];
 
     return (
       <Grid key={key} size={{ xs: 12, sm: 6, lg: 4 }}>
@@ -161,6 +172,20 @@ export function FeatureFlagsField(props: FieldProps) {
                       color="primary"
                       variant="outlined"
                       sx={{ mt: 0.5, height: 20, fontSize: "0.7rem" }}
+                    />
+                  )}
+                  {badge && (
+                    <Chip
+                      label={t(`featureFlags.badges.${badge}`)}
+                      size="small"
+                      color={badge === "controllerRisk" ? "warning" : "info"}
+                      variant="outlined"
+                      sx={{
+                        mt: 0.5,
+                        mr: 0.5,
+                        height: 20,
+                        fontSize: "0.7rem",
+                      }}
                     />
                   )}
                 </Box>

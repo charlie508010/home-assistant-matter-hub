@@ -708,6 +708,10 @@
       "alexa": "Alexa-Kompatibilität",
       "stability": "Synchronisation & Stabilität",
       "other": "Weitere Optionen"
+    },
+    "badges": {
+      "workaround": "Workaround",
+      "controllerRisk": "Kann Controller stören"
     }
   },
   "bridgeConfig": {
@@ -852,5 +856,50 @@
         }
       }
     }
+  },
+  "bridgeIcon": {
+    "bridgeIcon": "Bridge-Symbol",
+    "selectPresetOrUpload": "Wähle ein voreingestelltes Symbol oder lade ein eigenes Bild hoch.",
+    "customIconSet": "Ein eigenes Symbol ist gesetzt. Lösche es, um voreingestellte Symbole zu verwenden.",
+    "customIcon": "Eigenes Symbol",
+    "customIconAlt": "Eigenes Bridge-Symbol",
+    "upload": "Bild hochladen",
+    "uploading": "Wird hochgeladen...",
+    "supportedFormats": "Unterstützte Formate: PNG, JPG, GIF, WebP, SVG (max. 5 MB)",
+    "saveFirst": "Speichere die Bridge zuerst, um ein eigenes Symbol hochzuladen.",
+    "options": {
+      "auto": "Automatisch (nach Domain/Name)",
+      "light": "Licht",
+      "switch": "Schalter",
+      "climate": "Klima",
+      "cover": "Rollladen/Cover",
+      "fan": "Lüfter",
+      "lock": "Schloss",
+      "sensor": "Sensor",
+      "mediaPlayer": "Medienplayer",
+      "vacuum": "Saugroboter",
+      "remote": "Fernbedienung",
+      "humidifier": "Luftbefeuchter",
+      "speaker": "Lautsprecher",
+      "garage": "Garage",
+      "door": "Tür",
+      "window": "Fenster",
+      "motion": "Bewegung",
+      "battery": "Batterie",
+      "power": "Leistung",
+      "camera": "Kamera",
+      "default": "Standard"
+    }
+  },
+  "filterPreview": {
+    "previewButton": "Passende Entities anzeigen",
+    "fetchFailed": "Vorschau konnte nicht geladen werden",
+    "warningVacuum": "Dieser Filter enthält einen Saugroboter. Für Apple-Home-/Alexa-Kompatibilität solltest du den Servermodus verwenden (ein Gerät pro Bridge).",
+    "warningLargeBridge": "{{count}} Entities sind sehr viele. Für bessere Stabilität solltest du sie auf mehrere Bridges verteilen.",
+    "warningUnsupportedDomains": "Nicht unterstützte Domains werden übersprungen: {{domains}}",
+    "entitiesMatch_one": "{{count}} Entity passt",
+    "entitiesMatch_other": "{{count}} Entities passen",
+    "showingFirst": "Zeige erste {{count}}",
+    "hidePreview": "Vorschau ausblenden"
   }
 }

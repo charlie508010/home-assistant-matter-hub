@@ -708,6 +708,10 @@
       "alexa": "Alexa Compatibility",
       "stability": "Synchronization & Stability",
       "other": "Other"
+    },
+    "badges": {
+      "workaround": "Workaround",
+      "controllerRisk": "May affect controllers"
     }
   },
   "bridgeConfig": {
@@ -852,5 +856,50 @@
         }
       }
     }
+  },
+  "bridgeIcon": {
+    "bridgeIcon": "Bridge Icon",
+    "selectPresetOrUpload": "Select a preset icon or upload a custom image.",
+    "customIconSet": "Custom icon is set. Delete it to use preset icons.",
+    "customIcon": "Custom Icon",
+    "customIconAlt": "Custom bridge icon",
+    "upload": "Upload Image",
+    "uploading": "Uploading...",
+    "supportedFormats": "Supported formats: PNG, JPG, GIF, WebP, SVG (max 5MB)",
+    "saveFirst": "Save the bridge first to upload a custom icon.",
+    "options": {
+      "auto": "Auto (based on domain/name)",
+      "light": "Light",
+      "switch": "Switch",
+      "climate": "Climate",
+      "cover": "Cover",
+      "fan": "Fan",
+      "lock": "Lock",
+      "sensor": "Sensor",
+      "mediaPlayer": "Media Player",
+      "vacuum": "Vacuum",
+      "remote": "Remote",
+      "humidifier": "Humidifier",
+      "speaker": "Speaker",
+      "garage": "Garage",
+      "door": "Door",
+      "window": "Window",
+      "motion": "Motion",
+      "battery": "Battery",
+      "power": "Power",
+      "camera": "Camera",
+      "default": "Default"
+    }
+  },
+  "filterPreview": {
+    "previewButton": "Preview Matching Entities",
+    "fetchFailed": "Failed to fetch preview",
+    "warningVacuum": "This filter includes a vacuum. Consider using Server Mode (single device per bridge) for Apple Home/Alexa compatibility.",
+    "warningLargeBridge": "{{count}} entities is a large number. Consider splitting across multiple bridges for better stability.",
+    "warningUnsupportedDomains": "Unsupported domains will be skipped: {{domains}}",
+    "entitiesMatch_one": "{{count}} entity matches",
+    "entitiesMatch_other": "{{count}} entities match",
+    "showingFirst": "Showing first {{count}}",
+    "hidePreview": "Hide Preview"
   }
 }
