@@ -14,7 +14,13 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(process.env.APP_VERSION || "0.0.0-dev"),
   },
-  plugins: [react(), svgr(), markdown()],
+  plugins: [
+    react({
+      useAtYourOwnRisk_mutateSwcOptions: () => {},
+    }),
+    svgr(),
+    markdown(),
+  ],
 });
 
 function markdown(): Plugin {
