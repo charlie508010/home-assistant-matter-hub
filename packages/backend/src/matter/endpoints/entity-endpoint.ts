@@ -2,6 +2,10 @@ import type { EntityMappingConfig } from "@home-assistant-matter-hub/common";
 import { Endpoint } from "@matter/main";
 import type { EndpointType } from "@matter/main/node";
 import type { HomeAssistantStates } from "../../services/home-assistant/home-assistant-registry.js";
+import {
+  createStableEndpointId,
+  withStableEndpointUniqueId,
+} from "./endpoint-unique-id.js";
 
 export abstract class EntityEndpoint extends Endpoint {
   readonly mappedEntityIds: string[];
@@ -10,10 +14,12 @@ export abstract class EntityEndpoint extends Endpoint {
   protected constructor(
     type: EndpointType,
     readonly entityId: string,
-    customName?: string,
+    _customName?: string,
     mappedEntityIds?: string[],
   ) {
-    super(type, { id: createEndpointId(entityId, customName) });
+    super(withStableEndpointUniqueId(type, entityId), {
+      id: createStableEndpointId(entityId),
+    });
     this.mappedEntityIds = mappedEntityIds ?? [];
   }
 
@@ -32,11 +38,6 @@ export abstract class EntityEndpoint extends Endpoint {
   }
 
   abstract updateStates(states: HomeAssistantStates): Promise<void>;
-}
-
-function createEndpointId(entityId: string, customName?: string): string {
-  const baseName = customName || entityId;
-  return baseName.replace(/\./g, "_").replace(/\s+/g, "_");
 }
 
 export function getMappedEntityIds(mapping?: EntityMappingConfig): string[] {

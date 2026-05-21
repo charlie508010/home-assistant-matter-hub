@@ -18,6 +18,10 @@ import type { HomeAssistantStates } from "../../../services/home-assistant/home-
 import { BasicInformationServer } from "../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../behaviors/identify-server.js";
+import {
+  createStableEndpointId,
+  withStableEndpointUniqueId,
+} from "../endpoint-unique-id.js";
 import { createLegacyEndpointType } from "../legacy/create-legacy-endpoint-type.js";
 
 const logger = Logger.get("UserComposedEndpoint");
@@ -31,11 +35,6 @@ function stripBasicInformation(type: EndpointType): EndpointType {
   const behaviors = { ...type.behaviors };
   delete (behaviors as Record<string, unknown>).bridgedDeviceBasicInformation;
   return { ...type, behaviors };
-}
-
-function createEndpointId(entityId: string, customName?: string): string {
-  const baseName = customName || entityId;
-  return baseName.replace(/\./g, "_").replace(/\s+/g, "_");
 }
 
 function buildEntityPayload(
@@ -112,7 +111,7 @@ export class UserComposedEndpoint extends Endpoint {
       );
     }
 
-    const endpointId = createEndpointId(primaryEntityId, config.customName);
+    const endpointId = createStableEndpointId(primaryEntityId);
     const parts: Endpoint[] = [];
     const subEndpointMap = new Map<string, Endpoint>();
     const mappedIds: string[] = [];
@@ -131,9 +130,15 @@ export class UserComposedEndpoint extends Endpoint {
       return undefined;
     }
 
-    const primarySub = new Endpoint(stripBasicInformation(primaryType), {
-      id: `${endpointId}_primary`,
-    });
+    const primarySub = new Endpoint(
+      withStableEndpointUniqueId(
+        stripBasicInformation(primaryType),
+        `${primaryEntityId}:primary`,
+      ),
+      {
+        id: createStableEndpointId(primaryEntityId, "primary"),
+      },
+    );
     parts.push(primarySub);
     subEndpointMap.set(primaryEntityId, primarySub);
 
@@ -163,9 +168,15 @@ export class UserComposedEndpoint extends Endpoint {
         continue;
       }
 
-      const subEndpoint = new Endpoint(stripBasicInformation(subType), {
-        id: `${endpointId}_sub_${i}`,
-      });
+      const subEndpoint = new Endpoint(
+        withStableEndpointUniqueId(
+          stripBasicInformation(subType),
+          `${sub.entityId}:sub:${i}`,
+        ),
+        {
+          id: createStableEndpointId(sub.entityId, `sub_${i}`),
+        },
+      );
       parts.push(subEndpoint);
       subEndpointMap.set(sub.entityId, subEndpoint);
       mappedIds.push(sub.entityId);
@@ -180,13 +191,16 @@ export class UserComposedEndpoint extends Endpoint {
     }
 
     // Create parent endpoint with sub-endpoints as parts
-    const parentTypeWithState = parentType.set({
-      homeAssistantEntity: {
-        entity: primaryPayload,
-        customName: config.customName,
-        mapping: config.mapping,
-      },
-    });
+    const parentTypeWithState = withStableEndpointUniqueId(
+      parentType.set({
+        homeAssistantEntity: {
+          entity: primaryPayload,
+          customName: config.customName,
+          mapping: config.mapping,
+        },
+      }),
+      primaryEntityId,
+    );
 
     const endpoint = new UserComposedEndpoint(
       parentTypeWithState,

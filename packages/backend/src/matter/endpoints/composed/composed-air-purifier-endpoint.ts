@@ -43,6 +43,10 @@ import {
   type TemperatureMeasurementConfig,
   TemperatureMeasurementServer,
 } from "../../behaviors/temperature-measurement-server.js";
+import {
+  createStableEndpointId,
+  withStableEndpointUniqueId,
+} from "../endpoint-unique-id.js";
 import { AirPurifierHepaFilterMonitoringServer } from "../legacy/air-purifier/behaviors/air-purifier-hepa-filter-monitoring-server.js";
 import { FanFanControlServer } from "../legacy/fan/behaviors/fan-fan-control-server.js";
 import { FanOnOffServer } from "../legacy/fan/behaviors/fan-on-off-server.js";
@@ -104,11 +108,6 @@ const HumiditySubType = HumiditySensorDevice.with(
 );
 
 // --- Helper ---
-
-function createEndpointId(entityId: string, customName?: string): string {
-  const baseName = customName || entityId;
-  return baseName.replace(/\./g, "_").replace(/\s+/g, "_");
-}
 
 function buildEntityPayload(
   registry: BridgeRegistry,
@@ -285,18 +284,21 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
     }
 
     // Build sub-endpoints
-    const endpointId = createEndpointId(primaryEntityId, config.customName);
+    const endpointId = createStableEndpointId(primaryEntityId);
     const parts: Endpoint[] = [];
 
     // Air Purifier sub-endpoint (always present)
     const airPurifierSub = new Endpoint(
-      airPurifierSubType.set({
-        homeAssistantEntity: {
-          entity: primaryPayload,
-          mapping: airPurifierMapping,
-        },
-      }),
-      { id: `${endpointId}_air_purifier` },
+      withStableEndpointUniqueId(
+        airPurifierSubType.set({
+          homeAssistantEntity: {
+            entity: primaryPayload,
+            mapping: airPurifierMapping,
+          },
+        }),
+        `${primaryEntityId}:air_purifier`,
+      ),
+      { id: createStableEndpointId(primaryEntityId, "air_purifier") },
     );
     parts.push(airPurifierSub);
 
@@ -309,10 +311,13 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
       );
       if (tempPayload) {
         tempSub = new Endpoint(
-          TemperatureSubType.set({
-            homeAssistantEntity: { entity: tempPayload },
-          }),
-          { id: `${endpointId}_temp` },
+          withStableEndpointUniqueId(
+            TemperatureSubType.set({
+              homeAssistantEntity: { entity: tempPayload },
+            }),
+            `${config.temperatureEntityId}:temperature`,
+          ),
+          { id: createStableEndpointId(config.temperatureEntityId, "temp") },
         );
         parts.push(tempSub);
       }
@@ -324,23 +329,29 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
       const humPayload = buildEntityPayload(registry, config.humidityEntityId);
       if (humPayload) {
         humSub = new Endpoint(
-          HumiditySubType.set({
-            homeAssistantEntity: { entity: humPayload },
-          }),
-          { id: `${endpointId}_humidity` },
+          withStableEndpointUniqueId(
+            HumiditySubType.set({
+              homeAssistantEntity: { entity: humPayload },
+            }),
+            `${config.humidityEntityId}:humidity`,
+          ),
+          { id: createStableEndpointId(config.humidityEntityId, "humidity") },
         );
         parts.push(humSub);
       }
     }
 
     // Create parent endpoint with sub-endpoints as parts
-    const parentTypeWithState = parentType.set({
-      homeAssistantEntity: {
-        entity: primaryPayload,
-        customName: config.customName,
-        mapping: parentMapping,
-      },
-    });
+    const parentTypeWithState = withStableEndpointUniqueId(
+      parentType.set({
+        homeAssistantEntity: {
+          entity: primaryPayload,
+          customName: config.customName,
+          mapping: parentMapping,
+        },
+      }),
+      primaryEntityId,
+    );
 
     // Expose non-primary entity IDs so bridge-endpoint-manager subscribes to
     // their state changes via WebSocket.

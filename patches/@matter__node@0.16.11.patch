@@ -1,0 +1,953 @@
+diff --git a/dist/cjs/behavior/system/commissioning/CommissioningServer.js b/dist/cjs/behavior/system/commissioning/CommissioningServer.js
+index 7223fcaa25378958a20893bd1af9ecd9bd13d184..0033842c72833d44f2c25bffb340eea79dd0de5c 100644
+--- a/dist/cjs/behavior/system/commissioning/CommissioningServer.js
++++ b/dist/cjs/behavior/system/commissioning/CommissioningServer.js
+@@ -177,6 +177,7 @@ class CommissioningServer extends import_Behavior.Behavior {
+       );
+     }
+     await this.env.get(import_protocol.DeviceCommissioner).allowBasicCommissioning();
++    logger.info("commissioning window opened after reset/remove");
+     this.initiateCommissioning();
+   }
+   /**
+diff --git a/dist/cjs/behaviors/descriptor/DescriptorServer.js b/dist/cjs/behaviors/descriptor/DescriptorServer.js
+index a6786485017dd7789ee6a8fc4f0d9033dcdb2ae2..032dd4958a7f9b70f7003774d755b7daa98eb4e8 100644
+--- a/dist/cjs/behaviors/descriptor/DescriptorServer.js
++++ b/dist/cjs/behaviors/descriptor/DescriptorServer.js
+@@ -167,7 +167,7 @@ class DescriptorServer extends import_DescriptorBehavior.DescriptorBehavior {
+     }
+     numbers.sort();
+     if (this.state.partsList.length === numbers.length) {
+-      let i = numbers.length;
++      let i = 0;
+       for (; i < numbers.length; i++) {
+         if (this.state.partsList[i] !== numbers[i]) {
+           break;
+@@ -186,10 +186,13 @@ class DescriptorServer extends import_DescriptorBehavior.DescriptorBehavior {
+    */
+   get #serverList() {
+     const list = new Array();
+-    for (const type of Object.values(this.endpoint.behaviors.supported)) {
++    if (this.endpoint.number === 0) {
++      return [40, 31, 63, 48, 60, 62, 51, 49, 42, 70, 29];
++    }
++    for (const type of this.endpoint.behaviors.active) {
+       const clusterId = type.cluster?.id;
+-      if (clusterId) {
++      if (clusterId !== void 0) {
+         list.push(clusterId);
+       }
+     }
+     return list;
+diff --git a/dist/cjs/node/server/InteractionServer.js b/dist/cjs/node/server/InteractionServer.js
+--- a/dist/cjs/node/server/InteractionServer.js
++++ b/dist/cjs/node/server/InteractionServer.js
+@@ -80,6 +80,48 @@ var import_ServerSubscription = require("./ServerSubscription.js");
+  * SPDX-License-Identifier: Apache-2.0
+  */
+ const logger = import_general.Logger.get("InteractionServer");
++const hamhReadClusterNames = /* @__PURE__ */ new Map([
++  [29, "Descriptor"],
++  [31, "AccessControl"],
++  [40, "BasicInformation"],
++  [42, "OtaSoftwareUpdateRequestor"],
++  [48, "GeneralCommissioning"],
++  [49, "NetworkCommissioning"],
++  [51, "GeneralDiagnostics"],
++  [60, "AdministratorCommissioning"],
++  [62, "OperationalCredentials"],
++  [63, "GroupKeyManagement"],
++  [70, "IcdManagement"]
++]);
++const hamhReadAttributeNames = /* @__PURE__ */ new Map([
++  [29, /* @__PURE__ */ new Map([[0, "deviceTypeList"], [1, "serverList"], [2, "clientList"], [3, "partsList"], [5, "endpointUniqueId"]])],
++  [-1, /* @__PURE__ */ new Map([[65528, "generatedCommandList"], [65529, "acceptedCommandList"], [65531, "attributeList"], [65532, "featureMap"], [65533, "clusterRevision"]])]
++]);
++function hamhFormatReadId(value) {
++  return value === void 0 ? "<wildcard>" : `0x${Number(value).toString(16)}`;
++}
++function hamhReadName(map, id) {
++  return id === void 0 ? "<wildcard>" : (map.get(Number(id)) ?? `0x${Number(id).toString(16)}`);
++}
++function hamhAttributeName(clusterId, attributeId) {
++  if (attributeId === void 0) return "<wildcard>";
++  return hamhReadAttributeNames.get(Number(clusterId))?.get(Number(attributeId)) ?? hamhReadAttributeNames.get(-1)?.get(Number(attributeId)) ?? `0x${Number(attributeId).toString(16)}`;
++}
++function hamhLogReadDiagnostics(nodeId, protocol, attributeRequests) {
++  if (!attributeRequests?.length) return;
++  const registry = globalThis.__HAMH_MATTER_READ_DIAGNOSTICS__?.bridges;
++  const endpointMap = registry?.[String(nodeId)] ?? registry?.default;
++  for (const path of attributeRequests) {
++    const endpointId = path.endpointId;
++    const endpoint = endpointId === void 0 ? void 0 : endpointMap?.[String(endpointId)];
++    const clusterName = hamhReadName(hamhReadClusterNames, path.clusterId);
++    const attributeName = hamhAttributeName(path.clusterId, path.attributeId);
++    const name = endpoint?.name ?? endpoint?.friendlyName ?? endpoint?.registryName ?? endpoint?.endpointName ?? "<unknown>";
++    logger.info(
++      `Alexa/Controller read endpoint=${endpointId ?? "<wildcard>"} endpointType=${endpoint?.endpointName ?? "<unknown>"} entity=${endpoint?.entityId ?? (endpointId === void 0 ? "<wildcard>" : "<unknown>")} name=${JSON.stringify(name)} deviceTypeList=${JSON.stringify(endpoint?.deviceTypeList ?? null)} cluster=${clusterName}(${hamhFormatReadId(path.clusterId)}) attribute=${attributeName}(${hamhFormatReadId(path.attributeId)}) path=${protocol.inspectPath(path)}`
++    );
++  }
++}
+ function validateReadAttributesPath(path, isGroupSession = false) {
+   if (isGroupSession) {
+     throw new import_types.StatusResponseError("Illegal read request with group session", import_types.StatusCode.InvalidAction);
+@@ -216,6 +258,7 @@ class InteractionServer {
+       interactionModelRevision
+     } = readRequest;
++    hamhLogReadDiagnostics(this.#node.id, this.#node.protocol, attributeRequests);
+     logger.debug(() => [
+       "Read",
+       import_protocol.Mark.INBOUND,
+       exchange.via,
+diff --git a/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js b/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
+index e1655864865d84eae9f50c0c0eb79662ae3f189d..b15cc35f947acaa9c2d833cff2ab1da57798f586 100644
+--- a/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
++++ b/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
+@@ -297,6 +297,7 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
+   }
+   async removeFabric({ fabricIndex }) {
+     (0, import_protocol.assertRemoteActor)(this.context);
++    logger.info(`removeFabric requested fabricIndex=${fabricIndex}`);
+     const fabric = this.env.get(import_protocol.FabricManager).maybeFor(fabricIndex);
+     if (fabric === void 0) {
+       return {
+@@ -305,7 +306,12 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
+       };
+     }
+     await this.context.transaction.rollback();
+-    await fabric.leave(this.context.exchange);
++    try {
++      await fabric.leave(this.context.exchange);
++    } catch (error) {
++      logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
++    }
++    logger.info(`removeFabric succeeded statusCode=0 fabricIndex=${fabricIndex}`);
+     return {
+       statusCode: import_operational_credentials.OperationalCredentials.NodeOperationalCertStatus.Ok,
+       fabricIndex
+diff --git a/dist/cjs/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.js b/dist/cjs/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.js
+index 81870836236328447186932995fe23d975ebaca9..16846544eb5e544f0ede4b953f3ae2966b4724fa 100644
+--- a/dist/cjs/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.js
++++ b/dist/cjs/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.js
+@@ -242,7 +242,6 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+       );
+     }
+     const provider = { fabricIndex, providerNodeId, endpoint };
+-    await this.#addActiveOtaProvider(provider, metadataForNode);
+     logger.info(
+       `${announcementReason === import_ota_software_update_requestor.OtaSoftwareUpdateRequestor.AnnouncementReason.UrgentUpdateAvailable ? "Urgent " : ""}OTA Provider announcement received:`,
+       import_general.Diagnostic.dict({
+@@ -251,8 +250,11 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+         vendorId
+       })
+     );
+-    const peerAddress = (0, import_protocol.PeerAddress)({ nodeId: providerNodeId, fabricIndex });
+-    await import_Node.Node.forEndpoint(this.endpoint).peers.forAddress(peerAddress);
++    if (!this.#isLocalFabric(fabricIndex)) {
++      this.#logIgnoringNonLocalOtaProvider(provider);
++      return;
++    }
++    await this.#addActiveOtaProvider(provider, metadataForNode);
+     if (announcementReason !== import_ota_software_update_requestor.OtaSoftwareUpdateRequestor.AnnouncementReason.SimpleAnnouncement) {
+       const delay = (0, import_general.Seconds)(Math.floor(Math.random() * 599) + 1);
+       logger.info(`Scheduling urgent update query in`, delay);
+@@ -261,11 +263,56 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+       this.#scheduleUpdateQuery();
+     }
+   }
+-  /** Adds or updates an active OTA provider entry for a fabric index */
++  #locationKey({ fabricIndex, providerNodeId, endpoint }) {
++    return `${fabricIndex}:${providerNodeId}:${endpoint}`;
++  }
++  #isSameProviderLocation(a, b) {
++    return this.#locationKey(a) === this.#locationKey(b);
++  }
++  #isLocalFabric(fabricIndex) {
++    const serverNode = import_Node.Node.forEndpoint(this.endpoint);
++    return Object.values(serverNode.state.commissioning.fabrics).some((fabric) => fabric.fabricIndex === fabricIndex);
++  }
++  #logIgnoringNonLocalOtaProvider({ fabricIndex, providerNodeId, endpoint }) {
++    logger.warn(
++      `Ignoring OTA provider announcement for unknown/non-local fabricIndex=${fabricIndex}, providerNodeId=${providerNodeId}, endpoint=${endpoint}`
++    );
++  }
++  #preferOtaProviderEntry(candidate, current) {
++    const candidateTimestamp = candidate.previousQueryTimestamp;
++    const currentTimestamp = current.previousQueryTimestamp;
++    if (candidateTimestamp === null) {
++      return false;
++    }
++    if (currentTimestamp === null) {
++      return true;
++    }
++    return candidateTimestamp > currentTimestamp;
++  }
++  #deduplicateActiveOtaProviders() {
++    const deduplicated = /* @__PURE__ */ new Map();
++    for (const provider of this.state.activeOtaProviders) {
++      const key = this.#locationKey(provider.location);
++      const current = deduplicated.get(key);
++      if (current === void 0 || this.#preferOtaProviderEntry(provider, current)) {
++        deduplicated.set(key, provider);
++      }
++    }
++    if (deduplicated.size !== this.state.activeOtaProviders.length) {
++      this.state.activeOtaProviders = [...deduplicated.values()];
++      logger.info(`Deduplicated active OTA providers to ${this.state.activeOtaProviders.length} entries.`);
++    }
++  }
++  /** Adds or updates an active OTA provider entry for a provider location */
+   async #addActiveOtaProvider(provider, metadataForNode) {
+     const { fabricIndex, providerNodeId } = provider;
++    if (!this.#isLocalFabric(fabricIndex)) {
++      this.#logIgnoringNonLocalOtaProvider(provider);
++      return;
++    }
++    this.#deduplicateActiveOtaProviders();
+     const activeProviderIndex = this.state.activeOtaProviders.findIndex(
+-      (p) => p.location.fabricIndex === fabricIndex && p.location.providerNodeId === providerNodeId
++      (p) => this.#isSameProviderLocation(p.location, provider)
+     );
+     const activeProviderEntry = {
+       location: provider,
+@@ -283,15 +330,15 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+   }
+   /** Removes an OTA provider from the active and default list */
+   #removeOtaProvider(provider) {
+-    const { fabricIndex, providerNodeId } = provider;
++    const { fabricIndex, providerNodeId, endpoint } = provider;
+     const activeProviderIndex = this.state.activeOtaProviders.findIndex(
+-      (p) => p.location.fabricIndex === fabricIndex && p.location.providerNodeId === providerNodeId
++      (p) => this.#isSameProviderLocation(p.location, provider)
+     );
+     if (activeProviderIndex !== -1) {
+       this.state.activeOtaProviders.splice(activeProviderIndex, 1);
+     }
+     const defaultProviderIndex = this.state.defaultOtaProviders.findIndex(
+-      (p) => p.fabricIndex === fabricIndex && p.providerNodeId === providerNodeId
++      (p) => p.fabricIndex === fabricIndex && p.providerNodeId === providerNodeId && p.endpoint === endpoint
+     );
+     if (defaultProviderIndex !== -1) {
+       this.state.defaultOtaProviders.splice(defaultProviderIndex, 1);
+@@ -299,9 +346,8 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+   }
+   /**  Marks an OTA provider as active but with no update available (timestamp 0) */
+   #markActiveOtaProviderNoUpdate(provider) {
+-    const { fabricIndex, providerNodeId } = provider;
+     const activeProviderIndex = this.state.activeOtaProviders.findIndex(
+-      (p) => p.location.fabricIndex === fabricIndex && p.location.providerNodeId === providerNodeId
++      (p) => this.#isSameProviderLocation(p.location, provider)
+     );
+     if (activeProviderIndex !== -1) {
+       this.state.activeOtaProviders[activeProviderIndex].previousQueryTimestamp = import_general.Time.nowMs;
+@@ -354,10 +400,16 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+   }
+   /** Choose the next OTA provider to use for an update */
+   #chooseUpdateProvider() {
++    this.#deduplicateActiveOtaProviders();
+     if (this.internal.selectedProviderLocation !== void 0) {
+       const selected = this.internal.selectedProviderLocation;
+       logger.debug(`Choosing pre-selected provider`, import_general.Diagnostic.dict(selected));
+       this.internal.selectedProviderLocation = void 0;
++      if (!this.#isLocalFabric(selected.fabricIndex)) {
++        this.#logIgnoringNonLocalOtaProvider(selected);
++        this.#removeOtaProvider(selected);
++        return this.#chooseUpdateProvider();
++      }
+       return selected;
+     }
+     if (this.state.activeOtaProviders.length > 0) {
+@@ -371,6 +423,11 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+         (0, import_protocol.PeerAddress)({ nodeId: location.providerNodeId, fabricIndex: location.fabricIndex }),
+         `ep${location.endpoint}`
+       );
++      if (!this.#isLocalFabric(location.fabricIndex)) {
++        this.#logIgnoringNonLocalOtaProvider(location);
++        this.#removeOtaProvider(location);
++        return this.#chooseUpdateProvider();
++      }
+       return location;
+     }
+     return;
+@@ -378,6 +435,10 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+   /** Helper to connect to an OTA provider, initialize an OTA Provider Cluster Client, and return this endpoint */
+   async #connectOtaProviderFor(location) {
+     const { providerNodeId, fabricIndex, endpoint } = location;
++    if (!this.#isLocalFabric(fabricIndex)) {
++      this.#logIgnoringNonLocalOtaProvider(location);
++      throw new import_general.MatterError(`Unknown/non-local OTA provider fabricIndex=${fabricIndex}`);
++    }
+     const peerAddress = (0, import_protocol.PeerAddress)({ nodeId: providerNodeId, fabricIndex });
+     logger.debug(`Establish connection for OTA to ${peerAddress}`);
+     const node = await import_Node.Node.forEndpoint(this.endpoint).peers.forAddress(peerAddress);
+@@ -443,7 +504,16 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+     switch (status) {
+       case import_ota_software_update_provider2.OtaSoftwareUpdateProvider.Status.Busy:
+       case import_ota_software_update_provider2.OtaSoftwareUpdateProvider.Status.NotAvailable:
+-        if (status === import_ota_software_update_provider2.OtaSoftwareUpdateProvider.Status.Busy && this.internal.providerRetryCount <= MAX_BUSY_RETRIES) {
++        if (status === import_ota_software_update_provider2.OtaSoftwareUpdateProvider.Status.Busy) {
++          if (this.internal.providerRetryCount >= MAX_BUSY_RETRIES) {
++            logger.warn(
++              `OTA provider remained Busy after ${this.internal.providerRetryCount} retries, marking unavailable for now.`,
++              import_general.Diagnostic.dict(providerLocation)
++            );
++            this.#markActiveOtaProviderNoUpdate(providerLocation);
++            this.#resetStateToIdle();
++            return;
++          }
+           this.#updateState(
+             import_ota_software_update_requestor.OtaSoftwareUpdateRequestor.UpdateState.DelayedOnQuery,
+             import_ota_software_update_requestor.OtaSoftwareUpdateRequestor.ChangeReason.DelayByProvider
+diff --git a/dist/esm/behavior/system/commissioning/CommissioningServer.js b/dist/esm/behavior/system/commissioning/CommissioningServer.js
+index 8c49c246e1c8225d1668f1540724554f0c6134cf..0f2e0443678d247822918f4c2bf509e02d5f102b 100644
+--- a/dist/esm/behavior/system/commissioning/CommissioningServer.js
++++ b/dist/esm/behavior/system/commissioning/CommissioningServer.js
+@@ -181,6 +181,7 @@ class CommissioningServer extends Behavior {
+       );
+     }
+     await this.env.get(DeviceCommissioner).allowBasicCommissioning();
++    logger.info("commissioning window opened after reset/remove");
+     this.initiateCommissioning();
+   }
+   /**
+diff --git a/dist/esm/node/server/InteractionServer.js b/dist/esm/node/server/InteractionServer.js
+--- a/dist/esm/node/server/InteractionServer.js
++++ b/dist/esm/node/server/InteractionServer.js
+@@ -91,5 +91,47 @@ import { OnlineServerInteraction } from "./OnlineServerInteraction.js";
+ import { ServerSubscription, ServerSubscriptionConfig } from "./ServerSubscription.js";
+ const logger = Logger.get("InteractionServer");
++const hamhReadClusterNames = /* @__PURE__ */ new Map([
++  [29, "Descriptor"],
++  [31, "AccessControl"],
++  [40, "BasicInformation"],
++  [42, "OtaSoftwareUpdateRequestor"],
++  [48, "GeneralCommissioning"],
++  [49, "NetworkCommissioning"],
++  [51, "GeneralDiagnostics"],
++  [60, "AdministratorCommissioning"],
++  [62, "OperationalCredentials"],
++  [63, "GroupKeyManagement"],
++  [70, "IcdManagement"]
++]);
++const hamhReadAttributeNames = /* @__PURE__ */ new Map([
++  [29, /* @__PURE__ */ new Map([[0, "deviceTypeList"], [1, "serverList"], [2, "clientList"], [3, "partsList"], [5, "endpointUniqueId"]])],
++  [-1, /* @__PURE__ */ new Map([[65528, "generatedCommandList"], [65529, "acceptedCommandList"], [65531, "attributeList"], [65532, "featureMap"], [65533, "clusterRevision"]])]
++]);
++function hamhFormatReadId(value) {
++  return value === void 0 ? "<wildcard>" : `0x${Number(value).toString(16)}`;
++}
++function hamhReadName(map, id) {
++  return id === void 0 ? "<wildcard>" : (map.get(Number(id)) ?? `0x${Number(id).toString(16)}`);
++}
++function hamhAttributeName(clusterId, attributeId) {
++  if (attributeId === void 0) return "<wildcard>";
++  return hamhReadAttributeNames.get(Number(clusterId))?.get(Number(attributeId)) ?? hamhReadAttributeNames.get(-1)?.get(Number(attributeId)) ?? `0x${Number(attributeId).toString(16)}`;
++}
++function hamhLogReadDiagnostics(nodeId, protocol, attributeRequests) {
++  if (!attributeRequests?.length) return;
++  const registry = globalThis.__HAMH_MATTER_READ_DIAGNOSTICS__?.bridges;
++  const endpointMap = registry?.[String(nodeId)] ?? registry?.default;
++  for (const path of attributeRequests) {
++    const endpointId = path.endpointId;
++    const endpoint = endpointId === void 0 ? void 0 : endpointMap?.[String(endpointId)];
++    const clusterName = hamhReadName(hamhReadClusterNames, path.clusterId);
++    const attributeName = hamhAttributeName(path.clusterId, path.attributeId);
++    const name = endpoint?.name ?? endpoint?.friendlyName ?? endpoint?.registryName ?? endpoint?.endpointName ?? "<unknown>";
++    logger.info(
++      `Alexa/Controller read endpoint=${endpointId ?? "<wildcard>"} endpointType=${endpoint?.endpointName ?? "<unknown>"} entity=${endpoint?.entityId ?? (endpointId === void 0 ? "<wildcard>" : "<unknown>")} name=${JSON.stringify(name)} deviceTypeList=${JSON.stringify(endpoint?.deviceTypeList ?? null)} cluster=${clusterName}(${hamhFormatReadId(path.clusterId)}) attribute=${attributeName}(${hamhFormatReadId(path.attributeId)}) path=${protocol.inspectPath(path)}`
++    );
++  }
++}
+ function validateReadAttributesPath(path, isGroupSession = false) {
+   if (isGroupSession) {
+     throw new StatusResponseError("Illegal read request with group session", StatusCode.InvalidAction);
+@@ -225,5 +267,6 @@ class InteractionServer {
+       interactionModelRevision
+     } = readRequest;
++    hamhLogReadDiagnostics(this.#node.id, this.#node.protocol, attributeRequests);
+     logger.debug(() => [
+       "Read",
+       Mark.INBOUND,
+diff --git a/dist/esm/behaviors/descriptor/DescriptorServer.js b/dist/esm/behaviors/descriptor/DescriptorServer.js
+index 9c40593ff872cce8d40edcd4f01d0399a9461721..6db5d4dc58ea0dfdc0c13df76829f2c381481927 100644
+--- a/dist/esm/behaviors/descriptor/DescriptorServer.js
++++ b/dist/esm/behaviors/descriptor/DescriptorServer.js
+@@ -144,7 +144,7 @@ class DescriptorServer extends DescriptorBehavior {
+     }
+     numbers.sort();
+     if (this.state.partsList.length === numbers.length) {
+-      let i = numbers.length;
++      let i = 0;
+       for (; i < numbers.length; i++) {
+         if (this.state.partsList[i] !== numbers[i]) {
+           break;
+@@ -163,10 +163,13 @@ class DescriptorServer extends DescriptorBehavior {
+    */
+   get #serverList() {
+     const list = new Array();
+-    for (const type of Object.values(this.endpoint.behaviors.supported)) {
++    if (this.endpoint.number === 0) {
++      return [40, 31, 63, 48, 60, 62, 51, 49, 42, 70, 29];
++    }
++    for (const type of this.endpoint.behaviors.active) {
+       const clusterId = type.cluster?.id;
+-      if (clusterId) {
++      if (clusterId !== void 0) {
+         list.push(clusterId);
+       }
+     }
+     return list;
+diff --git a/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js b/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
+index 18752f0ca2c856445add4ecabea28fdb0818e825..1a3f751000d02bf06d5ddd16b12734c23640d84f 100644
+--- a/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
++++ b/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
+@@ -308,6 +308,7 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
+   }
+   async removeFabric({ fabricIndex }) {
+     assertRemoteActor(this.context);
++    logger.info(`removeFabric requested fabricIndex=${fabricIndex}`);
+     const fabric = this.env.get(FabricManager).maybeFor(fabricIndex);
+     if (fabric === void 0) {
+       return {
+@@ -316,7 +317,12 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
+       };
+     }
+     await this.context.transaction.rollback();
+-    await fabric.leave(this.context.exchange);
++    try {
++      await fabric.leave(this.context.exchange);
++    } catch (error) {
++      logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
++    }
++    logger.info(`removeFabric succeeded statusCode=0 fabricIndex=${fabricIndex}`);
+     return {
+       statusCode: OperationalCredentials.NodeOperationalCertStatus.Ok,
+       fabricIndex
+diff --git a/dist/esm/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.js b/dist/esm/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.js
+index 2671a1416a2b357a1102327fa1712665f9fa3388..293e8bd39cb11e5002ad43d1c857af1f139d03b9 100644
+--- a/dist/esm/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.js
++++ b/dist/esm/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.js
+@@ -242,7 +242,6 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+       );
+     }
+     const provider = { fabricIndex, providerNodeId, endpoint };
+-    await this.#addActiveOtaProvider(provider, metadataForNode);
+     logger.info(
+       `${announcementReason === OtaSoftwareUpdateRequestor.AnnouncementReason.UrgentUpdateAvailable ? "Urgent " : ""}OTA Provider announcement received:`,
+       Diagnostic.dict({
+@@ -251,8 +250,11 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+         vendorId
+       })
+     );
+-    const peerAddress = PeerAddress({ nodeId: providerNodeId, fabricIndex });
+-    await Node.forEndpoint(this.endpoint).peers.forAddress(peerAddress);
++    if (!this.#isLocalFabric(fabricIndex)) {
++      this.#logIgnoringNonLocalOtaProvider(provider);
++      return;
++    }
++    await this.#addActiveOtaProvider(provider, metadataForNode);
+     if (announcementReason !== OtaSoftwareUpdateRequestor.AnnouncementReason.SimpleAnnouncement) {
+       const delay = Seconds(Math.floor(Math.random() * 599) + 1);
+       logger.info(`Scheduling urgent update query in`, delay);
+@@ -261,11 +263,56 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+       this.#scheduleUpdateQuery();
+     }
+   }
+-  /** Adds or updates an active OTA provider entry for a fabric index */
++  #locationKey({ fabricIndex, providerNodeId, endpoint }) {
++    return `${fabricIndex}:${providerNodeId}:${endpoint}`;
++  }
++  #isSameProviderLocation(a, b) {
++    return this.#locationKey(a) === this.#locationKey(b);
++  }
++  #isLocalFabric(fabricIndex) {
++    const serverNode = Node.forEndpoint(this.endpoint);
++    return Object.values(serverNode.state.commissioning.fabrics).some((fabric) => fabric.fabricIndex === fabricIndex);
++  }
++  #logIgnoringNonLocalOtaProvider({ fabricIndex, providerNodeId, endpoint }) {
++    logger.warn(
++      `Ignoring OTA provider announcement for unknown/non-local fabricIndex=${fabricIndex}, providerNodeId=${providerNodeId}, endpoint=${endpoint}`
++    );
++  }
++  #preferOtaProviderEntry(candidate, current) {
++    const candidateTimestamp = candidate.previousQueryTimestamp;
++    const currentTimestamp = current.previousQueryTimestamp;
++    if (candidateTimestamp === null) {
++      return false;
++    }
++    if (currentTimestamp === null) {
++      return true;
++    }
++    return candidateTimestamp > currentTimestamp;
++  }
++  #deduplicateActiveOtaProviders() {
++    const deduplicated = /* @__PURE__ */ new Map();
++    for (const provider of this.state.activeOtaProviders) {
++      const key = this.#locationKey(provider.location);
++      const current = deduplicated.get(key);
++      if (current === void 0 || this.#preferOtaProviderEntry(provider, current)) {
++        deduplicated.set(key, provider);
++      }
++    }
++    if (deduplicated.size !== this.state.activeOtaProviders.length) {
++      this.state.activeOtaProviders = [...deduplicated.values()];
++      logger.info(`Deduplicated active OTA providers to ${this.state.activeOtaProviders.length} entries.`);
++    }
++  }
++  /** Adds or updates an active OTA provider entry for a provider location */
+   async #addActiveOtaProvider(provider, metadataForNode) {
+     const { fabricIndex, providerNodeId } = provider;
++    if (!this.#isLocalFabric(fabricIndex)) {
++      this.#logIgnoringNonLocalOtaProvider(provider);
++      return;
++    }
++    this.#deduplicateActiveOtaProviders();
+     const activeProviderIndex = this.state.activeOtaProviders.findIndex(
+-      (p) => p.location.fabricIndex === fabricIndex && p.location.providerNodeId === providerNodeId
++      (p) => this.#isSameProviderLocation(p.location, provider)
+     );
+     const activeProviderEntry = {
+       location: provider,
+@@ -283,15 +330,15 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+   }
+   /** Removes an OTA provider from the active and default list */
+   #removeOtaProvider(provider) {
+-    const { fabricIndex, providerNodeId } = provider;
++    const { fabricIndex, providerNodeId, endpoint } = provider;
+     const activeProviderIndex = this.state.activeOtaProviders.findIndex(
+-      (p) => p.location.fabricIndex === fabricIndex && p.location.providerNodeId === providerNodeId
++      (p) => this.#isSameProviderLocation(p.location, provider)
+     );
+     if (activeProviderIndex !== -1) {
+       this.state.activeOtaProviders.splice(activeProviderIndex, 1);
+     }
+     const defaultProviderIndex = this.state.defaultOtaProviders.findIndex(
+-      (p) => p.fabricIndex === fabricIndex && p.providerNodeId === providerNodeId
++      (p) => p.fabricIndex === fabricIndex && p.providerNodeId === providerNodeId && p.endpoint === endpoint
+     );
+     if (defaultProviderIndex !== -1) {
+       this.state.defaultOtaProviders.splice(defaultProviderIndex, 1);
+@@ -299,9 +346,8 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+   }
+   /**  Marks an OTA provider as active but with no update available (timestamp 0) */
+   #markActiveOtaProviderNoUpdate(provider) {
+-    const { fabricIndex, providerNodeId } = provider;
+     const activeProviderIndex = this.state.activeOtaProviders.findIndex(
+-      (p) => p.location.fabricIndex === fabricIndex && p.location.providerNodeId === providerNodeId
++      (p) => this.#isSameProviderLocation(p.location, provider)
+     );
+     if (activeProviderIndex !== -1) {
+       this.state.activeOtaProviders[activeProviderIndex].previousQueryTimestamp = Time.nowMs;
+@@ -354,10 +400,16 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+   }
+   /** Choose the next OTA provider to use for an update */
+   #chooseUpdateProvider() {
++    this.#deduplicateActiveOtaProviders();
+     if (this.internal.selectedProviderLocation !== void 0) {
+       const selected = this.internal.selectedProviderLocation;
+       logger.debug(`Choosing pre-selected provider`, Diagnostic.dict(selected));
+       this.internal.selectedProviderLocation = void 0;
++      if (!this.#isLocalFabric(selected.fabricIndex)) {
++        this.#logIgnoringNonLocalOtaProvider(selected);
++        this.#removeOtaProvider(selected);
++        return this.#chooseUpdateProvider();
++      }
+       return selected;
+     }
+     if (this.state.activeOtaProviders.length > 0) {
+@@ -371,6 +423,11 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+         PeerAddress({ nodeId: location.providerNodeId, fabricIndex: location.fabricIndex }),
+         `ep${location.endpoint}`
+       );
++      if (!this.#isLocalFabric(location.fabricIndex)) {
++        this.#logIgnoringNonLocalOtaProvider(location);
++        this.#removeOtaProvider(location);
++        return this.#chooseUpdateProvider();
++      }
+       return location;
+     }
+     return;
+@@ -378,6 +435,10 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+   /** Helper to connect to an OTA provider, initialize an OTA Provider Cluster Client, and return this endpoint */
+   async #connectOtaProviderFor(location) {
+     const { providerNodeId, fabricIndex, endpoint } = location;
++    if (!this.#isLocalFabric(fabricIndex)) {
++      this.#logIgnoringNonLocalOtaProvider(location);
++      throw new MatterError(`Unknown/non-local OTA provider fabricIndex=${fabricIndex}`);
++    }
+     const peerAddress = PeerAddress({ nodeId: providerNodeId, fabricIndex });
+     logger.debug(`Establish connection for OTA to ${peerAddress}`);
+     const node = await Node.forEndpoint(this.endpoint).peers.forAddress(peerAddress);
+@@ -443,7 +504,16 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+     switch (status) {
+       case OtaSoftwareUpdateProvider.Status.Busy:
+       case OtaSoftwareUpdateProvider.Status.NotAvailable:
+-        if (status === OtaSoftwareUpdateProvider.Status.Busy && this.internal.providerRetryCount <= MAX_BUSY_RETRIES) {
++        if (status === OtaSoftwareUpdateProvider.Status.Busy) {
++          if (this.internal.providerRetryCount >= MAX_BUSY_RETRIES) {
++            logger.warn(
++              `OTA provider remained Busy after ${this.internal.providerRetryCount} retries, marking unavailable for now.`,
++              Diagnostic.dict(providerLocation)
++            );
++            this.#markActiveOtaProviderNoUpdate(providerLocation);
++            this.#resetStateToIdle();
++            return;
++          }
+           this.#updateState(
+             OtaSoftwareUpdateRequestor.UpdateState.DelayedOnQuery,
+             OtaSoftwareUpdateRequestor.ChangeReason.DelayByProvider
+diff --git a/src/behavior/system/commissioning/CommissioningServer.ts b/src/behavior/system/commissioning/CommissioningServer.ts
+index afd68c38e8109e00aacc90156957cd90dd3a17ee..cad0b098956679533d621207e6f58cd1148383e6 100644
+--- a/src/behavior/system/commissioning/CommissioningServer.ts
++++ b/src/behavior/system/commissioning/CommissioningServer.ts
+@@ -254,6 +254,7 @@ export class CommissioningServer extends Behavior {
+         }
+
+         await this.env.get(DeviceCommissioner).allowBasicCommissioning();
++        logger.info("commissioning window opened after reset/remove");
+
+         this.initiateCommissioning();
+     }
+diff --git a/src/node/server/InteractionServer.ts b/src/node/server/InteractionServer.ts
+--- a/src/node/server/InteractionServer.ts
++++ b/src/node/server/InteractionServer.ts
+@@ -73,5 +73,78 @@ import { ServerSubscription, ServerSubscriptionConfig, ServerSubscriptionContext
+ 
+ const logger = Logger.get("InteractionServer");
++const hamhReadClusterNames = new Map<number, string>([
++    [0x001d, "Descriptor"],
++    [0x001f, "AccessControl"],
++    [0x0028, "BasicInformation"],
++    [0x002a, "OtaSoftwareUpdateRequestor"],
++    [0x0030, "GeneralCommissioning"],
++    [0x0031, "NetworkCommissioning"],
++    [0x0033, "GeneralDiagnostics"],
++    [0x003c, "AdministratorCommissioning"],
++    [0x003e, "OperationalCredentials"],
++    [0x003f, "GroupKeyManagement"],
++    [0x0046, "IcdManagement"],
++]);
++const hamhReadAttributeNames = new Map<number, Map<number, string>>([
++    [
++        0x001d,
++        new Map([
++            [0x0000, "deviceTypeList"],
++            [0x0001, "serverList"],
++            [0x0002, "clientList"],
++            [0x0003, "partsList"],
++            [0x0005, "endpointUniqueId"],
++        ]),
++    ],
++    [
++        -1,
++        new Map([
++            [0xfff8, "generatedCommandList"],
++            [0xfff9, "acceptedCommandList"],
++            [0xfffb, "attributeList"],
++            [0xfffc, "featureMap"],
++            [0xfffd, "clusterRevision"],
++        ]),
++    ],
++]);
++
++function hamhFormatReadId(value: unknown) {
++    return value === undefined ? "<wildcard>" : `0x${Number(value).toString(16)}`;
++}
++
++function hamhReadName(map: Map<number, string>, id: unknown) {
++    return id === undefined ? "<wildcard>" : (map.get(Number(id)) ?? `0x${Number(id).toString(16)}`);
++}
++
++function hamhAttributeName(clusterId: unknown, attributeId: unknown) {
++    if (attributeId === undefined) return "<wildcard>";
++
++    return (
++        hamhReadAttributeNames.get(Number(clusterId))?.get(Number(attributeId)) ??
++        hamhReadAttributeNames.get(-1)?.get(Number(attributeId)) ??
++        `0x${Number(attributeId).toString(16)}`
++    );
++}
++
++function hamhLogReadDiagnostics(nodeId: unknown, protocol: { inspectPath(path: unknown): string }, attributeRequests?: any[]) {
++    if (!attributeRequests?.length) return;
++
++    const registry = (globalThis as any).__HAMH_MATTER_READ_DIAGNOSTICS__?.bridges;
++    const endpointMap = registry?.[String(nodeId)] ?? registry?.default;
++
++    for (const path of attributeRequests) {
++        const endpointId = path.endpointId;
++        const endpoint = endpointId === undefined ? undefined : endpointMap?.[String(endpointId)];
++        const clusterName = hamhReadName(hamhReadClusterNames, path.clusterId);
++        const attributeName = hamhAttributeName(path.clusterId, path.attributeId);
++        const name =
++            endpoint?.name ?? endpoint?.friendlyName ?? endpoint?.registryName ?? endpoint?.endpointName ?? "<unknown>";
++
++        logger.info(
++            `Alexa/Controller read endpoint=${endpointId ?? "<wildcard>"} endpointType=${endpoint?.endpointName ?? "<unknown>"} entity=${endpoint?.entityId ?? (endpointId === undefined ? "<wildcard>" : "<unknown>")} name=${JSON.stringify(name)} deviceTypeList=${JSON.stringify(endpoint?.deviceTypeList ?? null)} cluster=${clusterName}(${hamhFormatReadId(path.clusterId)}) attribute=${attributeName}(${hamhFormatReadId(path.attributeId)}) path=${protocol.inspectPath(path)}`,
++        );
++    }
++}
+ 
+ export interface PeerSubscription {
+     subscriptionId: number;
+@@ -269,6 +342,8 @@ export class InteractionServer implements ProtocolHandler, InteractionRecipient
+             interactionModelRevision,
+         } = readRequest;
+ 
++        hamhLogReadDiagnostics(this.#node.id, this.#node.protocol, attributeRequests);
++
+         logger.debug(() => [
+             "Read",
+             Mark.INBOUND,
+diff --git a/src/behaviors/descriptor/DescriptorServer.ts b/src/behaviors/descriptor/DescriptorServer.ts
+index 33cf1714755fc69b0a14cff468bc65a90f9aa9af..e69026bbdd9ef9fadc38584525f4d55cbd5ca777 100644
+--- a/src/behaviors/descriptor/DescriptorServer.ts
++++ b/src/behaviors/descriptor/DescriptorServer.ts
+@@ -213,7 +213,7 @@ export class DescriptorServer extends DescriptorBehavior {
+         // Do a quick deep equal so we can avoid updating state since the filtering on events that trigger this function
+         // is rather lazy
+         if (this.state.partsList.length === numbers.length) {
+-            let i = numbers.length;
++            let i = 0;
+             for (; i < numbers.length; i++) {
+                 if (this.state.partsList[i] !== numbers[i]) {
+                     break;
+@@ -235,9 +235,12 @@ export class DescriptorServer extends DescriptorBehavior {
+      */
+     get #serverList() {
+         const list = new Array<ClusterId>();
+-        for (const type of Object.values(this.endpoint.behaviors.supported)) {
++        if (this.endpoint.number === 0) {
++            return [40, 31, 63, 48, 60, 62, 51, 49, 42, 70, 29] as ClusterId[];
++        }
++        for (const type of this.endpoint.behaviors.active) {
+             const clusterId = (type as { cluster?: { id?: ClusterId } }).cluster?.id;
+-            if (clusterId) {
++            if (clusterId !== undefined) {
+                 list.push(clusterId);
+             }
+         }
+diff --git a/src/behaviors/operational-credentials/OperationalCredentialsServer.ts b/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
+index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..2f08014189dc2a70bb513ea1e9de592c963631e8 100644
+--- a/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
++++ b/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
+@@ -406,6 +406,7 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
+
+     override async removeFabric({ fabricIndex }: OperationalCredentials.RemoveFabricRequest) {
+         assertRemoteActor(this.context);
++        logger.info(`removeFabric requested fabricIndex=${fabricIndex}`);
+
+         const fabric = this.env.get(FabricManager).maybeFor(fabricIndex);
+
+@@ -420,9 +421,15 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
+         // we leave the transaction open it will cause deadlock
+         await this.context.transaction.rollback();
+
+-        await fabric.leave(this.context.exchange);
++        try {
++            await fabric.leave(this.context.exchange);
++        } catch (error) {
++            logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
++        }
+         // The state is updated on removal via commissionedFabricChanged event, see constructor
+
++        logger.info(`removeFabric succeeded statusCode=0 fabricIndex=${fabricIndex}`);
++
+         return {
+             statusCode: OperationalCredentials.NodeOperationalCertStatus.Ok,
+             fabricIndex,
+diff --git a/src/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.ts b/src/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.ts
+index 1792f4f4732a10f624353adc09b40bfca3b271bb..e339c1aeb70499ef6a45e9938f1447c955ea67de 100644
+--- a/src/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.ts
++++ b/src/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.ts
+@@ -360,10 +360,6 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+         }
+
+         const provider: ProviderLocation = { fabricIndex, providerNodeId, endpoint };
+-
+-        // Remember this provider as active to use it potentially with precedence
+-        await this.#addActiveOtaProvider(provider, metadataForNode);
+-
+         logger.info(
+             `${announcementReason === OtaSoftwareUpdateRequestor.AnnouncementReason.UrgentUpdateAvailable ? "Urgent " : ""}OTA Provider announcement received:`,
+             Diagnostic.dict({
+@@ -373,8 +369,13 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+             }),
+         );
+
+-        const peerAddress = PeerAddress({ nodeId: providerNodeId, fabricIndex });
+-        await (Node.forEndpoint(this.endpoint) as ServerNode).peers.forAddress(peerAddress); // Initialize the client node and store address
++        if (!this.#isLocalFabric(fabricIndex)) {
++            this.#logIgnoringNonLocalOtaProvider(provider);
++            return;
++        }
++
++        // Remember this provider as active to use it potentially with precedence
++        await this.#addActiveOtaProvider(provider, metadataForNode);
+
+         if (announcementReason !== OtaSoftwareUpdateRequestor.AnnouncementReason.SimpleAnnouncement) {
+             // If Urgent or UpdateAvailable, we schedule an update query earlier as we would have done before
+@@ -387,11 +388,66 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+         }
+     }
+
+-    /** Adds or updates an active OTA provider entry for a fabric index */
++    #locationKey({ fabricIndex, providerNodeId, endpoint }: ProviderLocation) {
++        return `${fabricIndex}:${providerNodeId}:${endpoint}`;
++    }
++
++    #isSameProviderLocation(a: ProviderLocation, b: ProviderLocation) {
++        return this.#locationKey(a) === this.#locationKey(b);
++    }
++
++    #isLocalFabric(fabricIndex: FabricIndex) {
++        const serverNode = Node.forEndpoint(this.endpoint) as ServerNode;
++        return Object.values(serverNode.state.commissioning.fabrics).some(fabric => fabric.fabricIndex === fabricIndex);
++    }
++
++    #logIgnoringNonLocalOtaProvider({ fabricIndex, providerNodeId, endpoint }: ProviderLocation) {
++        logger.warn(
++            `Ignoring OTA provider announcement for unknown/non-local fabricIndex=${fabricIndex}, providerNodeId=${providerNodeId}, endpoint=${endpoint}`,
++        );
++    }
++
++    #preferOtaProviderEntry(candidate: ActiveProviderLocation, current: ActiveProviderLocation) {
++        const candidateTimestamp = candidate.previousQueryTimestamp;
++        const currentTimestamp = current.previousQueryTimestamp;
++
++        if (candidateTimestamp === null) {
++            return false;
++        }
++        if (currentTimestamp === null) {
++            return true;
++        }
++        return candidateTimestamp > currentTimestamp;
++    }
++
++    #deduplicateActiveOtaProviders() {
++        const deduplicated = new Map<string, ActiveProviderLocation>();
++        for (const provider of this.state.activeOtaProviders) {
++            const key = this.#locationKey(provider.location);
++            const current = deduplicated.get(key);
++            if (current === undefined || this.#preferOtaProviderEntry(provider, current)) {
++                deduplicated.set(key, provider);
++            }
++        }
++
++        if (deduplicated.size !== this.state.activeOtaProviders.length) {
++            this.state.activeOtaProviders = [...deduplicated.values()];
++            logger.info(`Deduplicated active OTA providers to ${this.state.activeOtaProviders.length} entries.`);
++        }
++    }
++
++    /** Adds or updates an active OTA provider entry for a provider location */
+     async #addActiveOtaProvider(provider: ProviderLocation, metadataForNode?: Bytes) {
+         const { fabricIndex, providerNodeId } = provider;
++        if (!this.#isLocalFabric(fabricIndex)) {
++            this.#logIgnoringNonLocalOtaProvider(provider);
++            return;
++        }
++
++        this.#deduplicateActiveOtaProviders();
++
+         const activeProviderIndex = this.state.activeOtaProviders.findIndex(
+-            p => p.location.fabricIndex === fabricIndex && p.location.providerNodeId === providerNodeId,
++            p => this.#isSameProviderLocation(p.location, provider),
+         );
+         const activeProviderEntry: ActiveProviderLocation = {
+             location: provider,
+@@ -411,16 +467,16 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+
+     /** Removes an OTA provider from the active and default list */
+     #removeOtaProvider(provider: ProviderLocation) {
+-        const { fabricIndex, providerNodeId } = provider;
++        const { fabricIndex, providerNodeId, endpoint } = provider;
+         const activeProviderIndex = this.state.activeOtaProviders.findIndex(
+-            p => p.location.fabricIndex === fabricIndex && p.location.providerNodeId === providerNodeId,
++            p => this.#isSameProviderLocation(p.location, provider),
+         );
+         if (activeProviderIndex !== -1) {
+             this.state.activeOtaProviders.splice(activeProviderIndex, 1);
+         }
+
+         const defaultProviderIndex = this.state.defaultOtaProviders.findIndex(
+-            p => p.fabricIndex === fabricIndex && p.providerNodeId === providerNodeId,
++            p => p.fabricIndex === fabricIndex && p.providerNodeId === providerNodeId && p.endpoint === endpoint,
+         );
+         if (defaultProviderIndex !== -1) {
+             this.state.defaultOtaProviders.splice(defaultProviderIndex, 1);
+@@ -429,9 +485,8 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+
+     /**  Marks an OTA provider as active but with no update available (timestamp 0) */
+     #markActiveOtaProviderNoUpdate(provider: ProviderLocation) {
+-        const { fabricIndex, providerNodeId } = provider;
+         const activeProviderIndex = this.state.activeOtaProviders.findIndex(
+-            p => p.location.fabricIndex === fabricIndex && p.location.providerNodeId === providerNodeId,
++            p => this.#isSameProviderLocation(p.location, provider),
+         );
+         if (activeProviderIndex !== -1) {
+             this.state.activeOtaProviders[activeProviderIndex].previousQueryTimestamp = Time.nowMs;
+@@ -492,11 +547,18 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+
+     /** Choose the next OTA provider to use for an update */
+     #chooseUpdateProvider(): ProviderLocation | undefined {
++        this.#deduplicateActiveOtaProviders();
++
+         // If we have a selected provider, use that one once
+         if (this.internal.selectedProviderLocation !== undefined) {
+             const selected = this.internal.selectedProviderLocation;
+             logger.debug(`Choosing pre-selected provider`, Diagnostic.dict(selected));
+             this.internal.selectedProviderLocation = undefined;
++            if (!this.#isLocalFabric(selected.fabricIndex)) {
++                this.#logIgnoringNonLocalOtaProvider(selected);
++                this.#removeOtaProvider(selected);
++                return this.#chooseUpdateProvider();
++            }
+             return selected;
+         }
+
+@@ -512,6 +574,11 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+                 PeerAddress({ nodeId: location.providerNodeId, fabricIndex: location.fabricIndex }),
+                 `ep${location.endpoint}`,
+             );
++            if (!this.#isLocalFabric(location.fabricIndex)) {
++                this.#logIgnoringNonLocalOtaProvider(location);
++                this.#removeOtaProvider(location);
++                return this.#chooseUpdateProvider();
++            }
+             return location;
+         }
+
+@@ -521,6 +588,10 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+     /** Helper to connect to an OTA provider, initialize an OTA Provider Cluster Client, and return this endpoint */
+     async #connectOtaProviderFor(location: ProviderLocation) {
+         const { providerNodeId, fabricIndex, endpoint } = location;
++        if (!this.#isLocalFabric(fabricIndex)) {
++            this.#logIgnoringNonLocalOtaProvider(location);
++            throw new MatterError(`Unknown/non-local OTA provider fabricIndex=${fabricIndex}`);
++        }
+
+         const peerAddress = PeerAddress({ nodeId: providerNodeId, fabricIndex });
+
+@@ -611,10 +682,17 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+             case OtaSoftwareUpdateProvider.Status.Busy:
+             case OtaSoftwareUpdateProvider.Status.NotAvailable:
+                 // If we already had 3 BUSY responses, we treat it as not available and try another provider
+-                if (
+-                    status === OtaSoftwareUpdateProvider.Status.Busy &&
+-                    this.internal.providerRetryCount <= MAX_BUSY_RETRIES
+-                ) {
++                if (status === OtaSoftwareUpdateProvider.Status.Busy) {
++                    if (this.internal.providerRetryCount >= MAX_BUSY_RETRIES) {
++                        logger.warn(
++                            `OTA provider remained Busy after ${this.internal.providerRetryCount} retries, marking unavailable for now.`,
++                            Diagnostic.dict(providerLocation),
++                        );
++                        this.#markActiveOtaProviderNoUpdate(providerLocation);
++                        this.#resetStateToIdle();
++                        return;
++                    }
++
+                     // For Busy we schedule a new query after the defined time (or min 120s) for the same provider
+                     // because the provider seems to be in progress to provide an update
+                     this.#updateState(

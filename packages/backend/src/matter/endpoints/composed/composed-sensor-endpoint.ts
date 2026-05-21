@@ -43,6 +43,10 @@ import {
   type TemperatureMeasurementConfig,
   TemperatureMeasurementServer,
 } from "../../behaviors/temperature-measurement-server.js";
+import {
+  createStableEndpointId,
+  withStableEndpointUniqueId,
+} from "../endpoint-unique-id.js";
 
 const logger = Logger.get("ComposedSensorEndpoint");
 
@@ -117,11 +121,6 @@ const PressureSubType = PressureSensorDevice.with(
 );
 
 // --- Helper ---
-
-function createEndpointId(entityId: string, customName?: string): string {
-  const baseName = customName || entityId;
-  return baseName.replace(/\./g, "_").replace(/\s+/g, "_");
-}
 
 function buildEntityPayload(
   registry: BridgeRegistry,
@@ -230,15 +229,18 @@ export class ComposedSensorEndpoint extends Endpoint {
     }
 
     // Build sub-endpoints
-    const endpointId = createEndpointId(primaryEntityId, config.customName);
+    const endpointId = createStableEndpointId(primaryEntityId);
     const parts: Endpoint[] = [];
 
     // Temperature sub-endpoint (always present)
     const tempSub = new Endpoint(
-      TemperatureSubType.set({
-        homeAssistantEntity: { entity: primaryPayload },
-      }),
-      { id: `${endpointId}_temp` },
+      withStableEndpointUniqueId(
+        TemperatureSubType.set({
+          homeAssistantEntity: { entity: primaryPayload },
+        }),
+        `${primaryEntityId}:temperature`,
+      ),
+      { id: createStableEndpointId(primaryEntityId, "temp") },
     );
     parts.push(tempSub);
 
@@ -248,10 +250,13 @@ export class ComposedSensorEndpoint extends Endpoint {
       const humPayload = buildEntityPayload(registry, config.humidityEntityId);
       if (humPayload) {
         humSub = new Endpoint(
-          HumiditySubType.set({
-            homeAssistantEntity: { entity: humPayload },
-          }),
-          { id: `${endpointId}_humidity` },
+          withStableEndpointUniqueId(
+            HumiditySubType.set({
+              homeAssistantEntity: { entity: humPayload },
+            }),
+            `${config.humidityEntityId}:humidity`,
+          ),
+          { id: createStableEndpointId(config.humidityEntityId, "humidity") },
         );
         parts.push(humSub);
       }
@@ -266,23 +271,29 @@ export class ComposedSensorEndpoint extends Endpoint {
       );
       if (pressPayload) {
         pressSub = new Endpoint(
-          PressureSubType.set({
-            homeAssistantEntity: { entity: pressPayload },
-          }),
-          { id: `${endpointId}_pressure` },
+          withStableEndpointUniqueId(
+            PressureSubType.set({
+              homeAssistantEntity: { entity: pressPayload },
+            }),
+            `${config.pressureEntityId}:pressure`,
+          ),
+          { id: createStableEndpointId(config.pressureEntityId, "pressure") },
         );
         parts.push(pressSub);
       }
     }
 
     // Create parent endpoint with sub-endpoints as parts
-    const parentTypeWithState = parentType.set({
-      homeAssistantEntity: {
-        entity: primaryPayload,
-        customName: config.customName,
-        mapping: mapping as EntityMappingConfig,
-      },
-    });
+    const parentTypeWithState = withStableEndpointUniqueId(
+      parentType.set({
+        homeAssistantEntity: {
+          entity: primaryPayload,
+          customName: config.customName,
+          mapping: mapping as EntityMappingConfig,
+        },
+      }),
+      primaryEntityId,
+    );
 
     // Expose non-primary sub-entity IDs so bridge-endpoint-manager subscribes
     // to their state changes via WebSocket.
