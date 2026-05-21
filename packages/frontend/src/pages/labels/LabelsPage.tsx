@@ -37,6 +37,7 @@ import {
   type HomeAssistantArea,
   type HomeAssistantLabel,
 } from "../../api/labels.ts";
+import { FilterPresetsPage } from "../filter-presets/FilterPresetsPage.tsx";
 
 interface ValueListProps {
   values: string[];
@@ -169,6 +170,16 @@ export const LabelsPage = () => {
       <Alert severity="info" sx={{ mb: 3 }}>
         {t("labels.info")}
       </Alert>
+
+      <Typography variant="h6" sx={{ mb: 1 }}>
+        <FilterListIcon
+          sx={{ mr: 0.5, fontSize: 20, verticalAlign: "middle" }}
+        />
+        {t("filterPresets.title")}
+      </Typography>
+      <Box sx={{ mb: 4 }}>
+        <FilterPresetsPage embedded />
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>

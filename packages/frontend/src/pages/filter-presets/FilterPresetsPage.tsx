@@ -54,7 +54,11 @@ function filterSchema(t: ReturnType<typeof useTranslation>["t"]): JSONSchema7 {
   return schema;
 }
 
-export function FilterPresetsPage() {
+export function FilterPresetsPage({
+  embedded = false,
+}: {
+  embedded?: boolean;
+}) {
   const { t } = useTranslation();
   const [presets, setPresets] = useState<EntityFilterPreset[]>([]);
   const [selectedPresetId, setSelectedPresetId] = useState("");
@@ -151,10 +155,12 @@ export function FilterPresetsPage() {
   };
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h5" component="h1" sx={{ mb: 3 }}>
-        {t("filterPresets.title")}
-      </Typography>
+    <Box sx={embedded ? undefined : { p: 2 }}>
+      {!embedded && (
+        <Typography variant="h5" component="h1" sx={{ mb: 3 }}>
+          {t("filterPresets.title")}
+        </Typography>
+      )}
 
       <Card>
         <CardContent>

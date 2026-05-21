@@ -3,7 +3,6 @@ import BugReportIcon from "@mui/icons-material/BugReport";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import DevicesIcon from "@mui/icons-material/Devices";
 import ExtensionIcon from "@mui/icons-material/Extension";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import HomeIcon from "@mui/icons-material/Home";
 import HubIcon from "@mui/icons-material/Hub";
 import LabelIcon from "@mui/icons-material/Label";
@@ -83,11 +82,6 @@ export const AppTopBar = () => {
       label: t("nav.lockCredentials"),
       icon: <LockIcon />,
       to: navigation.lockCredentials,
-    },
-    {
-      label: t("nav.filterPresets"),
-      icon: <FilterListIcon />,
-      to: navigation.filterPresets,
     },
     {
       label: t("nav.filterReference"),

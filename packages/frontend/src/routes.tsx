@@ -7,7 +7,6 @@ import { DashboardPage } from "./pages/dashboard/DashboardPage.tsx";
 import { DevicesPage } from "./pages/devices/DevicesPage.tsx";
 import { CreateBridgePage } from "./pages/edit-bridge/CreateBridgePage.tsx";
 import { EditBridgePage } from "./pages/edit-bridge/EditBridgePage.tsx";
-import { FilterPresetsPage } from "./pages/filter-presets/FilterPresetsPage.tsx";
 import { HealthPage } from "./pages/health/HealthPage.tsx";
 import { LabelsPage } from "./pages/labels/LabelsPage.tsx";
 import { LockCredentialsPage } from "./pages/lock-credentials/LockCredentialsPage.tsx";
@@ -29,7 +28,7 @@ export const navigation = {
   networkMap: "/network-map",
   health: "/health",
   labels: "/labels",
-  filterPresets: "/filter-presets",
+  filterPresets: "/labels",
   lockCredentials: "/lock-credentials",
   plugins: "/plugins",
   settings: "/settings",
@@ -62,7 +61,6 @@ export const routes: RouteObject[] = [
       { path: navigation.networkMap, element: <NetworkMapPage /> },
       { path: navigation.health, element: <HealthPage /> },
       { path: navigation.labels, element: <LabelsPage /> },
-      { path: navigation.filterPresets, element: <FilterPresetsPage /> },
       { path: navigation.lockCredentials, element: <LockCredentialsPage /> },
       { path: navigation.plugins, element: <PluginsPage /> },
       { path: navigation.settings, element: <SettingsPage /> },

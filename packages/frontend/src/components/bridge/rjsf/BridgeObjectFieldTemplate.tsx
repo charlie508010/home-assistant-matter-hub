@@ -76,13 +76,17 @@ function CollapsibleFilterTemplate(props: ObjectFieldTemplateProps) {
             ? t("bridgeConfig.filter.clickToCollapse")
             : `${t("bridgeConfig.filter.advancedFilters")} · ${t("bridgeConfig.filter.rulesConfigured", { count: totalRules })}`}
         </Typography>
-      </AccordionSummary>
-      <AccordionDetails sx={{ px: 2, pb: 2 }}>
         {loadPreset && (
-          <Box sx={{ mb: 2 }}>
+          <Box
+            sx={{ ml: "auto" }}
+            onClick={(event) => event.stopPropagation()}
+            onFocus={(event) => event.stopPropagation()}
+          >
             <FilterPresetControls onFilterChange={loadPreset} />
           </Box>
         )}
+      </AccordionSummary>
+      <AccordionDetails sx={{ px: 2, pb: 2 }}>
         {props.properties.map((prop) => (
           <div key={prop.name}>{prop.content}</div>
         ))}
