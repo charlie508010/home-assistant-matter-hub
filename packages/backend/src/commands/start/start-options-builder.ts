@@ -46,6 +46,11 @@ export function startOptionsBuilder(yargs: Argv): Argv<StartOptions> {
       description:
         "Path to a directory where the application should store its data. Defaults to $HOME/.home-assistant-matter-hub",
     })
+    .option("storage-backend", {
+      type: "string",
+      choices: ["file", "sqlite"],
+      hidden: true,
+    })
     .option("http-port", {
       alias: "web-port",
       type: "number",

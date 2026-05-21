@@ -21,8 +21,11 @@ overrides:
   '@codemirror/state': 6.6.0
 
 patchedDependencies:
+  '@matter/node@0.16.11':
+    hash: 109c8bb80cf8740b8b5ecb80978c331c80e0c0123baa12b8296bdea1e38a0bd7
+    path: patches/@matter__node@0.16.11.patch
   '@matter/protocol@0.16.11':
-    hash: a762c34b29a05249f1e6d9b2585e473f1f72e657ed2228f5e77aa94758ede62b
+    hash: ad32cc7a6fec6216a65eda10893305e25645e7856e322101cfcf9a1bfbefb81c
     path: patches/@matter__protocol@0.16.11.patch
 
 importers:
@@ -5853,8 +5856,8 @@ snapshots:
     dependencies:
       '@matter/general': 0.16.11
       '@matter/model': 0.16.11
-      '@matter/node': 0.16.11
-      '@matter/protocol': 0.16.11(patch_hash=a762c34b29a05249f1e6d9b2585e473f1f72e657ed2228f5e77aa94758ede62b)
+      '@matter/node': 0.16.11(patch_hash=109c8bb80cf8740b8b5ecb80978c331c80e0c0123baa12b8296bdea1e38a0bd7)
+      '@matter/protocol': 0.16.11(patch_hash=ad32cc7a6fec6216a65eda10893305e25645e7856e322101cfcf9a1bfbefb81c)
       '@matter/types': 0.16.11
     optionalDependencies:
       '@matter/nodejs': 0.16.11
@@ -5863,21 +5866,21 @@ snapshots:
     dependencies:
       '@matter/general': 0.16.11
 
-  '@matter/node@0.16.11':
+  '@matter/node@0.16.11(patch_hash=109c8bb80cf8740b8b5ecb80978c331c80e0c0123baa12b8296bdea1e38a0bd7)':
     dependencies:
       '@matter/general': 0.16.11
       '@matter/model': 0.16.11
-      '@matter/protocol': 0.16.11(patch_hash=a762c34b29a05249f1e6d9b2585e473f1f72e657ed2228f5e77aa94758ede62b)
+      '@matter/protocol': 0.16.11(patch_hash=ad32cc7a6fec6216a65eda10893305e25645e7856e322101cfcf9a1bfbefb81c)
       '@matter/types': 0.16.11
 
   '@matter/nodejs@0.16.11':
     dependencies:
       '@matter/general': 0.16.11
-      '@matter/node': 0.16.11
-      '@matter/protocol': 0.16.11(patch_hash=a762c34b29a05249f1e6d9b2585e473f1f72e657ed2228f5e77aa94758ede62b)
+      '@matter/node': 0.16.11(patch_hash=109c8bb80cf8740b8b5ecb80978c331c80e0c0123baa12b8296bdea1e38a0bd7)
+      '@matter/protocol': 0.16.11(patch_hash=ad32cc7a6fec6216a65eda10893305e25645e7856e322101cfcf9a1bfbefb81c)
       '@matter/types': 0.16.11
 
-  '@matter/protocol@0.16.11(patch_hash=a762c34b29a05249f1e6d9b2585e473f1f72e657ed2228f5e77aa94758ede62b)':
+  '@matter/protocol@0.16.11(patch_hash=ad32cc7a6fec6216a65eda10893305e25645e7856e322101cfcf9a1bfbefb81c)':
     dependencies:
       '@matter/general': 0.16.11
       '@matter/model': 0.16.11
