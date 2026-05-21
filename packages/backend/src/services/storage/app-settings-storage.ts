@@ -1,4 +1,5 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import type { EntityFilterPreset } from "@home-assistant-matter-hub/common";
 import type { StorageContext, SupportedStorageTypes } from "@matter/main";
 import { Service } from "../../core/ioc/service.js";
 import type { AppStorage } from "./app-storage.js";
@@ -46,6 +47,7 @@ const DEFAULT_BACKUP_SETTINGS: BackupSettings = {
 interface StoredSettings {
   auth?: StoredAuth;
   backup?: Partial<BackupSettings>;
+  filterPresets?: EntityFilterPreset[];
 }
 
 function hashPassword(plain: string): {
@@ -215,6 +217,47 @@ export class AppSettingsStorage extends Service {
   async setBackupSettings(settings: Partial<BackupSettings>): Promise<void> {
     this.settings.backup = { ...this.settings.backup, ...settings };
     await this.persist();
+  }
+
+  get filterPresets(): EntityFilterPreset[] {
+    return [...(this.settings.filterPresets ?? [])];
+  }
+
+  async setFilterPresets(presets: EntityFilterPreset[]): Promise<void> {
+    this.settings.filterPresets = presets;
+    await this.persist();
+  }
+
+  async upsertFilterPreset(
+    preset: Omit<EntityFilterPreset, "createdAt" | "updatedAt"> & {
+      createdAt?: string;
+    },
+  ): Promise<EntityFilterPreset> {
+    const now = new Date().toISOString();
+    const current = this.settings.filterPresets ?? [];
+    const existing = current.find((p) => p.id === preset.id);
+    const next: EntityFilterPreset = {
+      ...preset,
+      createdAt: preset.createdAt ?? existing?.createdAt ?? now,
+      updatedAt: now,
+    };
+    this.settings.filterPresets = [
+      ...current.filter((p) => p.id !== preset.id),
+      next,
+    ].sort((a, b) => a.name.localeCompare(b.name));
+    await this.persist();
+    return next;
+  }
+
+  async deleteFilterPreset(id: string): Promise<boolean> {
+    const current = this.settings.filterPresets ?? [];
+    const next = current.filter((preset) => preset.id !== id);
+    if (next.length === current.length) {
+      return false;
+    }
+    this.settings.filterPresets = next;
+    await this.persist();
+    return true;
   }
 
   private async persist(): Promise<void> {

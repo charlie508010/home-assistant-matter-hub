@@ -71,9 +71,7 @@ function CollapsibleFilterTemplate(props: ObjectFieldTemplateProps) {
         <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
           {expanded
             ? t("bridgeConfig.filter.clickToCollapse")
-            : t("bridgeConfig.filter.rulesConfigured", {
-                count: totalRules,
-              })}
+            : `${t("bridgeConfig.filter.advancedFilters")} · ${t("bridgeConfig.filter.rulesConfigured", { count: totalRules })}`}
         </Typography>
       </AccordionSummary>
       <AccordionDetails sx={{ px: 2, pb: 2 }}>

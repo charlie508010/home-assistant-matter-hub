@@ -810,6 +810,7 @@
       "rulesConfigured_one": "{{count}} rule configured",
       "rulesConfigured_other": "{{count}} rules configured",
       "entityAutocompleteHelp": "Search or type an entity ID. Wildcards and regex still work.",
+      "advancedFilters": "Show advanced filters",
       "matcherTypes": {
         "pattern": {
           "title": "pattern",
@@ -873,6 +874,18 @@
         }
       }
     }
+  },
+  "filterPresets": {
+    "title": "Entity Filter Presets",
+    "selectLabel": "Select filter preset",
+    "load": "Load preset",
+    "detach": "Detach from preset / edit manually",
+    "newName": "New preset name",
+    "saveNew": "Save as new preset",
+    "update": "Update preset",
+    "activeManual": "Active filters: Manual",
+    "activePreset": "Active filters: Preset {{name}}",
+    "help": "Loading a preset copies its rules into this bridge. Manual changes do not update the preset automatically."
   },
   "bridgeIcon": {
     "bridgeIcon": "Bridge Icon",

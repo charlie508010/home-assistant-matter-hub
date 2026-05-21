@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type {
   BridgeData,
+  EntityFilterPreset,
   EntityMappingConfig,
 } from "@home-assistant-matter-hub/common";
 import archiver from "archiver";
@@ -30,6 +31,7 @@ export interface BackupData {
   createdAt: string;
   bridges: BridgeData[];
   entityMappings: Record<string, unknown[]>;
+  filterPresets?: EntityFilterPreset[];
   includesIdentity?: boolean;
   includesIcons?: boolean;
   storageBackend?: StorageBackend;
@@ -111,6 +113,7 @@ export function backupApi(
         createdAt: new Date().toISOString(),
         bridges,
         entityMappings,
+        filterPresets: settingsStorage.filterPresets,
         includesIdentity: includeIdentity,
         includesIcons,
         storageBackend: getActiveStorageBackend(storageLocation),
@@ -197,6 +200,7 @@ export function backupApi(
             hasMappings: !!backupData.entityMappings[bridge.id],
             mappingCount: backupData.entityMappings[bridge.id]?.length || 0,
           })),
+          filterPresetCount: backupData.filterPresets?.length ?? 0,
         };
 
         res.json(preview);
@@ -244,6 +248,10 @@ export function backupApi(
         let iconsRestored = 0;
         let storageRootRestored = false;
         const errors: Array<{ bridgeId: string; error: string }> = [];
+
+        if (backupData.filterPresets) {
+          await restoreFilterPresets(settingsStorage, backupData.filterPresets);
+        }
 
         for (const bridge of bridgesToRestore) {
           try {
@@ -441,6 +449,10 @@ export function backupApi(
       let iconsRestored = 0;
       let storageRootRestored = false;
       const errors: Array<{ bridgeId: string; error: string }> = [];
+
+      if (backupData.filterPresets) {
+        await restoreFilterPresets(settingsStorage, backupData.filterPresets);
+      }
 
       for (const bridge of bridgesToRestore) {
         try {
@@ -898,4 +910,17 @@ async function restoreBridgeIcon(
   }
 
   return true;
+}
+
+async function restoreFilterPresets(
+  settingsStorage: AppSettingsStorage,
+  presets: EntityFilterPreset[],
+) {
+  const byId = new Map(settingsStorage.filterPresets.map((p) => [p.id, p]));
+  for (const preset of presets) {
+    byId.set(preset.id, preset);
+  }
+  await settingsStorage.setFilterPresets(
+    [...byId.values()].sort((a, b) => a.name.localeCompare(b.name)),
+  );
 }

@@ -2,6 +2,7 @@ import {
   type BridgeConfig,
   type BridgeIconType,
   bridgeConfigSchema,
+  type HomeAssistantFilter,
 } from "@home-assistant-matter-hub/common";
 import { LibraryBooks, TextFields } from "@mui/icons-material";
 import Alert from "@mui/material/Alert";
@@ -22,6 +23,7 @@ import { FormEditor } from "../misc/editors/FormEditor";
 import { JsonEditor } from "../misc/editors/JsonEditor";
 import type { ValidationError } from "../misc/editors/validation-error.ts";
 import { BridgeIconUpload } from "./BridgeIconUpload.tsx";
+import { FilterPresetControls } from "./FilterPresetControls.tsx";
 import { FilterPreview } from "./FilterPreview.tsx";
 import { BridgeObjectFieldTemplate } from "./rjsf/BridgeObjectFieldTemplate.tsx";
 import { CompactArrayFieldTemplate } from "./rjsf/CompactArrayFieldTemplate.tsx";
@@ -102,6 +104,13 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
       };
       return rest;
     });
+  }, []);
+
+  const handleFilterChange = useCallback((filter: HomeAssistantFilter) => {
+    setConfig((prev) => ({
+      ...(prev ?? {}),
+      filter,
+    }));
   }, []);
 
   const warnings = useMemo(() => {
@@ -188,38 +197,46 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
         </Box>
 
         {editorMode === BridgeEditorMode.FIELDS_EDITOR && (
-          <FormEditor
-            value={config ?? {}}
-            onChange={onChange}
-            schema={localizedSchema}
-            uiSchema={{
-              "ui:submitButtonOptions": {
-                submitText: t("common.save"),
-              },
-              icon: { "ui:widget": "hidden" },
-              featureFlags: { "ui:field": "featureFlags" },
-              filter: {
-                include: {
-                  "ui:options": {
-                    ArrayFieldTemplate: CompactArrayFieldTemplate,
-                  },
-                  items: { "ui:field": "entityFilterRule" },
+          <>
+            {(config as BridgeConfig)?.filter && (
+              <FilterPresetControls
+                filter={(config as BridgeConfig).filter}
+                onFilterChange={handleFilterChange}
+              />
+            )}
+            <FormEditor
+              value={config ?? {}}
+              onChange={onChange}
+              schema={localizedSchema}
+              uiSchema={{
+                "ui:submitButtonOptions": {
+                  submitText: t("common.save"),
                 },
-                exclude: {
-                  "ui:options": {
-                    ArrayFieldTemplate: CompactArrayFieldTemplate,
+                icon: { "ui:widget": "hidden" },
+                featureFlags: { "ui:field": "featureFlags" },
+                filter: {
+                  include: {
+                    "ui:options": {
+                      ArrayFieldTemplate: CompactArrayFieldTemplate,
+                    },
+                    items: { "ui:field": "entityFilterRule" },
                   },
-                  items: { "ui:field": "entityFilterRule" },
+                  exclude: {
+                    "ui:options": {
+                      ArrayFieldTemplate: CompactArrayFieldTemplate,
+                    },
+                    items: { "ui:field": "entityFilterRule" },
+                  },
                 },
-              },
-            }}
-            customValidate={validatePort}
-            templates={{ ObjectFieldTemplate: BridgeObjectFieldTemplate }}
-            fields={{
-              featureFlags: FeatureFlagsField,
-              entityFilterRule: EntityFilterRuleField,
-            }}
-          />
+              }}
+              customValidate={validatePort}
+              templates={{ ObjectFieldTemplate: BridgeObjectFieldTemplate }}
+              fields={{
+                featureFlags: FeatureFlagsField,
+                entityFilterRule: EntityFilterRuleField,
+              }}
+            />
+          </>
         )}
 
         {editorMode === BridgeEditorMode.JSON_EDITOR && (

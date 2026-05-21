@@ -810,6 +810,7 @@
       "rulesConfigured_one": "{{count}} Regel konfiguriert",
       "rulesConfigured_other": "{{count}} Regeln konfiguriert",
       "entityAutocompleteHelp": "Entity-ID suchen oder eintippen. Wildcards und reguläre Ausdrücke funktionieren weiterhin.",
+      "advancedFilters": "Erweiterte Filter anzeigen",
       "matcherTypes": {
         "pattern": {
           "title": "Muster",
@@ -873,6 +874,18 @@
         }
       }
     }
+  },
+  "filterPresets": {
+    "title": "Entity-Filter-Vorlagen",
+    "selectLabel": "Filter-Vorlage auswählen",
+    "load": "Vorlage laden",
+    "detach": "Von Vorlage lösen / manuell bearbeiten",
+    "newName": "Name der neuen Vorlage",
+    "saveNew": "Als neue Vorlage speichern",
+    "update": "Vorlage aktualisieren",
+    "activeManual": "Aktive Filter: Manuell",
+    "activePreset": "Aktive Filter: Vorlage {{name}}",
+    "help": "Beim Laden einer Vorlage werden deren Regeln in diese Bridge kopiert. Manuelle Änderungen ändern die Vorlage nicht automatisch."
   },
   "bridgeIcon": {
     "bridgeIcon": "Bridge-Symbol",

@@ -21,6 +21,7 @@ import { bridgeIconApi } from "./bridge-icon-api.js";
 import { deviceImageApi } from "./device-image-api.js";
 import { diagnosticApi } from "./diagnostic-api.js";
 import { entityMappingApi } from "./entity-mapping-api.js";
+import { filterPresetApi } from "./filter-preset-api.js";
 import { healthApi } from "./health-api.js";
 import { homeAssistantApi } from "./home-assistant-api.js";
 import { lockCredentialApi } from "./lock-credential-api.js";
@@ -111,6 +112,7 @@ export class WebApi extends Service {
         deviceImageApi(this.props.storageLocation, this.haRegistry),
       )
       .use("/entity-mappings", entityMappingApi(this.mappingStorage))
+      .use("/filter-presets", filterPresetApi(this.settingsStorage))
       .use("/mapping-profiles", mappingProfileApi(this.mappingStorage))
       .use("/lock-credentials", lockCredentialApi(this.lockCredentialStorage))
       .use("/settings", settingsApi(this.props.auth))

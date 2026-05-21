@@ -79,6 +79,7 @@ export class BackupService {
       createdAt: now.toISOString(),
       bridges,
       entityMappings,
+      filterPresets: this.settingsStorage.filterPresets,
       includesIdentity: true,
       includesIcons,
       storageBackend: this.activeStorageBackend,
