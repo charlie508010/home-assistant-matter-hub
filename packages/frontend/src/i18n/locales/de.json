@@ -109,7 +109,9 @@
     "authSaveFailed": "Authentifizierungseinstellungen konnten nicht gespeichert werden",
     "authLoadFailed": "Authentifizierungseinstellungen konnten nicht geladen werden",
     "authDisabled": "Authentifizierung deaktiviert.",
-    "authRemoveFailed": "Authentifizierungseinstellungen konnten nicht entfernt werden"
+    "authRemoveFailed": "Authentifizierungseinstellungen konnten nicht entfernt werden",
+    "httpAuthTitle": "HTTP-Authentifizierung",
+    "httpAuthManagedExternally": "HTTP-Authentifizierung wird über die Add-on-/App-Konfiguration verwaltet. Setze dort http_auth_enabled, http_auth_username und http_auth_password oder verwende die Umgebungsvariablen HAMH_HTTP_AUTH_USERNAME und HAMH_HTTP_AUTH_PASSWORD."
   },
   "dashboard": {
     "title": "Dashboard",

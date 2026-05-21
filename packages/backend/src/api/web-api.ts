@@ -113,7 +113,7 @@ export class WebApi extends Service {
       .use("/entity-mappings", entityMappingApi(this.mappingStorage))
       .use("/mapping-profiles", mappingProfileApi(this.mappingStorage))
       .use("/lock-credentials", lockCredentialApi(this.lockCredentialStorage))
-      .use("/settings", settingsApi(this.settingsStorage, this.props.auth))
+      .use("/settings", settingsApi(this.props.auth))
       .use(
         "/backup",
         backupApi(
@@ -166,9 +166,7 @@ export class WebApi extends Service {
 
     middlewares.push(this.createDynamicAuthMiddleware());
     if (this.props.auth) {
-      this.log.info("Basic authentication enabled (environment variables)");
-    } else if (this.settingsStorage.auth) {
-      this.log.info("Basic authentication enabled (stored settings)");
+      this.log.info("Basic authentication enabled (configuration)");
     }
     if (this.props.whitelist && this.props.whitelist.length > 0) {
       middlewares.push(
@@ -213,31 +211,22 @@ export class WebApi extends Service {
   }
 
   private createDynamicAuthMiddleware(): express.RequestHandler {
-    const envAuth = this.props.auth;
-    const envMiddleware = envAuth
+    const configAuth = this.props.auth;
+    const authMiddleware = configAuth
       ? basicAuth({
-          users: { [envAuth.username]: envAuth.password },
+          users: { [configAuth.username]: configAuth.password },
           challenge: true,
           realm: "Home Assistant Matter Hub",
         })
       : undefined;
-    const storageMiddleware = basicAuth({
-      authorizer: (username: string, password: string) =>
-        this.settingsStorage.verifyAuth(username, password),
-      challenge: true,
-      realm: "Home Assistant Matter Hub",
-    });
     return (req, res, next) => {
       if (req.path === "/api/health/live" || req.path === "/api/health/ready") {
         return next();
       }
-      if (envMiddleware) {
-        return envMiddleware(req, res, next);
+      if (authMiddleware) {
+        return authMiddleware(req, res, next);
       }
-      if (!this.settingsStorage.auth) {
-        return next();
-      }
-      return storageMiddleware(req, res, next);
+      return next();
     };
   }
 

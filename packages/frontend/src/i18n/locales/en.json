@@ -109,7 +109,9 @@
     "authSaveFailed": "Failed to save auth settings",
     "authLoadFailed": "Failed to load auth settings",
     "authDisabled": "Authentication disabled.",
-    "authRemoveFailed": "Failed to remove auth settings"
+    "authRemoveFailed": "Failed to remove auth settings",
+    "httpAuthTitle": "HTTP Authentication",
+    "httpAuthManagedExternally": "HTTP authentication is managed through the add-on/app configuration. Set http_auth_enabled, http_auth_username, and http_auth_password there, or use the HAMH_HTTP_AUTH_USERNAME and HAMH_HTTP_AUTH_PASSWORD environment variables."
   },
   "dashboard": {
     "title": "Dashboard",
