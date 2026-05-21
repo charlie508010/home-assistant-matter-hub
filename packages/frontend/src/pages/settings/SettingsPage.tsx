@@ -6,9 +6,15 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Divider from "@mui/material/Divider";
 import Typography from "@mui/material/Typography";
+import { lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import { BackupRestore } from "../../components/backup/BackupRestore.tsx";
 import { UpdateChecker } from "../../components/system/UpdateChecker.tsx";
+
+const BackupRestore = lazy(() =>
+  import("../../components/backup/BackupRestore.tsx").then((m) => ({
+    default: m.BackupRestore,
+  })),
+);
 
 export const SettingsPage = () => {
   const { t } = useTranslation();
@@ -20,7 +26,9 @@ export const SettingsPage = () => {
         {t("settings.title")}
       </Typography>
 
-      <BackupRestore />
+      <Suspense fallback={null}>
+        <BackupRestore />
+      </Suspense>
 
       <Divider sx={{ my: 3 }} />
 

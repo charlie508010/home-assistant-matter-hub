@@ -27,11 +27,16 @@ import Paper from "@mui/material/Paper";
 import Select from "@mui/material/Select";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackupRestore } from "../backup/BackupRestore.tsx";
 import { FabricIcon } from "../fabric/FabricIcon.tsx";
 import { getVendorName } from "../fabric/vendor-names.ts";
+
+const BackupRestore = lazy(() =>
+  import("../backup/BackupRestore.tsx").then((m) => ({
+    default: m.BackupRestore,
+  })),
+);
 
 type SortField = "name" | "created";
 type SortDirection = "asc" | "desc";
@@ -560,7 +565,9 @@ export function HealthDashboard(props: HealthDashboardProps = {}) {
       )}
 
       <Divider sx={{ my: 3 }} />
-      <BackupRestore />
+      <Suspense fallback={null}>
+        <BackupRestore />
+      </Suspense>
     </Box>
   );
 }

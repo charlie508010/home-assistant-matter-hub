@@ -16,7 +16,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { TFunction } from "i18next";
 import type { JSONSchema7 } from "json-schema";
-import { useCallback, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { navigation } from "../../routes.tsx";
 import { FormEditor } from "../misc/editors/FormEditor";
@@ -25,11 +25,16 @@ import type { ValidationError } from "../misc/editors/validation-error.ts";
 import { BridgeIconUpload } from "./BridgeIconUpload.tsx";
 import { FilterPresetProvider } from "./FilterPresetContext.tsx";
 import { FilterPreview } from "./FilterPreview.tsx";
-import { FilterReferenceHelp } from "./FilterReferenceHelp.tsx";
 import { BridgeObjectFieldTemplate } from "./rjsf/BridgeObjectFieldTemplate.tsx";
 import { CompactArrayFieldTemplate } from "./rjsf/CompactArrayFieldTemplate.tsx";
 import { EntityFilterRuleField } from "./rjsf/EntityFilterRuleField.tsx";
 import { FeatureFlagsField } from "./rjsf/FeatureFlagsField.tsx";
+
+const FilterReferenceHelp = lazy(() =>
+  import("./FilterReferenceHelp.tsx").then((m) => ({
+    default: m.FilterReferenceHelp,
+  })),
+);
 
 enum BridgeEditorMode {
   JSON_EDITOR = "JSON_EDITOR",
@@ -247,7 +252,9 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
           <FilterPreview filter={(config as BridgeConfig).filter} />
         )}
 
-        <FilterReferenceHelp />
+        <Suspense fallback={null}>
+          <FilterReferenceHelp />
+        </Suspense>
 
         <Card variant="outlined">
           <CardContent>

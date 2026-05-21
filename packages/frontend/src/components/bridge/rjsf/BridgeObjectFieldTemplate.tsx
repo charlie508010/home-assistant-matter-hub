@@ -8,10 +8,15 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { generateTemplates } from "@rjsf/mui";
 import type { ObjectFieldTemplateProps } from "@rjsf/utils";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFilterPresetLoader } from "../FilterPresetContext.tsx";
-import { FilterPresetControls } from "../FilterPresetControls.tsx";
+
+const FilterPresetControls = lazy(() =>
+  import("../FilterPresetControls.tsx").then((m) => ({
+    default: m.FilterPresetControls,
+  })),
+);
 
 const muiTemplates = generateTemplates();
 const DefaultObjectFieldTemplate = muiTemplates.ObjectFieldTemplate!;
@@ -82,7 +87,9 @@ function CollapsibleFilterTemplate(props: ObjectFieldTemplateProps) {
             onClick={(event) => event.stopPropagation()}
             onFocus={(event) => event.stopPropagation()}
           >
-            <FilterPresetControls onFilterChange={loadPreset} />
+            <Suspense fallback={null}>
+              <FilterPresetControls onFilterChange={loadPreset} />
+            </Suspense>
           </Box>
         )}
       </AccordionSummary>

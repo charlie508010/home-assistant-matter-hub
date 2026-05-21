@@ -1,20 +1,82 @@
+import { lazy, type ReactNode, Suspense } from "react";
 import type { RouteObject } from "react-router";
 import { AppPage } from "./pages/AppPage.tsx";
-import { AreaBridgeSetupPage } from "./pages/area-setup/AreaBridgeSetupPage.tsx";
-import { BridgeDetailsPage } from "./pages/bridge-details/BridgeDetailsPage.tsx";
-import { BridgesPage } from "./pages/bridges/BridgesPage.tsx";
-import { DashboardPage } from "./pages/dashboard/DashboardPage.tsx";
-import { DevicesPage } from "./pages/devices/DevicesPage.tsx";
-import { CreateBridgePage } from "./pages/edit-bridge/CreateBridgePage.tsx";
-import { EditBridgePage } from "./pages/edit-bridge/EditBridgePage.tsx";
-import { HealthPage } from "./pages/health/HealthPage.tsx";
-import { LabelsPage } from "./pages/labels/LabelsPage.tsx";
-import { LockCredentialsPage } from "./pages/lock-credentials/LockCredentialsPage.tsx";
-import { NotFoundPage } from "./pages/NotFoundPage.tsx";
-import { NetworkMapPage } from "./pages/network-map/NetworkMapPage.tsx";
-import { PluginsPage } from "./pages/plugins/PluginsPage.tsx";
-import { SettingsPage } from "./pages/settings/SettingsPage.tsx";
-import { StartupPage } from "./pages/startup/StartupPage.tsx";
+
+const AreaBridgeSetupPage = lazy(() =>
+  import("./pages/area-setup/AreaBridgeSetupPage.tsx").then((m) => ({
+    default: m.AreaBridgeSetupPage,
+  })),
+);
+const BridgeDetailsPage = lazy(() =>
+  import("./pages/bridge-details/BridgeDetailsPage.tsx").then((m) => ({
+    default: m.BridgeDetailsPage,
+  })),
+);
+const BridgesPage = lazy(() =>
+  import("./pages/bridges/BridgesPage.tsx").then((m) => ({
+    default: m.BridgesPage,
+  })),
+);
+const DashboardPage = lazy(() =>
+  import("./pages/dashboard/DashboardPage.tsx").then((m) => ({
+    default: m.DashboardPage,
+  })),
+);
+const DevicesPage = lazy(() =>
+  import("./pages/devices/DevicesPage.tsx").then((m) => ({
+    default: m.DevicesPage,
+  })),
+);
+const CreateBridgePage = lazy(() =>
+  import("./pages/edit-bridge/CreateBridgePage.tsx").then((m) => ({
+    default: m.CreateBridgePage,
+  })),
+);
+const EditBridgePage = lazy(() =>
+  import("./pages/edit-bridge/EditBridgePage.tsx").then((m) => ({
+    default: m.EditBridgePage,
+  })),
+);
+const HealthPage = lazy(() =>
+  import("./pages/health/HealthPage.tsx").then((m) => ({
+    default: m.HealthPage,
+  })),
+);
+const LabelsPage = lazy(() =>
+  import("./pages/labels/LabelsPage.tsx").then((m) => ({
+    default: m.LabelsPage,
+  })),
+);
+const LockCredentialsPage = lazy(() =>
+  import("./pages/lock-credentials/LockCredentialsPage.tsx").then((m) => ({
+    default: m.LockCredentialsPage,
+  })),
+);
+const NetworkMapPage = lazy(() =>
+  import("./pages/network-map/NetworkMapPage.tsx").then((m) => ({
+    default: m.NetworkMapPage,
+  })),
+);
+const PluginsPage = lazy(() =>
+  import("./pages/plugins/PluginsPage.tsx").then((m) => ({
+    default: m.PluginsPage,
+  })),
+);
+const SettingsPage = lazy(() =>
+  import("./pages/settings/SettingsPage.tsx").then((m) => ({
+    default: m.SettingsPage,
+  })),
+);
+const StartupPage = lazy(() =>
+  import("./pages/startup/StartupPage.tsx").then((m) => ({
+    default: m.StartupPage,
+  })),
+);
+const NotFoundPage = lazy(() =>
+  import("./pages/NotFoundPage.tsx").then((m) => ({
+    default: m.NotFoundPage,
+  })),
+);
 
 const documentationUrl = "https://riddix.github.io/home-assistant-matter-hub";
 export const navigation = {
@@ -50,22 +112,35 @@ export const routes: RouteObject[] = [
     children: [
       {
         path: "",
-        element: <DashboardPage />,
+        element: page(<DashboardPage />),
       },
-      { path: navigation.bridges, element: <BridgesPage /> },
-      { path: navigation.createBridge, element: <CreateBridgePage /> },
-      { path: navigation.areaSetup, element: <AreaBridgeSetupPage /> },
-      { path: navigation.bridge(":bridgeId"), element: <BridgeDetailsPage /> },
-      { path: navigation.editBridge(":bridgeId"), element: <EditBridgePage /> },
-      { path: navigation.devices, element: <DevicesPage /> },
-      { path: navigation.networkMap, element: <NetworkMapPage /> },
-      { path: navigation.health, element: <HealthPage /> },
-      { path: navigation.labels, element: <LabelsPage /> },
-      { path: navigation.lockCredentials, element: <LockCredentialsPage /> },
-      { path: navigation.plugins, element: <PluginsPage /> },
-      { path: navigation.settings, element: <SettingsPage /> },
-      { path: navigation.startup, element: <StartupPage /> },
-      { path: "*", element: <NotFoundPage /> },
+      { path: navigation.bridges, element: page(<BridgesPage />) },
+      { path: navigation.createBridge, element: page(<CreateBridgePage />) },
+      { path: navigation.areaSetup, element: page(<AreaBridgeSetupPage />) },
+      {
+        path: navigation.bridge(":bridgeId"),
+        element: page(<BridgeDetailsPage />),
+      },
+      {
+        path: navigation.editBridge(":bridgeId"),
+        element: page(<EditBridgePage />),
+      },
+      { path: navigation.devices, element: page(<DevicesPage />) },
+      { path: navigation.networkMap, element: page(<NetworkMapPage />) },
+      { path: navigation.health, element: page(<HealthPage />) },
+      { path: navigation.labels, element: page(<LabelsPage />) },
+      {
+        path: navigation.lockCredentials,
+        element: page(<LockCredentialsPage />),
+      },
+      { path: navigation.plugins, element: page(<PluginsPage />) },
+      { path: navigation.settings, element: page(<SettingsPage />) },
+      { path: navigation.startup, element: page(<StartupPage />) },
+      { path: "*", element: page(<NotFoundPage />) },
     ],
   },
 ];
+
+function page(element: ReactNode) {
+  return <Suspense fallback={null}>{element}</Suspense>;
+}
