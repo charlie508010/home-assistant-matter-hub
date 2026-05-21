@@ -9,6 +9,10 @@ import type { Request } from "express";
 import express from "express";
 import multer from "multer";
 import unzipper from "unzipper";
+import {
+  resolveStorageBackend,
+  type StorageBackend,
+} from "../core/app/storage.js";
 import type { BackupService } from "../services/backup/backup-service.js";
 import type { BridgeService } from "../services/bridges/bridge-service.js";
 import type { AppSettingsStorage } from "../services/storage/app-settings-storage.js";
@@ -28,6 +32,21 @@ export interface BackupData {
   entityMappings: Record<string, unknown[]>;
   includesIdentity?: boolean;
   includesIcons?: boolean;
+  storageBackend?: StorageBackend;
+  activeStorageRoot?: string;
+  includesStorage?: boolean;
+  backupType?: "config" | "full";
+}
+
+export interface StorageStatusData {
+  storageBackend: StorageBackend;
+  activeStorageRoot: string;
+  legacyStoragePresent: boolean;
+  lastBackup?: {
+    createdAt: string;
+    backupType: "config" | "full" | "legacy";
+    storageBackend: StorageBackend | "legacy";
+  };
 }
 
 export function backupApi(
@@ -39,6 +58,29 @@ export function backupApi(
   _bridgeService?: BridgeService,
 ): express.Router {
   const router = express.Router();
+
+  router.get("/status", async (_, res) => {
+    try {
+      const lastBackup = backupService.listBackups()[0];
+      const status: StorageStatusData = {
+        storageBackend: getActiveStorageBackend(storageLocation),
+        activeStorageRoot: storageLocation,
+        legacyStoragePresent: hasLegacyStorage(storageLocation),
+        lastBackup: lastBackup
+          ? {
+              createdAt: lastBackup.createdAt,
+              backupType: lastBackup.backupType ?? "legacy",
+              storageBackend: lastBackup.storageBackend ?? "legacy",
+            }
+          : undefined,
+      };
+      res.json(status);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to get storage status";
+      res.status(500).json({ error: message });
+    }
+  });
 
   router.get("/download", async (req, res) => {
     try {
@@ -71,6 +113,10 @@ export function backupApi(
         entityMappings,
         includesIdentity: includeIdentity,
         includesIcons,
+        storageBackend: getActiveStorageBackend(storageLocation),
+        activeStorageRoot: storageLocation,
+        includesStorage: includeIdentity,
+        backupType: includeIdentity ? "full" : "config",
       };
 
       const archive = archiver("zip", { zlib: { level: 9 } });
@@ -95,12 +141,7 @@ export function backupApi(
       );
 
       if (includeIdentity) {
-        for (const bridge of bridges) {
-          const bridgeStoragePath = path.join(storageLocation, bridge.id);
-          if (fs.existsSync(bridgeStoragePath)) {
-            archive.directory(bridgeStoragePath, `identity/${bridge.id}`);
-          }
-        }
+        appendStorageRoot(archive, storageLocation, backupData.storageBackend);
 
         // Include bridge icons
         if (includesIcons) {
@@ -140,6 +181,14 @@ export function backupApi(
           version: backupData.version,
           createdAt: backupData.createdAt,
           includesIdentity: backupData.includesIdentity ?? false,
+          storageBackend: backupData.storageBackend ?? "file",
+          currentStorageBackend: getActiveStorageBackend(storageLocation),
+          activeStorageRoot: backupData.activeStorageRoot,
+          backupType: backupData.backupType ?? "config",
+          storageBackendMismatch:
+            backupData.storageBackend != null &&
+            backupData.storageBackend !==
+              getActiveStorageBackend(storageLocation),
           bridges: backupData.bridges.map((bridge: BridgeData) => ({
             id: bridge.id,
             name: bridge.name,
@@ -181,6 +230,7 @@ export function backupApi(
         const { backupData, zipDirectory } = await extractBackupData(
           req.file.buffer,
         );
+        warnOnStorageBackendMismatch(backupData, storageLocation);
         const existingIds = new Set(bridgeStorage.bridges.map((b) => b.id));
 
         const bridgesToRestore = options.bridgeIds
@@ -192,6 +242,7 @@ export function backupApi(
         let mappingsRestored = 0;
         let identitiesRestored = 0;
         let iconsRestored = 0;
+        let storageRootRestored = false;
         const errors: Array<{ bridgeId: string; error: string }> = [];
 
         for (const bridge of bridgesToRestore) {
@@ -246,13 +297,25 @@ export function backupApi(
               options.restoreIdentity !== false &&
               backupData.includesIdentity
             ) {
-              const identityRestored = await restoreIdentityFiles(
+              const identityRestored = hasStorageRoot(
                 zipDirectory,
-                bridge.id,
-                storageLocation,
-              );
+                backupData.storageBackend,
+              )
+                ? !storageRootRestored &&
+                  (await restoreStorageRoot(
+                    zipDirectory,
+                    storageLocation,
+                    backupData.storageBackend,
+                  ))
+                : await restoreLegacyIdentityFiles(
+                    zipDirectory,
+                    bridge.id,
+                    storageLocation,
+                    backupData.storageBackend,
+                  );
               if (identityRestored) {
                 identitiesRestored++;
+                storageRootRestored = true;
               }
             }
 
@@ -364,6 +427,7 @@ export function backupApi(
       };
 
       const { backupData, zipDirectory } = await extractBackupData(buffer);
+      warnOnStorageBackendMismatch(backupData, storageLocation);
       const existingIds = new Set(bridgeStorage.bridges.map((b) => b.id));
 
       const bridgesToRestore = options.bridgeIds
@@ -375,6 +439,7 @@ export function backupApi(
       let mappingsRestored = 0;
       let identitiesRestored = 0;
       let iconsRestored = 0;
+      let storageRootRestored = false;
       const errors: Array<{ bridgeId: string; error: string }> = [];
 
       for (const bridge of bridgesToRestore) {
@@ -429,13 +494,25 @@ export function backupApi(
             options.restoreIdentity !== false &&
             backupData.includesIdentity
           ) {
-            const identityRestored = await restoreIdentityFiles(
+            const identityRestored = hasStorageRoot(
               zipDirectory,
-              bridge.id,
-              storageLocation,
-            );
+              backupData.storageBackend,
+            )
+              ? !storageRootRestored &&
+                (await restoreStorageRoot(
+                  zipDirectory,
+                  storageLocation,
+                  backupData.storageBackend,
+                ))
+              : await restoreLegacyIdentityFiles(
+                  zipDirectory,
+                  bridge.id,
+                  storageLocation,
+                  backupData.storageBackend,
+                );
             if (identityRestored) {
               identitiesRestored++;
+              storageRootRestored = true;
             }
           }
 
@@ -538,6 +615,150 @@ async function extractBackupData(buffer: Buffer): Promise<ExtractedBackup> {
   return { backupData: data, zipDirectory: directory };
 }
 
+function getActiveStorageBackend(storageLocation: string): StorageBackend {
+  const backend = resolveStorageBackend(process.env.HAMH_STORAGE_BACKEND);
+  return path.basename(storageLocation) === backend
+    ? backend
+    : resolveStorageBackend(path.basename(storageLocation));
+}
+
+function getStorageRootForBackend(
+  currentStorageLocation: string,
+  backend: StorageBackend | undefined,
+): string {
+  const targetBackend = backend ?? "file";
+  const currentBackend = getActiveStorageBackend(currentStorageLocation);
+  const baseStorageRoot =
+    path.basename(currentStorageLocation) === currentBackend
+      ? path.dirname(currentStorageLocation)
+      : currentStorageLocation;
+  return path.join(baseStorageRoot, targetBackend);
+}
+
+function hasLegacyStorage(currentStorageLocation: string): boolean {
+  const currentBackend = getActiveStorageBackend(currentStorageLocation);
+  const baseStorageRoot =
+    path.basename(currentStorageLocation) === currentBackend
+      ? path.dirname(currentStorageLocation)
+      : currentStorageLocation;
+
+  if (!fs.existsSync(baseStorageRoot)) {
+    return false;
+  }
+
+  return fs
+    .readdirSync(baseStorageRoot, { withFileTypes: true })
+    .some(
+      (entry) =>
+        entry.isDirectory() &&
+        (entry.name.startsWith("file-store-backup-") ||
+          entry.name === "app" ||
+          (entry.name !== "file" && entry.name !== "sqlite")),
+    );
+}
+
+function warnOnStorageBackendMismatch(
+  backupData: BackupData,
+  currentStorageLocation: string,
+) {
+  const backupBackend = backupData.storageBackend;
+  if (backupBackend == null) {
+    return;
+  }
+
+  const currentBackend = getActiveStorageBackend(currentStorageLocation);
+  if (backupBackend !== currentBackend) {
+    console.warn(
+      `Backup was created with storage backend ${backupBackend}, current backend is ${currentBackend}. Restoring into matching backend folder without deleting existing data.`,
+    );
+  }
+}
+
+function appendStorageRoot(
+  archive: archiver.Archiver,
+  storageLocation: string,
+  backend: StorageBackend | undefined,
+) {
+  const storageBackend = backend ?? "file";
+  const storagePrefix = `storage/${storageBackend}`;
+  if (!fs.existsSync(storageLocation)) {
+    return;
+  }
+
+  appendDirectory(archive, storageLocation, storagePrefix, (relativePath) => {
+    return (
+      relativePath === "backups" ||
+      relativePath.startsWith(`backups${path.sep}`) ||
+      relativePath.startsWith("file-store-backup-")
+    );
+  });
+}
+
+function appendDirectory(
+  archive: archiver.Archiver,
+  sourceDir: string,
+  archivePrefix: string,
+  shouldSkip: (relativePath: string) => boolean,
+) {
+  const entries = fs.readdirSync(sourceDir, { withFileTypes: true });
+  for (const entry of entries) {
+    const sourcePath = path.join(sourceDir, entry.name);
+    const relativePath = path.relative(sourceDir, sourcePath);
+    if (shouldSkip(relativePath)) {
+      continue;
+    }
+    const archivePath = path.posix.join(
+      archivePrefix,
+      relativePath.split(path.sep).join(path.posix.sep),
+    );
+
+    if (entry.isDirectory()) {
+      appendDirectoryRecursive(
+        archive,
+        sourcePath,
+        sourceDir,
+        archivePrefix,
+        shouldSkip,
+      );
+    } else if (entry.isFile()) {
+      archive.file(sourcePath, { name: archivePath });
+    }
+  }
+}
+
+function appendDirectoryRecursive(
+  archive: archiver.Archiver,
+  sourcePath: string,
+  rootDir: string,
+  archivePrefix: string,
+  shouldSkip: (relativePath: string) => boolean,
+) {
+  const entries = fs.readdirSync(sourcePath, { withFileTypes: true });
+  for (const entry of entries) {
+    const childPath = path.join(sourcePath, entry.name);
+    const relativePath = path.relative(rootDir, childPath);
+    if (shouldSkip(relativePath)) {
+      continue;
+    }
+
+    const archivePath = path.posix.join(
+      archivePrefix,
+      relativePath.split(path.sep).join(path.posix.sep),
+    );
+    if (entry.isDirectory()) {
+      appendDirectoryRecursive(
+        archive,
+        childPath,
+        rootDir,
+        archivePrefix,
+        shouldSkip,
+      );
+    } else if (entry.isFile()) {
+      archive.file(childPath, { name: archivePath });
+    }
+  }
+}
+
 function resolveWithin(baseDir: string, relative: string): string | null {
   if (relative.length === 0 || path.isAbsolute(relative)) {
     return null;
@@ -553,26 +774,79 @@ function resolveWithin(baseDir: string, relative: string): string | null {
   return resolvedTarget;
 }
 
-async function restoreIdentityFiles(
+function hasStorageRoot(
+  zipDirectory: unzipper.CentralDirectory,
+  backupBackend: StorageBackend | undefined,
+): boolean {
+  const storageBackend = backupBackend ?? "file";
+  const storagePrefix = `storage/${storageBackend}/`;
+  return zipDirectory.files.some(
+    (f: { path: string; type: string }) =>
+      f.path.startsWith(storagePrefix) && f.type === "File",
+  );
+}
+
+async function restoreStorageRoot(
+  zipDirectory: unzipper.CentralDirectory,
+  storageLocation: string,
+  backupBackend: StorageBackend | undefined,
+): Promise<boolean> {
+  const targetStorageRoot = getStorageRootForBackend(
+    storageLocation,
+    backupBackend,
+  );
+  const storageBackend = backupBackend ?? "file";
+  const storagePrefix = `storage/${storageBackend}/`;
+  const storageFiles = zipDirectory.files.filter(
+    (f: { path: string; type: string }) =>
+      f.path.startsWith(storagePrefix) && f.type === "File",
+  );
+
+  if (storageFiles.length > 0) {
+    fs.mkdirSync(targetStorageRoot, { recursive: true });
+    for (const file of storageFiles) {
+      const relativePath = file.path.substring(storagePrefix.length);
+      const targetPath = resolveWithin(targetStorageRoot, relativePath);
+      if (!targetPath) {
+        throw new Error(
+          `Refusing to restore storage file with unsafe path: ${file.path}`,
+        );
+      }
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      const content = await file.buffer();
+      fs.writeFileSync(targetPath, content);
+    }
+    return true;
+  }
+
+  return false;
+}
+
+async function restoreLegacyIdentityFiles(
   zipDirectory: unzipper.CentralDirectory,
   bridgeId: string,
   storageLocation: string,
+  backupBackend: StorageBackend | undefined,
 ): Promise<boolean> {
-  const identityPrefix = `identity/${bridgeId}/`;
-  const identityFiles = zipDirectory.files.filter(
+  const targetStorageRoot = getStorageRootForBackend(
+    storageLocation,
+    backupBackend,
+  );
+  const legacyIdentityPrefix = `identity/${bridgeId}/`;
+  const legacyIdentityFiles = zipDirectory.files.filter(
     (f: { path: string; type: string }) =>
-      f.path.startsWith(identityPrefix) && f.type === "File",
+      f.path.startsWith(legacyIdentityPrefix) && f.type === "File",
   );
 
-  if (identityFiles.length === 0) {
+  if (legacyIdentityFiles.length === 0) {
     return false;
   }
 
-  const targetDir = path.join(storageLocation, bridgeId);
+  const targetDir = path.join(targetStorageRoot, bridgeId);
   fs.mkdirSync(targetDir, { recursive: true });
 
-  for (const file of identityFiles) {
-    const relativePath = file.path.substring(identityPrefix.length);
+  for (const file of legacyIdentityFiles) {
+    const relativePath = file.path.substring(legacyIdentityPrefix.length);
     const targetPath = resolveWithin(targetDir, relativePath);
     if (!targetPath) {
       throw new Error(

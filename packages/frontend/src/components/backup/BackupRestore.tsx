@@ -41,7 +41,9 @@ import {
   downloadBackupSnapshot,
   fetchBackupSettings,
   fetchBackupSnapshots,
+  fetchStorageStatus,
   restoreBackupSnapshot,
+  type StorageStatus,
   updateBackupSettings,
 } from "../../api/backup.js";
 
@@ -49,6 +51,10 @@ interface BackupPreview {
   version: number;
   createdAt: string;
   includesIdentity: boolean;
+  storageBackend?: "file" | "sqlite";
+  currentStorageBackend?: "file" | "sqlite";
+  backupType?: "config" | "full";
+  storageBackendMismatch?: boolean;
   bridges: Array<{
     id: string;
     name: string;
@@ -74,6 +80,12 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function storageBackendColor(backend: string | undefined) {
+  if (backend === "sqlite") return "primary";
+  if (backend === "file") return "default";
+  return "warning";
+}
+
 export function BackupRestore() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -92,6 +104,9 @@ export function BackupRestore() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [snapshots, setSnapshots] = useState<BackupMetadata[]>([]);
+  const [storageStatus, setStorageStatus] = useState<StorageStatus | null>(
+    null,
+  );
   const [snapshotsLoading, setSnapshotsLoading] = useState(true);
   const [settings, setSettings] = useState<BackupSettings | null>(null);
   const [snapshotRestoreTarget, setSnapshotRestoreTarget] = useState<
@@ -105,12 +120,14 @@ export function BackupRestore() {
   const loadSnapshots = useCallback(async () => {
     try {
       setSnapshotsLoading(true);
-      const [snaps, backupSettings] = await Promise.all([
+      const [snaps, backupSettings, status] = await Promise.all([
         fetchBackupSnapshots(),
         fetchBackupSettings(),
+        fetchStorageStatus(),
       ]);
       setSnapshots(snaps);
       setSettings(backupSettings);
+      setStorageStatus(status);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load backups");
     } finally {
@@ -373,6 +390,46 @@ export function BackupRestore() {
           {t("backup.description")}
         </Typography>
 
+        {storageStatus && (
+          <Paper variant="outlined" sx={{ p: 1.5, mb: 2 }}>
+            <Box display="flex" flexWrap="wrap" gap={1} alignItems="center">
+              <Typography variant="body2" fontWeight="bold">
+                Storage
+              </Typography>
+              <Chip
+                label={`Backend: ${storageStatus.storageBackend}`}
+                size="small"
+                color={storageBackendColor(storageStatus.storageBackend)}
+                variant="outlined"
+              />
+              <Chip
+                label={`Pfad: ${storageStatus.activeStorageRoot}`}
+                size="small"
+                variant="outlined"
+              />
+              <Chip
+                label={`Legacy: ${storageStatus.legacyStoragePresent ? "ja" : "nein"}`}
+                size="small"
+                color={
+                  storageStatus.legacyStoragePresent ? "warning" : "default"
+                }
+                variant="outlined"
+              />
+              <Chip
+                label={
+                  storageStatus.lastBackup
+                    ? `Letztes Backup: ${new Date(
+                        storageStatus.lastBackup.createdAt,
+                      ).toLocaleString()} / ${storageStatus.lastBackup.backupType} / ${storageStatus.lastBackup.storageBackend}`
+                    : "Letztes Backup: keines"
+                }
+                size="small"
+                variant="outlined"
+              />
+            </Box>
+          </Paper>
+        )}
+
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
             {error}
@@ -622,6 +679,17 @@ export function BackupRestore() {
                         variant="outlined"
                         color={snap.auto ? "default" : "primary"}
                       />
+                      <Chip
+                        label={snap.backupType ?? "legacy"}
+                        size="small"
+                        variant="outlined"
+                      />
+                      <Chip
+                        label={snap.storageBackend ?? "legacy"}
+                        size="small"
+                        variant="outlined"
+                        color={storageBackendColor(snap.storageBackend)}
+                      />
                       <Typography variant="body2" color="text.secondary">
                         {formatSize(snap.sizeBytes)}
                       </Typography>
@@ -698,6 +766,20 @@ export function BackupRestore() {
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 Backup created: {new Date(preview.createdAt).toLocaleString()}
               </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Backup storage backend: {preview.storageBackend ?? "unknown"}
+                {preview.currentStorageBackend
+                  ? `, current: ${preview.currentStorageBackend}`
+                  : ""}
+              </Typography>
+              {preview.storageBackendMismatch && (
+                <Alert severity="warning" sx={{ mt: 1 }}>
+                  Backup was created with storage backend{" "}
+                  {preview.storageBackend}, current backend is{" "}
+                  {preview.currentStorageBackend}. Restore writes into the
+                  matching backend folder without deleting existing data.
+                </Alert>
+              )}
               {preview.includesIdentity && (
                 <Alert severity="info" sx={{ mt: 1 }}>
                   This backup includes Matter identity data (keypairs, fabric
