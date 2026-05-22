@@ -56,6 +56,10 @@ export class BasicInformationServer extends Base {
     const vendorId = isValidVendorId(customVendorId)
       ? customVendorId
       : basicInformation.vendorId;
+    const configurationUrl =
+      typeof device?.configuration_url === "string"
+        ? device.configuration_url
+        : undefined;
     applyPatchState(this.state, {
       vendorId: VendorId(vendorId),
       vendorName:
@@ -74,6 +78,8 @@ export class BasicInformationServer extends Base {
       softwareVersion: basicInformation.softwareVersion,
       hardwareVersionString: ellipse(64, device?.hw_version),
       softwareVersionString: ellipse(64, device?.sw_version),
+      productUrl: ellipse(256, configurationUrl),
+      partNumber: ellipse(32, device?.model_id),
       nodeLabel,
       reachable:
         entity.state?.state != null && entity.state.state !== "unavailable",
