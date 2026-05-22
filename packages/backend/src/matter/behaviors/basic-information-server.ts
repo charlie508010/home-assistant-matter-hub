@@ -77,7 +77,10 @@ export class BasicInformationServer extends Base {
       hardwareVersion: basicInformation.hardwareVersion,
       softwareVersion: basicInformation.softwareVersion,
       hardwareVersionString: ellipse(64, device?.hw_version),
-      softwareVersionString: ellipse(64, basicInformation.softwareVersionString),
+      softwareVersionString: ellipse(
+        64,
+        basicInformation.softwareVersionString,
+      ),
       productUrl: ellipse(256, configurationUrl),
       partNumber: ellipse(32, device?.model_id),
       nodeLabel,

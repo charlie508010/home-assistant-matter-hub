@@ -97,6 +97,23 @@ index 9493efdf3f312303f00cf7fb64cfb4370ab60af8..f583fc21ced93210ec05835c18defbb2
          message = session.decode(packet, aad);
          try {
            session.updateMessageCounter(messageId);
+diff --git a/dist/cjs/peer/PeerSet.js b/dist/cjs/peer/PeerSet.js
+index 1af371095389cd1d20734e39e0cc3f324f9f315a..4f38ac4368ddb8ff55b3db77f4a9f8f45d2332b7 100644
+--- a/dist/cjs/peer/PeerSet.js
++++ b/dist/cjs/peer/PeerSet.js
+@@ -722,7 +722,11 @@ class PeerSet {
+       }
+       session.channel.networkAddress = addresses[0];
+     }).catch((error) => {
+-      logger.error(`Failed to discover ${address} after resubmission started.`, error);
++      if (error?.message === "Cannot discover operational device because scanner is closing.") {
++        logger.debug(`Ignoring discovery retry for ${address} because scanner is closing.`);
++      } else {
++        logger.error(`Failed to discover ${address} after resubmission started.`, error);
++      }
+     }).finally(() => {
+       if (peer.activeDiscovery?.type === 1 /* RetransmissionDiscovery */) {
+         peer.activeDiscovery = void 0;
 diff --git a/dist/cjs/session/case/CaseServer.js b/dist/cjs/session/case/CaseServer.js
 index 6f7ab08b67e7d23fea33b337a413672ec83a1465..e276947e9c7b7ea5ebced658ba874aba1b8f6c14 100644
 --- a/dist/cjs/session/case/CaseServer.js
@@ -209,6 +226,23 @@ index 8631eb73fb8f28015b2653b92836282b0c37c896..65cae2c5debab3d9e9a963a88f7ba901
          message = session.decode(packet, aad);
          try {
            session.updateMessageCounter(messageId);
+diff --git a/dist/esm/peer/PeerSet.js b/dist/esm/peer/PeerSet.js
+index 66efa7c1433e0ffb4e4d0265e14085308a2b8a27..cfe5a96fc92a341851ccf2222e7d8d17661a0893 100644
+--- a/dist/esm/peer/PeerSet.js
++++ b/dist/esm/peer/PeerSet.js
+@@ -719,7 +719,11 @@ class PeerSet {
+       }
+       session.channel.networkAddress = addresses[0];
+     }).catch((error) => {
+-      logger.error(`Failed to discover ${address} after resubmission started.`, error);
++      if (error?.message === "Cannot discover operational device because scanner is closing.") {
++        logger.debug(`Ignoring discovery retry for ${address} because scanner is closing.`);
++      } else {
++        logger.error(`Failed to discover ${address} after resubmission started.`, error);
++      }
+     }).finally(() => {
+       if (peer.activeDiscovery?.type === 1 /* RetransmissionDiscovery */) {
+         peer.activeDiscovery = void 0;
 diff --git a/dist/esm/session/case/CaseServer.js b/dist/esm/session/case/CaseServer.js
 index 3d840b6a8bdda7164f4b9ae0d7123d3c5faae4eb..ba833c173351771210c4f457cc7d1878daacdddb 100644
 --- a/dist/esm/session/case/CaseServer.js
@@ -279,6 +313,23 @@ index 1b366af539c612e57f6709f7e83912dbf0d5fce7..4b0acaaf034b4ba3b266f4042741b662
                          packet.header.sourceNodeId !== undefined
                              ? ` from node ${hex.fixed(packet.header.sourceNodeId, 16)}`
                              : ""
+diff --git a/src/peer/PeerSet.ts b/src/peer/PeerSet.ts
+index 2baabfa826c79473b038a389d5836d3c867fd355..d018e6d8f2169d859486de53201578ba2d11a8ed 100644
+--- a/src/peer/PeerSet.ts
++++ b/src/peer/PeerSet.ts
+@@ -943,7 +943,11 @@ export class PeerSet implements ImmutableSet<Peer>, ObservableSet<Peer> {
+                 session.channel.networkAddress = addresses[0];
+             })
+             .catch(error => {
+-                logger.error(`Failed to discover ${address} after resubmission started.`, error);
++                if (error?.message === "Cannot discover operational device because scanner is closing.") {
++                    logger.debug(`Ignoring discovery retry for ${address} because scanner is closing.`);
++                } else {
++                    logger.error(`Failed to discover ${address} after resubmission started.`, error);
++                }
+             })
+             .finally(() => {
+                 if (peer.activeDiscovery?.type === NodeDiscoveryType.RetransmissionDiscovery) {
 diff --git a/src/session/case/CaseServer.ts b/src/session/case/CaseServer.ts
 index ce1177a4bac2ecdaaf9e618d72cb047af4ff8719..77600f8c81e3673d5c5814355f039292bbb7bd8b 100644
 --- a/src/session/case/CaseServer.ts
