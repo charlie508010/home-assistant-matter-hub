@@ -475,7 +475,7 @@ export class Bridge {
         for (const s of sessions) {
           totalSubs += s.subscriptions.size;
         }
-        this.log.info(
+        this.log.debug(
           `Session ${session.id} (peer ${session.peerNodeId}): subscriptions=${session.subscriptions.size} | total: sessions=${sessions.length} subscriptions=${totalSubs}`,
         );
         diagnosticEventBus.emit(
@@ -501,14 +501,14 @@ export class Bridge {
               this.deadSessionTimer = null;
               this.closeDeadSessions();
             }, DEAD_SESSION_TIMEOUT_MS);
-            this.log.info(
+            this.log.debug(
               `Scheduled dead session cleanup in ${DEAD_SESSION_TIMEOUT_MS / 1000}s`,
             );
           }
         } else if (totalSubs > 0 && this.deadSessionTimer) {
           clearTimeout(this.deadSessionTimer);
           this.deadSessionTimer = null;
-          this.log.info(
+          this.log.debug(
             "Subscriptions recovered, canceled dead session cleanup",
           );
         }
@@ -542,7 +542,7 @@ export class Bridge {
         peerNodeId: unknown;
         fabric?: { fabricIndex: unknown };
       }) => {
-        this.log.info(
+        this.log.debug(
           `Session opened: id=${newSession.id} peer=${newSession.peerNodeId}`,
         );
         diagnosticEventBus.emit(
@@ -566,7 +566,7 @@ export class Bridge {
             s.fabric?.fabricIndex === newSession.fabric?.fabricIndex &&
             s.subscriptions.size === 0
           ) {
-            this.log.info(
+            this.log.debug(
               `Closing stale session ${s.id} (peer ${s.peerNodeId}, 0 subs), replaced by session ${newSession.id}`,
             );
             s.initiateForceClose().catch(() => {});
@@ -578,7 +578,7 @@ export class Bridge {
         peerNodeId: unknown;
       }) => {
         const sessions = [...sessionManager.sessions];
-        this.log.warn(
+        this.log.debug(
           `Session closed: id=${session.id} peer=${session.peerNodeId} | remaining sessions=${sessions.length}`,
         );
         diagnosticEventBus.emit(
@@ -606,7 +606,7 @@ export class Bridge {
       const sessionManager = this.server.env.get(SessionManager);
       for (const s of [...sessionManager.sessions]) {
         if (s.id === sessionId && !s.isClosing && s.subscriptions.size === 0) {
-          this.log.warn(
+          this.log.debug(
             `Closing stale session ${s.id} (peer ${s.peerNodeId}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
           );
           s.initiateClose()
@@ -631,7 +631,7 @@ export class Bridge {
       const closes: Promise<void>[] = [];
       for (const s of sessions) {
         if (!s.isClosing && s.subscriptions.size === 0) {
-          this.log.warn(
+          this.log.debug(
             `Closing dead session ${s.id} (peer ${s.peerNodeId}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
           );
           closes.push(
@@ -661,7 +661,7 @@ export class Bridge {
     try {
       const advertiser = this.server.env.get(DeviceAdvertiser);
       advertiser.restartAdvertisement();
-      this.log.info("Triggered mDNS re-announcement after session cleanup");
+      this.log.debug("Triggered mDNS re-announcement after session cleanup");
     } catch {
       // DeviceAdvertiser may not be available
     }

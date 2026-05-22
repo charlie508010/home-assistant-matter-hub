@@ -43,8 +43,8 @@ diff --git a/dist/cjs/node/server/InteractionServer.js b/dist/cjs/node/server/In
 --- a/dist/cjs/node/server/InteractionServer.js
 +++ b/dist/cjs/node/server/InteractionServer.js
 @@ -80,6 +80,49 @@ var import_ServerSubscription = require("./ServerSubscription.js");
-  * SPDX-License-Identifier: Apache-2.0
-  */
+ * SPDX-License-Identifier: Apache-2.0
+ */
  const logger = import_general.Logger.get("InteractionServer");
 +const hamhReadClusterNames = /* @__PURE__ */ new Map([
 +  [29, "Descriptor"],
@@ -311,6 +311,41 @@ index 8c49c246e1c8225d1668f1540724554f0c6134cf..0f2e0443678d247822918f4c2bf509e0
      this.initiateCommissioning();
    }
    /**
+diff --git a/dist/esm/node/server/ServerSubscription.js b/dist/esm/node/server/ServerSubscription.js
+index d9d69597df3c1ab44d3169051b0e0f76cc354a97..0bc68a90dd9a5589c881b381a78f09d3669c5266 100644
+--- a/dist/esm/node/server/ServerSubscription.js
++++ b/dist/esm/node/server/ServerSubscription.js
+@@ -325,7 +325,7 @@ class ServerSubscription {
+       this.#sendNextUpdateImmediately = true;
+       return;
+     }
+-    this.#currentUpdatePromise = this.#sendUpdate(onlyWithData, session).catch((error) => logger.warn("Sending subscription update failed:", error)).finally(() => this.#currentUpdatePromise = void 0);
++    this.#currentUpdatePromise = this.#sendUpdate(onlyWithData, session).catch((error) => logger.debug("Sending subscription update failed:", error)).finally(() => this.#currentUpdatePromise = void 0);
+   }
+@@ -360,7 +360,8 @@ class ServerSubscription {
+           return;
+         }
+         this.#sendUpdateErrorCounter++;
+-          logger.info(
++          const logSendUpdateError = this.#sendUpdateErrorCounter > 2 ? logger.warn.bind(logger) : logger.debug.bind(logger);
++          logSendUpdateError(
+           `Error sending subscription update message (error count=${this.#sendUpdateErrorCounter}):`,
+           error instanceof MatterError && error.message || error
+         );
+@@ -682,11 +683,11 @@ class ServerSubscription {
+       var _stack3 = [];
+       try {
+         if (StatusResponseError.is(error, StatusCode.InvalidSubscription, StatusCode.Failure)) {
+-          logger.info(`Subscription ${this.idStr} cancelled by peer`);
++          logger.debug(`Subscription ${this.idStr} cancelled by peer`);
+           this.#isCanceledByPeer = true;
+         } else {
+           StatusResponseError.accept(error);
+-          logger.info(`Subscription ${this.idStr} update failed:`, error);
++          logger.debug(`Subscription ${this.idStr} update failed:`, error);
+         }
+         const _canceling = __using(_stack3, lifetime?.join("canceling"));
+         await this.#cancel();
 diff --git a/dist/esm/node/server/InteractionServer.js b/dist/esm/node/server/InteractionServer.js
 --- a/dist/esm/node/server/InteractionServer.js
 +++ b/dist/esm/node/server/InteractionServer.js
@@ -610,6 +645,42 @@ index afd68c38e8109e00aacc90156957cd90dd3a17ee..cad0b098956679533d621207e6f58cd1
 
          this.initiateCommissioning();
      }
+diff --git a/src/node/server/ServerSubscription.ts b/src/node/server/ServerSubscription.ts
+index d7fdf6de9eaa36242b4446b3b216ad48f042c753..cd5a925d983e4763980e575959764b98739e70d9 100644
+--- a/src/node/server/ServerSubscription.ts
++++ b/src/node/server/ServerSubscription.ts
+@@ -421,7 +421,7 @@ export class ServerSubscription {
+             return;
+         }
+         this.#currentUpdatePromise = this.#sendUpdate(onlyWithData, session)
+-            .catch(error => logger.warn("Sending subscription update failed:", error))
++            .catch(error => logger.debug("Sending subscription update failed:", error))
+             .finally(() => (this.#currentUpdatePromise = undefined));
+     }
+@@ -459,7 +459,8 @@ export class ServerSubscription {
+                 }
+ 
+                 this.#sendUpdateErrorCounter++;
+-                logger.info(
++                const logSendUpdateError = this.#sendUpdateErrorCounter > 2 ? logger.warn.bind(logger) : logger.debug.bind(logger);
++                logSendUpdateError(
+                     `Error sending subscription update message (error count=${this.#sendUpdateErrorCounter}):`,
+                     (error instanceof MatterError && error.message) || error,
+                 );
+@@ -786,11 +787,11 @@ export class ServerSubscription {
+             }
+         } catch (error) {
+             if (StatusResponseError.is(error, StatusCode.InvalidSubscription, StatusCode.Failure)) {
+-                logger.info(`Subscription ${this.idStr} cancelled by peer`);
++                logger.debug(`Subscription ${this.idStr} cancelled by peer`);
+                 this.#isCanceledByPeer = true;
+             } else {
+                 StatusResponseError.accept(error);
+-                logger.info(`Subscription ${this.idStr} update failed:`, error);
++                logger.debug(`Subscription ${this.idStr} update failed:`, error);
+             }
+ 
+             using _canceling = lifetime?.join("canceling");
 diff --git a/src/node/server/InteractionServer.ts b/src/node/server/InteractionServer.ts
 --- a/src/node/server/InteractionServer.ts
 +++ b/src/node/server/InteractionServer.ts
