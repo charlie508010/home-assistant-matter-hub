@@ -512,7 +512,7 @@ export const PluginsPage = () => {
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {configSchema &&
-              Object.entries(configSchema.properties).map(([key, prop]) => {
+              Object.entries(configSchema.properties ?? {}).map(([key, prop]) => {
                 const value = configValues[key];
 
                 if (prop.type === "boolean") {
