@@ -69,7 +69,7 @@ function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
 }
 
 
-const DEAD_SESSION_TIMEOUT_MS = 60_000;
+const DEAD_SESSION_TIMEOUT_MS = 180_000;
 const ROOT_EP0_STABLE_SERVER_LIST = [
   40, 31, 63, 48, 60, 62, 51, 49, 42, 70, 29,
 ];
