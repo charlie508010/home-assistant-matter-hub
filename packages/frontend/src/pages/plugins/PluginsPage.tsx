@@ -71,6 +71,9 @@ interface BridgePlugins {
 interface PluginConfigSchema {
   title: string;
   description?: string;
+  externalPopup?: boolean;
+  externalPopupUrl?: string;
+  externalPopupButtonText?: string;
   properties: Record<
     string,
     {
