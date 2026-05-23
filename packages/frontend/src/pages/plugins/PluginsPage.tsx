@@ -71,7 +71,7 @@ interface PluginConfigSchema {
   properties: Record<
     string,
     {
-      type: "string" | "number" | "boolean" | "select";
+      type: "string" | "number" | "boolean" | "select" | "secret";
       title: string;
       description?: string;
       default?: unknown;
@@ -563,7 +563,7 @@ export const PluginsPage = () => {
                   <TextField
                     key={key}
                     fullWidth
-                    type={prop.type === "number" ? "number" : "text"}
+                    type={prop.type === "number" ? "number" : prop.type === "secret" ? "password" : "text"}
                     label={prop.title}
                     helperText={prop.description}
                     required={prop.required}

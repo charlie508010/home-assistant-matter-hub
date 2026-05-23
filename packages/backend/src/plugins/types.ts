@@ -10,7 +10,7 @@ export interface PluginConfigSchema {
   properties: Record<
     string,
     {
-      type: "string" | "number" | "boolean" | "select";
+      type: "string" | "number" | "boolean" | "select" | "secret";
       title: string;
       description?: string;
       default?: unknown;
