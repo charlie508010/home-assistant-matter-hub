@@ -63,7 +63,7 @@ function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
 }
 
 
-const DEAD_SESSION_TIMEOUT_MS = 180_000;
+const DEAD_SESSION_TIMEOUT_MS = 300_000;
 
 // Rotate sessions so iPhone re-subscribes and the tile unsticks (#287).
 export const DEFAULT_SESSION_MAX_AGE_HOURS = 4;
