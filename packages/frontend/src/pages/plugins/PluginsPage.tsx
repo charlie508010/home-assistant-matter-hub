@@ -1,6 +1,7 @@
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExtensionIcon from "@mui/icons-material/Extension";
+import SettingsIcon from "@mui/icons-material/Settings";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import PowerIcon from "@mui/icons-material/Power";
 import PowerOffIcon from "@mui/icons-material/PowerOff";
@@ -28,6 +29,9 @@ import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
+import Switch from "@mui/material/Switch";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -61,6 +65,22 @@ interface BridgePlugins {
   plugins: PluginInfo[];
 }
 
+interface PluginConfigSchema {
+  title: string;
+  description?: string;
+  properties: Record<
+    string,
+    {
+      type: "string" | "number" | "boolean" | "select";
+      title: string;
+      description?: string;
+      default?: unknown;
+      required?: boolean;
+      options?: Array<{ label: string; value: string }>;
+    }
+  >;
+}
+
 interface InstalledPlugin {
   packageName: string;
   version: string;
@@ -78,6 +98,11 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 
 export const PluginsPage = () => {
   const [bridgePlugins, setBridgePlugins] = useState<BridgePlugins[]>([]);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [configBridgeId, setConfigBridgeId] = useState("");
+  const [configPluginName, setConfigPluginName] = useState("");
+  const [configSchema, setConfigSchema] = useState<PluginConfigSchema | null>(null);
+  const [configValues, setConfigValues] = useState<Record<string, unknown>>({});
   const [installed, setInstalled] = useState<InstalledPlugin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
@@ -317,6 +342,16 @@ export const PluginsPage = () => {
                     <ListItem
                       secondaryAction={
                         <Stack direction="row" spacing={0.5}>
+                          <Tooltip title="Configure">
+                            <IconButton
+                              size="small"
+                              onClick={() =>
+                                handleConfigurePlugin(bridge.bridgeId, plugin)
+                              }
+                            >
+                              <SettingsIcon />
+                            </IconButton>
+                          </Tooltip>
                           {plugin.circuitBreaker?.disabled && (
                             <Tooltip title="Reset circuit breaker">
                               <IconButton
