@@ -223,7 +223,7 @@ export const PluginsPage = () => {
 
         const values: Record<string, unknown> = {};
 
-        for (const [key, prop] of Object.entries(schema.properties)) {
+        for (const [key, prop] of Object.entries(schema.properties ?? {})) {
           values[key] = plugin.config?.[key] ?? prop.default ?? "";
         }
 
@@ -512,7 +512,7 @@ export const PluginsPage = () => {
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {configSchema &&
-              Object.entries(configSchema.properties ?? {}).map(([key, prop]) => {
+              Object.entries(configSchema?.properties ?? {}).map(([key, prop]) => {
                 const value = configValues[key];
 
                 if (prop.type === "boolean") {
