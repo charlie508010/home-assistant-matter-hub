@@ -217,9 +217,14 @@ export const PluginsPage = () => {
   const handleConfigurePlugin = useCallback(
     async (bridgeId: string, plugin: PluginInfo) => {
       try {
-        const schema = await fetchJson<PluginConfigSchema>(
+        const response = await fetchJson<{ schema: PluginConfigSchema | null }>(
           `api/plugins/${bridgeId}/${plugin.name}/config-schema`,
         );
+
+        const schema = response.schema;
+        if (!schema) {
+          throw new Error("Plugin has no config schema");
+        }
 
         const values: Record<string, unknown> = {};
 
@@ -246,7 +251,7 @@ export const PluginsPage = () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(configValues),
+          body: JSON.stringify({ config: configValues }),
         },
       );
 
