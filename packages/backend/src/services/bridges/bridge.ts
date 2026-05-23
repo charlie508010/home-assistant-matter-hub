@@ -32,6 +32,41 @@ const AUTO_FORCE_SYNC_INTERVAL_MS = 90_000;
 // long before force-closing the dead sessions. This breaks the deadlock
 // where the controller holds a stale CASE session and never re-subscribes
 // because it doesn't know the server canceled its subscriptions (#266).
+
+function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
+  try {
+    const fs = require("node:fs");
+
+    const peerFile = "/config/data/matter-peers.json";
+    const mapFile = "/config/data/alexa-peer-map.json";
+
+    if (!fs.existsSync(peerFile) || !fs.existsSync(mapFile)) {
+      return "";
+    }
+
+    const peers = JSON.parse(fs.readFileSync(peerFile, "utf8"));
+    const map = JSON.parse(fs.readFileSync(mapFile, "utf8"));
+
+    const peer = String(peerNodeId);
+    const foundPeer = peers.find((p: any) => String(p.peer) === peer);
+
+    if (!foundPeer?.mac) {
+      return "";
+    }
+
+    const mac = String(foundPeer.mac).replace(/:$/, "").toUpperCase();
+    const mapped = map[mac];
+
+    if (!mapped?.name) {
+      return "";
+    }
+
+    return ` name="${mapped.name}"`;
+  } catch {
+    return "";
+  }
+}
+
 const DEAD_SESSION_TIMEOUT_MS = 60_000;
 const ROOT_EP0_STABLE_SERVER_LIST = [
   40, 31, 63, 48, 60, 62, 51, 49, 42, 70, 29,
@@ -476,7 +511,7 @@ export class Bridge {
           totalSubs += s.subscriptions.size;
         }
         this.log.info(
-          `Session ${session.id} (peer ${session.peerNodeId}): subscriptions=${session.subscriptions.size} | total: sessions=${sessions.length} subscriptions=${totalSubs}`,
+          `Session ${session.id} (peer ${session.peerNodeId}${getAlexaPeerLogSuffix(session.peerNodeId)}): subscriptions=${session.subscriptions.size} | total: sessions=${sessions.length} subscriptions=${totalSubs}`,
         );
         diagnosticEventBus.emit(
           "subscription_changed",
@@ -543,11 +578,11 @@ export class Bridge {
         fabric?: { fabricIndex: unknown };
       }) => {
         this.log.info(
-          `Session opened: id=${newSession.id} peer=${newSession.peerNodeId}`,
+          `Session opened: id=${newSession.id} peer=${newSession.peerNodeId}${getAlexaPeerLogSuffix(newSession.peerNodeId)}`,
         );
         diagnosticEventBus.emit(
           "session_opened",
-          `Session ${newSession.id} opened (peer ${newSession.peerNodeId})`,
+          `Session ${newSession.id} opened (peer ${newSession.peerNodeId}${getAlexaPeerLogSuffix(newSession.peerNodeId)})`,
           {
             bridgeId: this.data.id,
             bridgeName: this.data.name,
@@ -567,7 +602,7 @@ export class Bridge {
             s.subscriptions.size === 0
           ) {
             this.log.info(
-              `Closing stale session ${s.id} (peer ${s.peerNodeId}, 0 subs), replaced by session ${newSession.id}`,
+              `Closing stale session ${s.id} (peer ${s.peerNodeId}${getAlexaPeerLogSuffix(s.peerNodeId)}, 0 subs), replaced by session ${newSession.id}`,
             );
             s.initiateForceClose().catch(() => {});
           }
@@ -579,7 +614,7 @@ export class Bridge {
       }) => {
         const sessions = [...sessionManager.sessions];
         this.log.warn(
-          `Session closed: id=${session.id} peer=${session.peerNodeId} | remaining sessions=${sessions.length}`,
+          `Session closed: id=${session.id} peer=${session.peerNodeId}${getAlexaPeerLogSuffix(session.peerNodeId)} | remaining sessions=${sessions.length}`,
         );
         diagnosticEventBus.emit(
           "session_closed",
@@ -607,7 +642,7 @@ export class Bridge {
       for (const s of [...sessionManager.sessions]) {
         if (s.id === sessionId && !s.isClosing && s.subscriptions.size === 0) {
           this.log.warn(
-            `Closing stale session ${s.id} (peer ${s.peerNodeId}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
+            `Closing stale session ${s.id} (peer ${s.peerNodeId}${getAlexaPeerLogSuffix(s.peerNodeId)}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
           );
           s.initiateClose()
             .catch(() => {
@@ -632,7 +667,7 @@ export class Bridge {
       for (const s of sessions) {
         if (!s.isClosing && s.subscriptions.size === 0) {
           this.log.warn(
-            `Closing dead session ${s.id} (peer ${s.peerNodeId}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
+            `Closing dead session ${s.id} (peer ${s.peerNodeId}${getAlexaPeerLogSuffix(s.peerNodeId)}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
           );
           closes.push(
             s.initiateClose().catch(() => {
