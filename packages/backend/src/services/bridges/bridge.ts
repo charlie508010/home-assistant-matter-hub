@@ -34,37 +34,40 @@ const AUTO_FORCE_SYNC_INTERVAL_MS = 90_000;
 // where the controller holds a stale CASE session and never re-subscribes
 // because it doesn't know the server canceled its subscriptions (#266).
 
+
 function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
   try {
-    const peerFile = "/config/data/matter-peers.json";
-    const mapFile = "/config/data/alexa-peer-map.json";
+    const peerFiles = [
+      "/config/data/matter-peers.json",
+      "/config/data/sqlite/matter-peers.json",
+    ];
 
-    if (!fs.existsSync(peerFile) || !fs.existsSync(mapFile)) {
-      return "";
-    }
+    const mapFiles = [
+      "/config/data/alexa-peer-map.json",
+      "/config/data/sqlite/alexa-peer-map.json",
+    ];
+
+    const peerFile = peerFiles.find((file) => fs.existsSync(file));
+    const mapFile = mapFiles.find((file) => fs.existsSync(file));
+
+    if (!peerFile || !mapFile) return "";
 
     const peers = JSON.parse(fs.readFileSync(peerFile, "utf8"));
     const map = JSON.parse(fs.readFileSync(mapFile, "utf8"));
 
     const peer = String(peerNodeId);
     const foundPeer = peers.find((p: any) => String(p.peer) === peer);
-
-    if (!foundPeer?.mac) {
-      return "";
-    }
+    if (!foundPeer?.mac) return "";
 
     const mac = String(foundPeer.mac).replace(/:$/, "").toUpperCase();
     const mapped = map[mac];
 
-    if (!mapped?.name) {
-      return "";
-    }
-
-    return ` name="${mapped.name}"`;
+    return mapped?.name ? ` name="${mapped.name}"` : "";
   } catch {
     return "";
   }
 }
+
 
 const DEAD_SESSION_TIMEOUT_MS = 60_000;
 const ROOT_EP0_STABLE_SERVER_LIST = [
