@@ -7,6 +7,9 @@ import type { Logger } from "@matter/general";
 export interface PluginConfigSchema {
   title: string;
   description?: string;
+  externalPopup?: boolean;
+  externalPopupUrl?: string;
+  externalPopupButtonText?: string;
   properties: Record<
     string,
     {

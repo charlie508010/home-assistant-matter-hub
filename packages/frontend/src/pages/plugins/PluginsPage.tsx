@@ -609,6 +609,20 @@ export const PluginsPage = () => {
           </Stack>
         </DialogContent>
         <DialogActions>
+          {configSchema?.externalPopup === true &&
+            configSchema.externalPopupUrl && (
+              <Button
+                onClick={() =>
+                  window.open(
+                    configSchema.externalPopupUrl,
+                    "plugin-external-popup",
+                    "popup,width=900,height=900"
+                  )
+                }
+              >
+                {configSchema.externalPopupButtonText ?? "Open"}
+              </Button>
+            )}
           <Button onClick={() => setConfigOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleSavePluginConfig}>
             Save
