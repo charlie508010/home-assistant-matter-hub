@@ -1,3 +1,4 @@
+import * as fs from "node:fs";
 import {
   BridgeStatus,
   type UpdateBridgeRequest,
@@ -29,8 +30,6 @@ const AUTO_FORCE_SYNC_INTERVAL_MS = 90_000;
 
 function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
   try {
-    const fs = require("node:fs");
-
     const peerFile = "/config/data/matter-peers.json";
     const mapFile = "/config/data/alexa-peer-map.json";
 
