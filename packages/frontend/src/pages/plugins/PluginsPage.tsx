@@ -214,6 +214,49 @@ export const PluginsPage = () => {
     }
   };
 
+  const handleConfigurePlugin = useCallback(
+    async (bridgeId: string, plugin: PluginInfo) => {
+      try {
+        const schema = await fetchJson<PluginConfigSchema>(
+          `api/plugins/${bridgeId}/${plugin.name}/config-schema`,
+        );
+
+        const values: Record<string, unknown> = {};
+
+        for (const [key, prop] of Object.entries(schema.properties)) {
+          values[key] = plugin.config?.[key] ?? prop.default ?? "";
+        }
+
+        setConfigBridgeId(bridgeId);
+        setConfigPluginName(plugin.name);
+        setConfigSchema(schema);
+        setConfigValues(values);
+        setConfigOpen(true);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [],
+  );
+
+  const handleSavePluginConfig = useCallback(async () => {
+    try {
+      await fetchJson(
+        `api/plugins/${configBridgeId}/${configPluginName}/config`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(configValues),
+        },
+      );
+
+      setConfigOpen(false);
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [configBridgeId, configPluginName, configValues, refresh]);
+
   const handlePluginAction = async (
     bridgeId: string,
     pluginName: string,
@@ -463,6 +506,81 @@ export const PluginsPage = () => {
           </CardContent>
         </Card>
       ))}
+
+      <Dialog open={configOpen} onClose={() => setConfigOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{configSchema?.title ?? "Plugin Config"}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            {configSchema &&
+              Object.entries(configSchema.properties).map(([key, prop]) => {
+                const value = configValues[key];
+
+                if (prop.type === "boolean") {
+                  return (
+                    <FormControlLabel
+                      key={key}
+                      control={
+                        <Switch
+                          checked={Boolean(value)}
+                          onChange={(e) =>
+                            setConfigValues((old) => ({ ...old, [key]: e.target.checked }))
+                          }
+                        />
+                      }
+                      label={prop.title}
+                    />
+                  );
+                }
+
+                if (prop.type === "select") {
+                  return (
+                    <TextField
+                      key={key}
+                      select
+                      fullWidth
+                      label={prop.title}
+                      helperText={prop.description}
+                      value={String(value ?? "")}
+                      onChange={(e) =>
+                        setConfigValues((old) => ({ ...old, [key]: e.target.value }))
+                      }
+                    >
+                      {(prop.options ?? []).map((opt) => (
+                        <MenuItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  );
+                }
+
+                return (
+                  <TextField
+                    key={key}
+                    fullWidth
+                    type={prop.type === "number" ? "number" : "text"}
+                    label={prop.title}
+                    helperText={prop.description}
+                    required={prop.required}
+                    value={String(value ?? "")}
+                    onChange={(e) =>
+                      setConfigValues((old) => ({
+                        ...old,
+                        [key]: prop.type === "number" ? Number(e.target.value) : e.target.value,
+                      }))
+                    }
+                  />
+                );
+              })}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfigOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSavePluginConfig}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={installOpen}
