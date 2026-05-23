@@ -2,6 +2,8 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExtensionIcon from "@mui/icons-material/Extension";
 import SettingsIcon from "@mui/icons-material/Settings";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import PowerIcon from "@mui/icons-material/Power";
 import PowerOffIcon from "@mui/icons-material/PowerOff";
@@ -29,6 +31,7 @@ import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
 import MenuItem from "@mui/material/MenuItem";
 import Switch from "@mui/material/Switch";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -103,6 +106,7 @@ export const PluginsPage = () => {
   const [configPluginName, setConfigPluginName] = useState("");
   const [configSchema, setConfigSchema] = useState<PluginConfigSchema | null>(null);
   const [configValues, setConfigValues] = useState<Record<string, unknown>>({});
+  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [installed, setInstalled] = useState<InstalledPlugin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
@@ -563,10 +567,35 @@ export const PluginsPage = () => {
                   <TextField
                     key={key}
                     fullWidth
-                    type={prop.type === "number" ? "number" : prop.type === "secret" ? "password" : "text"}
+                    type={prop.type === "number" ? "number" : prop.type === "secret" && !showSecrets[key] ? "password" : "text"}
                     label={prop.title}
                     helperText={prop.description}
                     required={prop.required}
+                    InputProps={
+                      prop.type === "secret"
+                        ? {
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <IconButton
+                                  size="small"
+                                  onClick={() =>
+                                    setShowSecrets((old) => ({
+                                      ...old,
+                                      [key]: !old[key],
+                                    }))
+                                  }
+                                >
+                                  {showSecrets[key] ? (
+                                    <VisibilityOffIcon />
+                                  ) : (
+                                    <VisibilityIcon />
+                                  )}
+                                </IconButton>
+                              </InputAdornment>
+                            ),
+                          }
+                        : undefined
+                    }
                     value={String(value ?? "")}
                     onChange={(e) =>
                       setConfigValues((old) => ({
