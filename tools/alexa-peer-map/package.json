@@ -1,0 +1,9 @@
+{
+  "name": "hamh-alexa-peer-map",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "alexa-remote2": "latest",
+    "dotenv": "latest"
+  }
+}
