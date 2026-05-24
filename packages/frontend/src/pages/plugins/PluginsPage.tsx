@@ -303,13 +303,26 @@ export const PluginsPage = () => {
         { method: "POST" },
       );
 
+      if (action.id === "deleteCookie") {
+        const ok = window.confirm("Alexa Verbindung wirklich löschen?");
+        if (!ok) return;
+      }
+
       if (action.externalPopupUrl) {
         await new Promise((resolve) => setTimeout(resolve, 700));
-        window.open(
+
+        const popup = window.open(
           action.externalPopupUrl,
           "plugin-external-popup",
           "popup,width=900,height=900",
         );
+
+        const timer = window.setInterval(async () => {
+          if (!popup || popup.closed) {
+            window.clearInterval(timer);
+            await refresh();
+          }
+        }, 1000);
       }
 
       await refresh();
