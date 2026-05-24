@@ -541,13 +541,14 @@ export const PluginsPage = () => {
                                 color={plugin.uiStatus.statusColor ?? "info"}
                               />
                             )}
-                            {plugin.uiStatus?.matchedDevices !== undefined && (
-                              <Chip
-                                label={`Matched ${plugin.uiStatus.matchedDevices}/${plugin.uiStatus.totalDevices ?? "?"}`}
-                                size="small"
-                                variant="outlined"
-                              />
-                            )}
+                            {plugin.uiStatus?.matchedDevices !== undefined &&
+                              plugin.uiStatus?.status !== "offline" && (
+                                <Chip
+                                  label={`Matched ${plugin.uiStatus.matchedDevices}/${plugin.uiStatus.totalDevices ?? "?"}`}
+                                  size="small"
+                                  variant="outlined"
+                                />
+                              )}
                             {plugin.source === "builtin" && (
                               <Chip label="built-in" size="small" />
                             )}
@@ -711,20 +712,6 @@ export const PluginsPage = () => {
           </Stack>
         </DialogContent>
         <DialogActions>
-          {configSchema?.externalPopup === true &&
-            configSchema.externalPopupUrl && (
-              <Button
-                onClick={() =>
-                  window.open(
-                    configSchema.externalPopupUrl,
-                    "plugin-external-popup",
-                    "popup,width=900,height=900"
-                  )
-                }
-              >
-                {configSchema.externalPopupButtonText ?? "Open"}
-              </Button>
-            )}
           <Button onClick={() => setConfigOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleSavePluginConfig}>
             Save
