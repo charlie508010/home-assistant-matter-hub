@@ -115,6 +115,27 @@ export interface PluginContext {
  * A plugin is a "device provider", it discovers/creates devices and
  * registers them with the bridge via the PluginContext.
  */
+export interface PluginUiStatus {
+  status?: string;
+  statusText?: string;
+  statusColor?: "success" | "warning" | "error" | "info";
+  matchedDevices?: number;
+  totalDevices?: number;
+  hideConfigButton?: boolean;
+  externalPopup?: boolean;
+  externalPopupUrl?: string;
+  externalPopupButtonText?: string;
+  externalPopupMode?: "open" | "saveThenOpen";
+  actions?: Array<{
+    id: string;
+    label: string;
+    variant?: "text" | "contained" | "outlined";
+    color?: "primary" | "error" | "warning" | "success";
+    externalPopupUrl?: string;
+    externalPopupMode?: "open" | "saveThenOpen";
+  }>;
+}
+
 export interface MatterHubPlugin {
   /** Unique plugin identifier (npm package name or built-in name) */
   readonly name: string;
@@ -142,6 +163,12 @@ export interface MatterHubPlugin {
 
   /** Optional: JSON schema for plugin config UI */
   getConfigSchema?(): PluginConfigSchema;
+
+  /** Optional: UI status shown on plugin page */
+  getUiStatus?(): PluginUiStatus;
+
+  /** Optional: handle plugin UI action button */
+  onAction?(actionId: string): Promise<void>;
 
   /** Called when the user updates plugin config via the UI */
   onConfigChanged?(config: Record<string, unknown>): Promise<void>;

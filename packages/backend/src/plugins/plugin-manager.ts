@@ -412,6 +412,21 @@ export class PluginManager {
     return instance.plugin.getConfigSchema?.();
   }
 
+  getUiStatus(pluginName: string) {
+    const instance = this.instances.get(pluginName);
+    if (!instance) return undefined;
+    return instance.plugin.getUiStatus?.();
+  }
+
+  async handleAction(pluginName: string, actionId: string): Promise<boolean> {
+    const instance = this.instances.get(pluginName);
+    if (!instance?.plugin.onAction) return false;
+    await this.runner.run(pluginName, "onAction", () =>
+      instance.plugin.onAction!(actionId),
+    );
+    return true;
+  }
+
   getDomainMappings(): Map<string, PluginDomainMapping> {
     return new Map(this.domainMappings);
   }

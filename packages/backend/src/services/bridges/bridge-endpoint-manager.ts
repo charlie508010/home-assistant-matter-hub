@@ -321,6 +321,19 @@ export class BridgeEndpointManager extends Service {
     );
   }
 
+  getPluginUiStatus(pluginName: string): Record<string, unknown> | undefined {
+    return this.pluginManager?.getUiStatus(pluginName) as any;
+  }
+
+  async handlePluginAction(
+    pluginName: string,
+    actionId: string,
+  ): Promise<boolean> {
+    return (
+      (await this.pluginManager?.handleAction(pluginName, actionId)) ?? false
+    );
+  }
+
   /**
    * Isolate an entity by removing it from the aggregator.
    * Called by EntityIsolationService when a runtime error is detected.

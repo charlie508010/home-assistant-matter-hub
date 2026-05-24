@@ -52,12 +52,34 @@ interface CircuitBreakerInfo {
   disabledAt?: number;
 }
 
+interface PluginUiStatus {
+  status?: string;
+  statusText?: string;
+  statusColor?: "success" | "warning" | "error" | "info";
+  matchedDevices?: number;
+  totalDevices?: number;
+  hideConfigButton?: boolean;
+  externalPopup?: boolean;
+  externalPopupUrl?: string;
+  externalPopupButtonText?: string;
+  externalPopupMode?: "open" | "saveThenOpen";
+  actions?: Array<{
+    id: string;
+    label: string;
+    variant?: "text" | "contained" | "outlined";
+    color?: "primary" | "error" | "warning" | "success";
+    externalPopupUrl?: string;
+    externalPopupMode?: "open" | "saveThenOpen";
+  }>;
+}
+
 interface PluginInfo {
   name: string;
   version: string;
   source: string;
   enabled: boolean;
   config: Record<string, unknown>;
+  uiStatus?: PluginUiStatus;
   circuitBreaker?: CircuitBreakerInfo;
   devices: PluginDevice[];
 }
@@ -91,6 +113,7 @@ interface InstalledPlugin {
   packageName: string;
   version: string;
   config: Record<string, unknown>;
+  uiStatus?: PluginUiStatus;
   autoLoad: boolean;
   installedAt: number;
   path: string;
@@ -269,6 +292,32 @@ export const PluginsPage = () => {
     }
   }, [configBridgeId, configPluginName, configValues, refresh]);
 
+  const handlePluginUiAction = async (
+    bridgeId: string,
+    pluginName: string,
+    action: NonNullable<PluginUiStatus["actions"]>[number],
+  ) => {
+    try {
+      await fetchJson(
+        `api/plugins/${bridgeId}/${pluginName}/action/${action.id}`,
+        { method: "POST" },
+      );
+
+      if (action.externalPopupUrl) {
+        await new Promise((resolve) => setTimeout(resolve, 700));
+        window.open(
+          action.externalPopupUrl,
+          "plugin-external-popup",
+          "popup,width=900,height=900",
+        );
+      }
+
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
   const handlePluginAction = async (
     bridgeId: string,
     pluginName: string,
@@ -397,16 +446,35 @@ export const PluginsPage = () => {
                     <ListItem
                       secondaryAction={
                         <Stack direction="row" spacing={0.5}>
-                          <Tooltip title="Configure">
-                            <IconButton
+                          {!plugin.uiStatus?.hideConfigButton && (
+                            <Tooltip title="Configure">
+                              <IconButton
+                                size="small"
+                                onClick={() =>
+                                  handleConfigurePlugin(bridge.bridgeId, plugin)
+                                }
+                              >
+                                <SettingsIcon />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {plugin.uiStatus?.actions?.map((action) => (
+                            <Button
+                              key={action.id}
                               size="small"
+                              variant={action.variant ?? "outlined"}
+                              color={action.color ?? "primary"}
                               onClick={() =>
-                                handleConfigurePlugin(bridge.bridgeId, plugin)
+                                handlePluginUiAction(
+                                  bridge.bridgeId,
+                                  plugin.name,
+                                  action,
+                                )
                               }
                             >
-                              <SettingsIcon />
-                            </IconButton>
-                          </Tooltip>
+                              {action.label}
+                            </Button>
+                          ))}
                           {plugin.circuitBreaker?.disabled && (
                             <Tooltip title="Reset circuit breaker">
                               <IconButton
@@ -466,6 +534,20 @@ export const PluginsPage = () => {
                               size="small"
                               variant="outlined"
                             />
+                            {plugin.uiStatus?.statusText && (
+                              <Chip
+                                label={plugin.uiStatus.statusText}
+                                size="small"
+                                color={plugin.uiStatus.statusColor ?? "info"}
+                              />
+                            )}
+                            {plugin.uiStatus?.matchedDevices !== undefined && (
+                              <Chip
+                                label={`Matched ${plugin.uiStatus.matchedDevices}/${plugin.uiStatus.totalDevices ?? "?"}`}
+                                size="small"
+                                variant="outlined"
+                              />
+                            )}
                             {plugin.source === "builtin" && (
                               <Chip label="built-in" size="small" />
                             )}
@@ -476,7 +558,24 @@ export const PluginsPage = () => {
                                 color="warning"
                               />
                             )}
-                            {plugin.circuitBreaker?.disabled && (
+                            {plugin.uiStatus?.actions?.map((action) => (
+                            <Button
+                              key={action.id}
+                              size="small"
+                              variant={action.variant ?? "outlined"}
+                              color={action.color ?? "primary"}
+                              onClick={() =>
+                                handlePluginUiAction(
+                                  bridge.bridgeId,
+                                  plugin.name,
+                                  action,
+                                )
+                              }
+                            >
+                              {action.label}
+                            </Button>
+                          ))}
+                          {plugin.circuitBreaker?.disabled && (
                               <Chip
                                 label="circuit breaker open"
                                 size="small"

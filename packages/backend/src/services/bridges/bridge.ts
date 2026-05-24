@@ -222,6 +222,17 @@ export class Bridge {
     return this.endpointManager.updatePluginConfig(pluginName, config);
   }
 
+  getPluginUiStatus(pluginName: string): Record<string, unknown> | undefined {
+    return this.endpointManager.getPluginUiStatus(pluginName);
+  }
+
+  async handlePluginAction(
+    pluginName: string,
+    actionId: string,
+  ): Promise<boolean> {
+    return this.endpointManager.handlePluginAction(pluginName, actionId);
+  }
+
   constructor(
     env: Environment,
     logger: LoggerService,
