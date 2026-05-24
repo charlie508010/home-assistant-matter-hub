@@ -559,7 +559,23 @@ export const PluginsPage = () => {
                                 color="warning"
                               />
                             )}
-
+                            {plugin.uiStatus?.actions?.map((action) => (
+                            <Button
+                              key={action.id}
+                              size="small"
+                              variant={action.variant ?? "outlined"}
+                              color={action.color ?? "primary"}
+                              onClick={() =>
+                                handlePluginUiAction(
+                                  bridge.bridgeId,
+                                  plugin.name,
+                                  action,
+                                )
+                              }
+                            >
+                              {action.label}
+                            </Button>
+                          ))}
                           {plugin.circuitBreaker?.disabled && (
                               <Chip
                                 label="circuit breaker open"
