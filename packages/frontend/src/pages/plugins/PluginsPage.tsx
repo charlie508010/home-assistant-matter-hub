@@ -142,6 +142,8 @@ export const PluginsPage = () => {
   const [localPath, setLocalPath] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [installing, setInstalling] = useState(false);
+  const [restartPromptOpen, setRestartPromptOpen] = useState(false);
+  const [restarting, setRestarting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
@@ -177,6 +179,7 @@ export const PluginsPage = () => {
       setPackageName("");
       setInstallOpen(false);
       await refresh();
+      setRestartPromptOpen(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -205,6 +208,7 @@ export const PluginsPage = () => {
       if (fileInputRef.current) fileInputRef.current.value = "";
       setInstallOpen(false);
       await refresh();
+      setRestartPromptOpen(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -224,10 +228,23 @@ export const PluginsPage = () => {
       setLocalPath("");
       setInstallOpen(false);
       await refresh();
+      setRestartPromptOpen(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setInstalling(false);
+    }
+  };
+
+  const handleRestartApplication = async () => {
+    setRestarting(true);
+    try {
+      await fetchJson("api/backup/restart", { method: "POST" });
+      setRestartPromptOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRestarting(false);
     }
   };
 
@@ -838,6 +855,42 @@ export const PluginsPage = () => {
               {installing ? <CircularProgress size={20} /> : "Link"}
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={restartPromptOpen}
+        onClose={() => setRestartPromptOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <RestartAltIcon />
+          Neustart erforderlich
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">
+            Das Plugin wurde installiert. HAMH jetzt neu starten, damit das
+            Plugin geladen wird?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setRestartPromptOpen(false)}
+            disabled={restarting}
+          >
+            Später
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleRestartApplication}
+            disabled={restarting}
+            startIcon={
+              restarting ? <CircularProgress size={18} /> : <RestartAltIcon />
+            }
+          >
+            Jetzt neu starten
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
