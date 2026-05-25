@@ -70,9 +70,6 @@ function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
 
 
 const DEAD_SESSION_TIMEOUT_MS = 300_000;
-const ROOT_EP0_STABLE_SERVER_LIST = [
-  40, 31, 63, 48, 60, 62, 51, 49, 42, 70, 29,
-];
 
 export class Bridge {
   private readonly log: BetterLogger;
@@ -259,25 +256,8 @@ export class Bridge {
 
   async initialize(): Promise<void> {
     await this.server.construction.ready.then();
-    this.restoreRootEndpointServerList();
     this.logRootEndpointServerListDiagnostics();
     await this.refreshDevices();
-  }
-
-  private restoreRootEndpointServerList(): void {
-    try {
-      const descriptorState = this.server.stateOf(
-        DescriptorServer,
-      ) as unknown as {
-        serverList?: number[];
-      };
-
-      descriptorState.serverList = [...ROOT_EP0_STABLE_SERVER_LIST];
-    } catch (error) {
-      this.log.warnCtx("Unable to restore Root EP0 Descriptor serverList", {
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
   }
 
   private logRootEndpointServerListDiagnostics(): void {
