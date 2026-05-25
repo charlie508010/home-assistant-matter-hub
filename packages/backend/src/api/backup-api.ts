@@ -21,9 +21,39 @@ import type { BridgeStorage } from "../services/storage/bridge-storage.js";
 import type { EntityMappingStorage } from "../services/storage/entity-mapping-storage.js";
 
 const upload = multer({ storage: multer.memoryStorage() });
+const SUPERVISOR_API_URL =
+  process.env.SUPERVISOR_API ?? process.env.HASSIO_API ?? "http://supervisor";
 
 interface MulterRequest extends Request {
   file?: Express.Multer.File;
+}
+
+function getSupervisorToken(): string | undefined {
+  return process.env.SUPERVISOR_TOKEN ?? process.env.HASSIO_TOKEN;
+}
+
+async function restartHomeAssistantAddon(): Promise<boolean> {
+  const token = getSupervisorToken();
+  if (!token) {
+    return false;
+  }
+
+  const response = await fetch(`${SUPERVISOR_API_URL}/addons/self/restart`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(
+      `Supervisor restart failed: ${response.status} ${response.statusText}${body ? ` - ${body}` : ""}`,
+    );
+  }
+
+  return true;
 }
 
 export interface BackupData {
@@ -364,13 +394,26 @@ export function backupApi(
   );
 
   router.post("/restart", async (_, res) => {
-    res.json({ message: "Restarting application..." });
-    // Signal the graceful shutdown path instead of exiting directly.
-    // The SIGTERM handler disposes bridges, HA client, and storage in
-    // reverse order before the process exits.
-    setTimeout(() => {
-      process.kill(process.pid, "SIGTERM");
-    }, 500);
+    try {
+      if (await restartHomeAssistantAddon()) {
+        res.json({ message: "Restarting Home Assistant add-on..." });
+        return;
+      }
+
+      res.json({ message: "Restarting application..." });
+      // Standalone/Docker fallback: signal the graceful shutdown path. In
+      // Home Assistant Add-on mode we use the Supervisor restart API above.
+      setTimeout(() => {
+        process.kill(process.pid, "SIGTERM");
+      }, 500);
+    } catch (error) {
+      res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to restart application",
+      });
+    }
   });
 
   // --- Snapshot management endpoints ---
