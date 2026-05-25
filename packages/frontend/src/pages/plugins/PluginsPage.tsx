@@ -238,13 +238,12 @@ export const PluginsPage = () => {
 
   const handleRestartApplication = async () => {
     setRestarting(true);
+    setRestartPromptOpen(false);
     try {
       await fetchJson("api/backup/restart", { method: "POST" });
-      setRestartPromptOpen(false);
+      setError(undefined);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setRestarting(false);
     }
   };
 
