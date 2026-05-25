@@ -69,7 +69,7 @@ function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
 }
 
 
-const DEAD_SESSION_TIMEOUT_MS = 300_000;
+const DEAD_SESSION_TIMEOUT_MS = 0;
 
 export class Bridge {
   private readonly log: BetterLogger;
