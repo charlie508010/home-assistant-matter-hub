@@ -13,6 +13,7 @@ import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface FilterPreviewProps {
   filter: {
@@ -69,6 +70,7 @@ const tryParseJson = (text: string): unknown => {
 };
 
 export function FilterPreview({ filter }: FilterPreviewProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PreviewResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +95,7 @@ export function FilterPreview({ filter }: FilterPreviewProps) {
         const errorMessage =
           typeof parsed === "object" && parsed !== null && "error" in parsed
             ? String((parsed as { error?: unknown }).error)
-            : text || "Failed to fetch preview";
+            : text || t("filterPreview.fetchFailed");
         throw new Error(errorMessage);
       }
 
@@ -101,11 +103,11 @@ export function FilterPreview({ filter }: FilterPreviewProps) {
       setResult(data);
       setExpanded(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unknown error");
+      setError(e instanceof Error ? e.message : t("common.unknown"));
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, t]);
 
   // Auto-refresh when filter changes (debounced 800ms)
   useEffect(() => {
@@ -147,13 +149,11 @@ export function FilterPreview({ filter }: FilterPreviewProps) {
   if (result) {
     const hasVacuum = result.entities.some((e) => e.domain === "vacuum");
     if (hasVacuum) {
-      warnings.push(
-        "This filter includes a vacuum. Consider using Server Mode (single device per bridge) for Apple Home/Alexa compatibility.",
-      );
+      warnings.push(t("filterPreview.warningVacuum"));
     }
     if (result.total > 50) {
       warnings.push(
-        `${result.total} entities is a large number. Consider splitting across multiple bridges for better stability.`,
+        t("filterPreview.warningLargeBridge", { count: result.total }),
       );
     }
     const unsupportedDomains = Object.keys(domainCounts).filter(
@@ -161,7 +161,9 @@ export function FilterPreview({ filter }: FilterPreviewProps) {
     );
     if (unsupportedDomains.length > 0) {
       warnings.push(
-        `Unsupported domains will be skipped: ${unsupportedDomains.join(", ")}`,
+        t("filterPreview.warningUnsupportedDomains", {
+          domains: unsupportedDomains.join(", "),
+        }),
       );
     }
   }
@@ -175,7 +177,7 @@ export function FilterPreview({ filter }: FilterPreviewProps) {
         disabled={loading}
         size="small"
       >
-        {loading ? "Loading..." : "Preview Matching Entities"}
+        {loading ? t("common.loading") : t("filterPreview.previewButton")}
       </Button>
 
       {error && (
@@ -189,11 +191,11 @@ export function FilterPreview({ filter }: FilterPreviewProps) {
           <Box sx={{ mt: 2 }}>
             <Box display="flex" alignItems="center" gap={1} mb={1}>
               <Typography variant="subtitle1" fontWeight="bold">
-                {result.total} entities match
+                {t("filterPreview.entitiesMatch", { count: result.total })}
               </Typography>
               {result.truncated && (
                 <Chip
-                  label="Showing first 100"
+                  label={t("filterPreview.showingFirst", { count: 100 })}
                   size="small"
                   color="warning"
                   variant="outlined"
@@ -268,7 +270,7 @@ export function FilterPreview({ filter }: FilterPreviewProps) {
               onClick={() => setExpanded(false)}
               sx={{ mt: 1 }}
             >
-              Hide Preview
+              {t("filterPreview.hidePreview")}
             </Button>
           </Box>
         )}

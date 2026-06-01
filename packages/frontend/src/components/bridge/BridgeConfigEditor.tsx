@@ -2,6 +2,7 @@ import {
   type BridgeConfig,
   type BridgeIconType,
   bridgeConfigSchema,
+  type HomeAssistantFilter,
 } from "@home-assistant-matter-hub/common";
 import { LibraryBooks, TextFields } from "@mui/icons-material";
 import Alert from "@mui/material/Alert";
@@ -13,18 +14,32 @@ import Grid from "@mui/material/Grid";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useCallback, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { navigation } from "../../routes.tsx";
-import { FormEditor } from "../misc/editors/FormEditor";
-import { JsonEditor } from "../misc/editors/JsonEditor";
 import type { ValidationError } from "../misc/editors/validation-error.ts";
 import { BridgeIconUpload } from "./BridgeIconUpload.tsx";
+import { localizeBridgeConfigSchema } from "./bridge-config-schema-localization.ts";
+import { FilterPresetProvider } from "./FilterPresetContext.tsx";
 import { FilterPreview } from "./FilterPreview.tsx";
-import { BridgeObjectFieldTemplate } from "./rjsf/BridgeObjectFieldTemplate.tsx";
-import { CompactArrayFieldTemplate } from "./rjsf/CompactArrayFieldTemplate.tsx";
-import { EntityFilterRuleField } from "./rjsf/EntityFilterRuleField.tsx";
-import { FeatureFlagsField } from "./rjsf/FeatureFlagsField.tsx";
+
+const BridgeConfigFieldsForm = lazy(() =>
+  import("./BridgeConfigFieldsForm.tsx").then((m) => ({
+    default: m.BridgeConfigFieldsForm,
+  })),
+);
+
+const JsonEditor = lazy(() =>
+  import("../misc/editors/JsonEditor.tsx").then((m) => ({
+    default: m.JsonEditor,
+  })),
+);
+
+const FilterReferenceHelp = lazy(() =>
+  import("./FilterReferenceHelp.tsx").then((m) => ({
+    default: m.FilterReferenceHelp,
+  })),
+);
 
 enum BridgeEditorMode {
   JSON_EDITOR = "JSON_EDITOR",
@@ -41,6 +56,10 @@ export interface BridgeConfigEditorProps {
 
 export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
   const { t } = useTranslation();
+  const localizedSchema = useMemo(
+    () => localizeBridgeConfigSchema(bridgeConfigSchema, t),
+    [t],
+  );
   const [editorMode, setEditorMode] = useState<BridgeEditorMode>(
     BridgeEditorMode.FIELDS_EDITOR,
   );
@@ -66,13 +85,13 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
         return [
           {
             instancePath: "/port",
-            message: `Port is already used by bridge with id ${usedBy}`,
+            message: t("bridgeConfig.validation.portUsed", { id: usedBy }),
           },
         ];
       }
       return [];
     },
-    [props.bridgeId, props.usedPorts],
+    [props.bridgeId, props.usedPorts, t],
   );
 
   const onChange = (data: object | undefined, isValid: boolean) => {
@@ -98,6 +117,13 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
     });
   }, []);
 
+  const handleFilterChange = useCallback((filter: HomeAssistantFilter) => {
+    setConfig((prev) => ({
+      ...(prev ?? {}),
+      filter,
+    }));
+  }, []);
+
   const warnings = useMemo(() => {
     const cfg = config as Partial<BridgeConfig> | undefined;
     const flags = cfg?.featureFlags;
@@ -106,42 +132,33 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
     if (flags?.serverMode) {
       result.push({
         severity: "warning",
-        message:
-          "Server Mode is enabled. Only ONE device should be in this bridge. " +
-          "Multiple devices will cause errors.",
+        message: t("bridgeConfig.warnings.serverModeSingleDevice"),
       });
     }
 
     if (flags?.serverMode && flags?.vacuumOnOff === false) {
       result.push({
         severity: "warning",
-        message:
-          "Server Mode with Vacuum OnOff disabled: Alexa REQUIRES the OnOff cluster " +
-          "(PowerController) for robotic vacuums. Without it, the vacuum commissions " +
-          "but never appears in Alexa. Only disable this for Apple Home.",
+        message: t("bridgeConfig.warnings.serverModeVacuumOnOffDisabled"),
       });
     }
 
     if (!flags?.serverMode && flags?.vacuumOnOff) {
       result.push({
         severity: "warning",
-        message:
-          "Vacuum OnOff is enabled in bridge mode. This adds a non-standard cluster " +
-          "to the RVC device type which may cause issues with Apple Home and Google Home.",
+        message: t("bridgeConfig.warnings.vacuumOnOffBridgeMode"),
       });
     }
 
     if (flags?.autoForceSync && flags?.autoComposedDevices) {
       result.push({
         severity: "warning",
-        message:
-          "Auto Force Sync with Auto Composed Devices increases network traffic. " +
-          "Composed devices have more clusters, so each sync cycle sends more data.",
+        message: t("bridgeConfig.warnings.autoForceSyncComposedDevices"),
       });
     }
 
     return result;
-  }, [config]);
+  }, [config, t]);
 
   const saveAction = async () => {
     if (!isValid) {
@@ -153,21 +170,17 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
   return (
     <>
       <Alert severity="warning" variant="outlined">
-        Please consult{" "}
+        {t("bridgeConfig.documentation.prefix")}{" "}
         <Link href={navigation.faq.bridgeConfig} target="_blank">
-          the documentation
+          {t("bridgeConfig.documentation.link")}
         </Link>{" "}
-        for proper bridge configurations.{" "}
-        <strong>
-          Especially if you are using labels, see the "Labels" section.
-        </strong>
+        {t("bridgeConfig.documentation.suffix")}{" "}
+        <strong>{t("bridgeConfig.documentation.labelsHint")}</strong>
       </Alert>
 
       <Alert severity="info" variant="outlined">
-        <strong>Community tip:</strong> Users have reported that bridges with a
-        large number of devices can become unstable depending on the controller.
-        If you experience connectivity issues, consider splitting your devices
-        across multiple bridges.
+        <strong>{t("bridgeConfig.communityTip.title")}</strong>{" "}
+        {t("bridgeConfig.communityTip.description")}
       </Alert>
 
       {warnings.map((w) => (
@@ -195,49 +208,37 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
         </Box>
 
         {editorMode === BridgeEditorMode.FIELDS_EDITOR && (
-          <FormEditor
-            value={config ?? {}}
-            onChange={onChange}
-            schema={bridgeConfigSchema}
-            uiSchema={{
-              icon: { "ui:widget": "hidden" },
-              featureFlags: { "ui:field": "featureFlags" },
-              filter: {
-                include: {
-                  "ui:options": {
-                    ArrayFieldTemplate: CompactArrayFieldTemplate,
-                  },
-                  items: { "ui:field": "entityFilterRule" },
-                },
-                exclude: {
-                  "ui:options": {
-                    ArrayFieldTemplate: CompactArrayFieldTemplate,
-                  },
-                  items: { "ui:field": "entityFilterRule" },
-                },
-              },
-            }}
-            customValidate={validatePort}
-            templates={{ ObjectFieldTemplate: BridgeObjectFieldTemplate }}
-            fields={{
-              featureFlags: FeatureFlagsField,
-              entityFilterRule: EntityFilterRuleField,
-            }}
-          />
+          <FilterPresetProvider value={handleFilterChange}>
+            <Suspense fallback={null}>
+              <BridgeConfigFieldsForm
+                value={config ?? {}}
+                onChange={onChange}
+                schema={localizedSchema}
+                validatePort={validatePort}
+                submitText={t("common.save")}
+              />
+            </Suspense>
+          </FilterPresetProvider>
         )}
 
         {editorMode === BridgeEditorMode.JSON_EDITOR && (
-          <JsonEditor
-            value={config ?? {}}
-            onChange={onChange}
-            schema={bridgeConfigSchema}
-            customValidate={validatePort}
-          />
+          <Suspense fallback={null}>
+            <JsonEditor
+              value={config ?? {}}
+              onChange={onChange}
+              schema={localizedSchema}
+              customValidate={validatePort}
+            />
+          </Suspense>
         )}
 
         {(config as BridgeConfig)?.filter && (
           <FilterPreview filter={(config as BridgeConfig).filter} />
         )}
+
+        <Suspense fallback={null}>
+          <FilterReferenceHelp />
+        </Suspense>
 
         <Card variant="outlined">
           <CardContent>

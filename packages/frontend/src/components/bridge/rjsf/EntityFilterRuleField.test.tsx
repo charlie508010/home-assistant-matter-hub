@@ -79,7 +79,9 @@ describe("EntityFilterRuleField", () => {
         {...makeProps({ formData: { type: "domain", value: "" } })}
       />,
     );
-    expect(screen.getByText("by domain")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Match entities by their domain/),
+    ).toBeInTheDocument();
   });
 
   it("merges value edits into the rule and reports the field path", async () => {

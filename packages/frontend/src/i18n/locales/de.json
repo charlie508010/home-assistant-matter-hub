@@ -57,7 +57,10 @@
     "import": "Importieren",
     "export": "Exportieren",
     "exportAll": "Alle exportieren",
-    "wizard": "Assistent"
+    "wizard": "Assistent",
+    "add": "Hinzufügen",
+    "yes": "ja",
+    "no": "nein"
   },
   "nav": {
     "bridges": "Bridges",
@@ -70,6 +73,7 @@
     "startupOrder": "Startreihenfolge",
     "lockCredentials": "Schloss-Zugangsdaten",
     "filterReference": "Filterreferenz",
+    "filterPresets": "Filter-Vorlagen",
     "systemLogs": "Systemlogs",
     "lightMode": "Heller Modus",
     "darkMode": "Dunkler Modus"
@@ -108,7 +112,10 @@
     "authSaveFailed": "Authentifizierungseinstellungen konnten nicht gespeichert werden",
     "authLoadFailed": "Authentifizierungseinstellungen konnten nicht geladen werden",
     "authDisabled": "Authentifizierung deaktiviert.",
-    "authRemoveFailed": "Authentifizierungseinstellungen konnten nicht entfernt werden"
+    "authRemoveFailed": "Authentifizierungseinstellungen konnten nicht entfernt werden",
+    "httpAuthTitle": "HTTP-Authentifizierung",
+    "httpAuthManagedExternally": "HTTP-Authentifizierung wird über die Add-on-/App-Konfiguration verwaltet. Setze dort http_auth_enabled, http_auth_username und http_auth_password oder verwende die Umgebungsvariablen HAMH_HTTP_AUTH_USERNAME und HAMH_HTTP_AUTH_PASSWORD.",
+    "network": "Netzwerk"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -163,7 +170,7 @@
     "multiPair": "Multi-Fabric-Kopplung",
     "deleteBridge": "Bridge löschen",
     "deleteConfirm": "Möchtest du diese Bridge wirklich löschen?",
-    "featureFlags": "Feature Flags",
+    "featureFlags": "Funktionsschalter",
     "failedEntitiesCount": "{{count}} Entity/Entities konnten nicht geladen werden.",
     "clickToShow": "Klicke, um Details anzuzeigen.",
     "clickToHide": "Klicke, um Details auszublenden.",
@@ -302,7 +309,19 @@
     "message": "Nachricht",
     "networkInterfaces": "Netzwerkschnittstellen",
     "interfaceName": "Schnittstelle",
-    "refresh": "Aktualisieren"
+    "refresh": "Aktualisieren",
+    "ipv6Available": "IPv6 verfügbar: {{status}}",
+    "ipv4Available": "IPv4 verfügbar: {{status}}",
+    "mdnsAllInterfaces": "mDNS: alle Schnittstellen",
+    "matterAlexaStatus": "Matter/Alexa Netzwerkstatus: {{status}}",
+    "ipv6MatterHint": "IPv6 sollte für Matter/Alexa aktiviert bleiben. Matter nutzt häufig IPv6-Link-Local-Adressen für operative Verbindungen.",
+    "showNetworkDetails": "Netzwerkdetails anzeigen",
+    "hideNetworkDetails": "Netzwerkdetails ausblenden",
+    "networkStatus": {
+      "pass": "OK",
+      "warn": "Warnung",
+      "fail": "Fehler"
+    }
   },
   "mapping": {
     "title": "Entity-Zuordnungen",
@@ -576,7 +595,7 @@
     "stepController": "Controller",
     "stepBridgeInfo": "Bridge-Info",
     "stepEntityFilter": "Entity-Filter",
-    "stepFeatureFlags": "Feature Flags",
+    "stepFeatureFlags": "Funktionsschalter",
     "stepReview": "Überprüfen & Erstellen",
     "autoCompose": "Geräte automatisch zusammensetzen",
     "autoForceSyncFlag": "Auto-Synchronisation",
@@ -608,16 +627,355 @@
     "createBridge": "Bridge erstellen",
     "searchRules": "Regeln suchen...",
     "templateDescription": "Wähle eine Vorlage für einen schnellen Start oder überspringe sie, um eine benutzerdefinierte Bridge zu erstellen.",
-    "controllerDescription": "Welchen Matter-Controller wirst du verwenden? Dies optimiert die Feature Flags für deinen Controller.",
-    "controllerHint": "Du kannst Feature Flags jederzeit in den nächsten Schritten oder nach der Bridge-Erstellung anpassen.",
+    "controllerDescription": "Welchen Matter-Controller verwendest du? Dadurch werden die Funktionsschalter für deinen Controller optimiert.",
+    "controllerHint": "Du kannst die Funktionsschalter jederzeit in den nächsten Schritten oder nach der Bridge-Erstellung anpassen.",
     "templateApplied": "Vorlage \"{{name}}\" angewendet. Passe Name und Port unten an.",
     "filterPreConfiguredFrom": "Filter ist aus der Vorlage \"{{name}}\" vorkonfiguriert. Du kannst ihn unten anpassen.",
-    "featureFlagsDescription": "Feature Flags steuern, wie Geräte für Matter-Controller bereitgestellt werden.",
+    "featureFlagsDescription": "Funktionsschalter steuern, wie Geräte für Matter-Controller bereitgestellt werden.",
     "recommendedFlags": "Empfohlene Flags für {{name}} sind vorausgewählt.",
     "selectFlags": "Wähle die Flags, die zu deiner Einrichtung passen.",
     "reviewDescription": "Überprüfe deine Bridge-Konfiguration:",
     "bridgesToCreate": "Zu erstellende Bridges ({{count}})",
     "bridgesCreated": "{{count}} Bridge(s) bereits in dieser Sitzung erstellt",
-    "addAnother": "Weitere hinzufügen"
+    "addAnother": "Weitere hinzufügen",
+    "serverModeEnabledTitle": "Servermodus aktiviert:",
+    "serverModeEnabledDescription": "Diese Bridge stellt ein einzelnes Gerät als eigenständiges Matter-Gerät bereit. Füge nur EIN Gerät hinzu, z.B. deinen Saugroboter. Das ist für Apple-Home-Siri-Befehle und Alexa-Erkennung erforderlich.",
+    "serverModeOneEntityPrefix": "Der Servermodus benötigt genau",
+    "serverModeOneEntityStrong": "eine",
+    "serverModeOneEntitySuffix": "Entity. Passe den Filter so an, dass nur dein Gerät passt, z.B.",
+    "entityIdLabel": "Entity-ID",
+    "serverModeEntityHelper": "Der Servermodus unterstützt nur EIN Gerät. Gib die genaue Entity-ID ein, z.B. vacuum.my_vacuum.",
+    "templatePreconfiguredHelper": "Durch Vorlage vorkonfiguriert. Nach dem Erstellen im vollständigen Editor anpassbar.",
+    "wildcardHelper": "Nutze * für alle oder Muster wie light.*, switch.*",
+    "entityListHelper": "Gib konkrete Entity-IDs durch Kommas getrennt ein",
+    "templateLabel": "Vorlage: {{name}}"
+  },
+  "featureFlags": {
+    "title": "Funktionsschalter",
+    "flags": {
+      "coverDoNotInvertPercentage": {
+        "title": "Prozentwerte für Rollläden nicht invertieren",
+        "description": "Prozentwerte für Rollläden nicht invertieren, damit sie Home Assistant entsprechen (nicht Matter-konform)."
+      },
+      "coverUseHomeAssistantPercentage": {
+        "title": "Home-Assistant-Prozentwerte für Rollläden verwenden (Alexa-freundlich)",
+        "description": "Zeigt Rollladen-Prozentwerte in Matter-Controllern wie Alexa passend zu Home Assistant an. Dadurch entspricht die angezeigte Prozentzahl Home Assistant; die Bedeutung unterscheidet sich aber: In HA bedeutet ein höherer Wert weiter geöffnet, in Alexa wird ein höherer Wert typischerweise als weiter geschlossen interpretiert. Öffnen/Schließen-Befehle funktionieren weiterhin korrekt."
+      },
+      "coverSwapOpenClose": {
+        "title": "Öffnen/Schließen für Rollläden tauschen",
+        "description": "Tauscht Öffnen/Schließen-Befehle und invertiert die Positionsmeldung für Rollläden. Aktiviere dies, wenn Alexa-Sprachbefehle vertauscht sind (z.B. 'schließen' öffnet den Rollladen und umgekehrt)."
+      },
+      "includeHiddenEntities": {
+        "title": "Versteckte Entitäten einbeziehen",
+        "description": "Entitäten einbeziehen, die in Home Assistant als versteckt markiert sind."
+      },
+      "serverMode": {
+        "title": "Servermodus (für Saugroboter)",
+        "description": "Stellt das Gerät als eigenständiges Matter-Gerät statt als gebridgtes Gerät bereit. Dies ist erforderlich, damit Apple Home Siri-Sprachbefehle für Saugroboter korrekt unterstützt. WICHTIG: Wenn der Servermodus aktiv ist, darf nur EIN Gerät in dieser Bridge sein."
+      },
+      "autoBatteryMapping": {
+        "title": "Automatische Batterie-Zuordnung",
+        "description": "Ordnet Batteriesensoren desselben Home-Assistant-Geräts automatisch der Hauptentität zu. Wenn aktiviert, werden Batteriesensoren in ihre übergeordneten Geräte integriert statt als separate Geräte angezeigt."
+      },
+      "autoHumidityMapping": {
+        "title": "Automatische Luftfeuchte-Zuordnung",
+        "description": "Kombiniert Luftfeuchtesensoren desselben Home-Assistant-Geräts automatisch mit Temperatursensoren. Wenn aktiviert, werden Luftfeuchtesensoren in Temperatursensoren integriert, um kombinierte Temperatur-/Luftfeuchte-Sensoren zu erstellen."
+      },
+      "autoPressureMapping": {
+        "title": "Automatische Druck-Zuordnung",
+        "description": "Kombiniert Drucksensoren desselben Home-Assistant-Geräts automatisch mit Temperatursensoren. Wenn aktiviert, werden Drucksensoren in Temperatursensoren integriert, um kombinierte Sensorgeräte zu erstellen."
+      },
+      "autoComposedDevices": {
+        "title": "Automatisch zusammengesetzte Geräte",
+        "description": "Hauptschalter: Kombiniert zusammengehörige Entitäten desselben Home-Assistant-Geräts in einem einzigen Matter-Endpoint. Aktiviert Batterie-, Luftfeuchte-, Druck-, Leistungs- und Energie-Zuordnung auf einmal; ein Shelly Plug erscheint dann als ein Gerät mit Leistungsmessung statt als mehrere Einzelgeräte."
+      },
+      "autoForceSync": {
+        "title": "Automatische Synchronisation erzwingen",
+        "description": "Vergleicht und sendet alle Gerätezustände alle 90 Sekunden an verbundene Controller. Aktiviere dies, wenn Geräte nach längerer Zeit nicht mehr synchron sind. Prüfungen auf tote Sitzungen laufen unabhängig von dieser Einstellung immer."
+      },
+      "productNameFromNodeLabel": {
+        "title": "Produktname aus Node-Label",
+        "description": "Meldet das Node-Label der Entität (benutzerdefinierter Name / Friendly Name / Entity-ID) als Matter-productName. Nützlich für Controller wie Aqara, die productName statt nodeLabel als Gerätenamen anzeigen. Ein pro Entität gesetzter customProductName hat weiterhin Vorrang."
+      },
+      "preferEntityRegistryName": {
+        "title": "Entity-Registry-Namen bevorzugen (HA-2026.4-Workaround)",
+        "description": "Verwendet den Entity-Registry-Namen (oder original_name) als nodeLabel statt des zusammengesetzten friendly_name. Seit Home Assistant 2026.4 wird friendly_name mit dem Gerätenamen vorangestellt, was Sprachbefehle mit kurzen Entity-Namen stören kann. Reihenfolge: customName -> Registry-Name -> Registry-original_name -> friendly_name -> Entity-ID. Matter hat kein Alias-Konzept; es wird nur geändert, welcher einzelne Name gemeldet wird."
+      },
+      "vacuumOnOff": {
+        "title": "Saugroboter: OnOff-Cluster einbeziehen (Alexa)",
+        "description": "Fügt Saugroboter-Endpoints einen OnOff-Cluster hinzu. Alexa benötigt diesen (PowerController), damit Saugroboter in der App angezeigt werden. Ohne ihn koppelt Alexa das Gerät, zeigt es aber nicht an. Im Servermodus ist dies automatisch aktiv; nur für Bridge-Modus aktivieren. WARNUNG: OnOff ist nicht Teil der Matter-RVC-Gerätetyp-Spezifikation. Dies kann Apple Home ('Aktualisieren') und Google Home stören."
+      },
+      "alexaPreserveBrightnessOnTurnOn": {
+        "title": "Alexa: Helligkeit beim Einschalten beibehalten",
+        "description": "Workaround für Alexa, wenn Lichthelligkeit nach einer Subscription-Erneuerung auf 100 % gesetzt wird. Wenn aktiviert, ignoriert die Bridge Helligkeitsbefehle auf 100 %, die innerhalb von 200 ms nach einem Einschaltbefehl für dasselbe Licht kommen. WARNUNG: Stört Apple-Home-Siri-Befehle wie 'Raum auf 100 % setzen', die dasselbe Muster on() + moveToLevel(254) verwenden. Nur für reine Alexa-Bridges aktivieren."
+      },
+      "useHaRegistrySerial": {
+        "title": "HA-Registry-Seriennummer verwenden",
+        "description": "Verwendet die serial_number aus der Home-Assistant-Geräteregistry als Fallback, wenn keine customSerialNumber pro Entität konfiguriert ist. Standardmäßig aus, weil das Ändern der serialNumber nach dem Koppeln Controller verwirren kann. Eine customSerialNumber pro Entität hat weiterhin Vorrang."
+      },
+      "coverSliderDebounceMs": {
+        "title": "Rollladen-Slider-Entprellung (ms)",
+        "description": "Überschreibt das Entprellfenster für Rollladen-Positionsupdates dieser Bridge. Manche Controller senden Slider-Updates während des Ziehens, wodurch Rollläden zu Zwischenzielen fahren. Setze die Zeit, die die Bridge nach dem letzten Update wartet, bevor der finale Wert an Home Assistant gesendet wird. 0 behält die eingebaute zweistufige Entprellung (400 ms initial / 150 ms danach), passend für die meisten Controller. Probiere 800-1500 ms für langsame Rollläden. Eine pro Entität gesetzte Einstellung für einen einzelnen Rollladen hat Vorrang."
+      }
+    },
+    "sections": {
+      "covers": "Rollläden / Cover",
+      "vacuum": "Saugroboter",
+      "homeAssistant": "Home Assistant / Registry",
+      "autoMapping": "Automatische Zuordnung",
+      "alexa": "Alexa-Kompatibilität",
+      "stability": "Synchronisation & Stabilität",
+      "other": "Weitere Optionen"
+    },
+    "badges": {
+      "workaround": "Workaround",
+      "controllerRisk": "Kann Controller stören"
+    }
+  },
+  "bridgeConfig": {
+    "title": "Bridge-Konfiguration",
+    "documentation": {
+      "prefix": "Bitte lies",
+      "link": "die Dokumentation",
+      "suffix": "für korrekte Bridge-Konfigurationen.",
+      "labelsHint": "Besonders wenn du Labels verwendest, beachte den Abschnitt \"Labels\"."
+    },
+    "communityTip": {
+      "title": "Community-Tipp:",
+      "description": "Nutzer berichten, dass Bridges mit sehr vielen Geräten je nach Controller instabil werden können. Wenn Verbindungsprobleme auftreten, verteile die Geräte auf mehrere Bridges."
+    },
+    "validation": {
+      "portUsed": "Port wird bereits von der Bridge mit ID {{id}} verwendet"
+    },
+    "warnings": {
+      "serverModeSingleDevice": "Servermodus ist aktiviert. In dieser Bridge darf nur EIN Gerät sein. Mehrere Geräte verursachen Fehler.",
+      "serverModeVacuumOnOffDisabled": "Servermodus mit deaktiviertem Saugroboter-OnOff: Alexa benötigt den OnOff-Cluster (PowerController) für Saugroboter. Ohne ihn wird der Saugroboter gekoppelt, erscheint aber nicht in Alexa. Nur für Apple Home deaktivieren.",
+      "vacuumOnOffBridgeMode": "Saugroboter-OnOff ist im Bridge-Modus aktiviert. Das fügt dem RVC-Gerätetyp einen nicht standardkonformen Cluster hinzu und kann Probleme mit Apple Home und Google Home verursachen.",
+      "autoForceSyncComposedDevices": "Automatische Synchronisation zusammen mit automatisch zusammengesetzten Geräten erhöht den Netzwerkverkehr. Zusammengesetzte Geräte haben mehr Cluster, daher sendet jeder Synchronisationslauf mehr Daten."
+    },
+    "fields": {
+      "name": {
+        "title": "Name"
+      },
+      "port": {
+        "title": "Port"
+      },
+      "icon": {
+        "title": "Symbol",
+        "description": "Symbol, das für diese Bridge in der Oberfläche angezeigt wird"
+      },
+      "countryCode": {
+        "title": "Ländercode",
+        "description": "ISO-3166-1-Alpha-2-Code für das Land, in dem sich der Node befindet. Nur nötig, wenn die Kopplung wegen fehlendem Ländercode fehlschlägt."
+      },
+      "priority": {
+        "title": "Startpriorität",
+        "description": "Priorität der Startreihenfolge. Niedrigere Werte starten zuerst. Standard ist 100."
+      },
+      "serialNumberSuffix": {
+        "title": "Seriennummer-Suffix",
+        "description": "Hängt an jede Entity-Seriennummer dieser Bridge ein Suffix an. Nützlich, um Controller wie Aqara dazu zu zwingen, Geräte als neu zu behandeln und gecachte Gerätedaten zu umgehen. Leer lassen für Standardverhalten."
+      },
+      "sessionMaxAgeHours": {
+        "title": "Maximales Alter der Sitzungsrotation (Stunden)",
+        "description": "Nur Servermodus. Rotiert Matter-Sitzungen, die älter als diese Anzahl Stunden sind, damit iPhone-Clients neu abonnieren und Apple Home nicht bei \"Aktualisieren\" hängen bleibt. 0 deaktiviert die Rotation. Bereich 0-168, Standard 4. (#287)"
+      }
+    },
+    "filter": {
+      "title": "Entity-Filter",
+      "include": {
+        "title": "Einbeziehen"
+      },
+      "exclude": {
+        "title": "Ausschließen"
+      },
+      "type": {
+        "title": "Typ"
+      },
+      "value": {
+        "title": "Wert",
+        "description": "Für Labels den Anzeigenamen oder die label_id (Slug) verwenden. Beides findest du auf der Labels-Seite in der Seitenleiste."
+      },
+      "includeMode": {
+        "title": "Einbeziehungsmodus",
+        "description": "Legt fest, wie Include-Regeln kombiniert werden: any trifft, wenn EINE Regel passt (ODER), all trifft nur, wenn ALLE Regeln passen (UND). Standard: any",
+        "options": {
+          "any": "Eine Regel reicht (ODER)",
+          "all": "Alle Regeln müssen passen (UND)"
+        }
+      },
+      "searchRules": "Regeln suchen...",
+      "noMatchingRules": "Keine passenden Regeln",
+      "newRule": "Neue Regel (zum Konfigurieren anklicken)",
+      "clickToCollapse": "Zum Einklappen klicken",
+      "rulesConfigured_one": "{{count}} Regel konfiguriert",
+      "rulesConfigured_other": "{{count}} Regeln konfiguriert",
+      "entityAutocompleteHelp": "Entity-ID suchen oder eintippen. Wildcards und reguläre Ausdrücke funktionieren weiterhin.",
+      "advancedFilters": "Erweiterte Filter anzeigen",
+      "matcherTypes": {
+        "pattern": {
+          "title": "Muster",
+          "description": "Wildcard-Muster für Entity-IDs. Verwende * als Platzhalter. Beispiel: light.wohnzimmer_* trifft alle Lichter im Wohnzimmer."
+        },
+        "regex": {
+          "title": "Regulärer Ausdruck",
+          "description": "Regulärer Ausdruck gegen die entity_id. Für Labels nutze entity_label_regex oder device_label_regex. Beispiel: ^(light|switch)\\.kitchen_.*."
+        },
+        "domain": {
+          "title": "Domain",
+          "description": "Filtert Entities nach ihrer Domain, also dem Teil vor dem Punkt. Beispiel: light, switch, sensor."
+        },
+        "platform": {
+          "title": "Plattform",
+          "description": "Filtert Entities nach Integration/Plattform. Beispiel: hue, zwave, mqtt."
+        },
+        "label": {
+          "title": "Label (veraltet)",
+          "description": "Veraltet: Nutze stattdessen entity_label oder device_label. Verhält sich wie entity_label."
+        },
+        "entity_label": {
+          "title": "Entity-Label",
+          "description": "Trifft nur Entities, denen dieses Label direkt zugewiesen ist. Andere Entities desselben Geräts werden nicht automatisch einbezogen."
+        },
+        "device_label": {
+          "title": "Geräte-Label",
+          "description": "Trifft alle Entities eines Geräts, wenn das Gerät dieses Label hat. Nutze dies, um ein vollständiges Gerät mit allen Entities einzubeziehen."
+        },
+        "entity_label_regex": {
+          "title": "Entity-Label-RegEx",
+          "description": "Regulärer Ausdruck gegen Entity-Label-Slugs und Anzeigenamen. Trifft, wenn ein der Entity zugewiesenes Label passt. Beispiel: ^(matter|voice).* ."
+        },
+        "device_label_regex": {
+          "title": "Geräte-Label-RegEx",
+          "description": "Regulärer Ausdruck gegen Geräte-Label-Slugs und Anzeigenamen. Trifft alle Entities eines Geräts, dessen Label passt. Beispiel: ^(matter|voice).* ."
+        },
+        "any_field_regex": {
+          "title": "RegEx über alle Felder",
+          "description": "Regulärer Ausdruck gegen eine einzeilige key=value-Sammlung aus entity_id, Domain, Plattform, Bereich, Entity-Kategorie, Geräteklasse, Entity-Labels, Geräte-Labels, Gerätename und Produktname. Nutze Lookaheads für UND und Alternativen für ODER."
+        },
+        "area": {
+          "title": "Bereich",
+          "description": "Filtert Entities nach Bereichs-Slug. Beispiel: living_room, bedroom."
+        },
+        "entity_category": {
+          "title": "Entity-Kategorie",
+          "description": "Filtert Entities nach Kategorie. Beispiel: config oder diagnostic, um Konfigurations-Entities auszuschließen."
+        },
+        "device_name": {
+          "title": "Gerätename",
+          "description": "Filtert Entities nach Gerätename. Unterstützt Wildcards. Beispiel: *Philips* trifft alle Philips-Geräte."
+        },
+        "product_name": {
+          "title": "Produktname",
+          "description": "Filtert Entities nach Produkt-/Modellname. Unterstützt Wildcards. Beispiel: Hue*Bulb."
+        },
+        "device_class": {
+          "title": "Geräteklasse",
+          "description": "Filtert Entities nach device_class-Attribut. Beispiel: temperature, motion, door, window."
+        }
+      }
+    }
+  },
+  "filterPresets": {
+    "title": "Filter-Vorlagen",
+    "bridgeTitle": "Filter-Vorlage",
+    "loadDialogTitle": "Filtervorlage laden",
+    "selectLabel": "Filter-Vorlage auswählen",
+    "load": "Vorlage laden",
+    "loadShort": "Laden",
+    "detach": "Von Vorlage lösen / manuell bearbeiten",
+    "manage": "Vorlagen verwalten",
+    "name": "Vorlagenname",
+    "newPreset": "Neue Vorlage",
+    "duplicate": "Kopieren/Duplizieren",
+    "newName": "Name der neuen Vorlage",
+    "saveNew": "Als neue Vorlage speichern",
+    "update": "Vorlage aktualisieren",
+    "activeManual": "Aktive Filter: Manuell",
+    "activePreset": "Aktive Filter: Vorlage {{name}}",
+    "bridgeHelp": "Vorlage laden kopiert die Regeln in diese Bridge. Danach kannst du sie manuell ändern, ohne die Vorlage zu ändern.",
+    "help": "Bearbeite hier wiederverwendbare Filter-Vorlagen. Bridges kopieren die Regeln beim Laden.",
+    "selectedDescription": "Diese Vorlage enthält {{include}} Include-Regeln, {{exclude}} Exclude-Regeln und nutzt Include Mode {{mode}}.",
+    "noPresets": "Noch keine Filter-Vorlagen vorhanden. Lege sie über die Seite Filter-Vorlagen an.",
+    "saved": "Vorlage gespeichert.",
+    "deleted": "Vorlage gelöscht.",
+    "copyName": "{{name}} Kopie"
+  },
+  "filterReference": {
+    "title": "Filterreferenz",
+    "includeExclude": "Include-Regeln wählen aus, welche Home-Assistant-Entities in die Bridge übernommen werden. Exclude-Regeln entfernen danach gezielt passende Entities wieder aus der Auswahl.",
+    "includeMode": "Include Mode any bedeutet: Eine Include-Regel reicht. Include Mode all bedeutet: Alle Include-Regeln müssen gleichzeitig passen.",
+    "examples": [
+      {
+        "type": "entity_label",
+        "value": "alexa",
+        "description": "Entities mit dem Label alexa einbeziehen."
+      },
+      {
+        "type": "device_label",
+        "value": "matter",
+        "description": "Alle Entities von Geräten mit diesem Geräte-Label einbeziehen."
+      },
+      {
+        "type": "domain",
+        "value": "light",
+        "description": "Alle light.* Entities einbeziehen."
+      },
+      {
+        "type": "pattern",
+        "value": "switch.schlafzimmer_*",
+        "description": "Entity-IDs per Platzhalter filtern."
+      },
+      {
+        "type": "regex",
+        "value": "^(light|switch)\\.",
+        "description": "Entity-IDs per regulärem Ausdruck filtern."
+      }
+    ]
+  },
+  "bridgeIcon": {
+    "bridgeIcon": "Bridge-Symbol",
+    "selectPresetOrUpload": "Wähle ein voreingestelltes Symbol oder lade ein eigenes Bild hoch.",
+    "customIconSet": "Ein eigenes Symbol ist gesetzt. Lösche es, um voreingestellte Symbole zu verwenden.",
+    "customIcon": "Eigenes Symbol",
+    "customIconAlt": "Eigenes Bridge-Symbol",
+    "upload": "Bild hochladen",
+    "uploading": "Wird hochgeladen...",
+    "supportedFormats": "Unterstützte Formate: PNG, JPG, GIF, WebP, SVG (max. 5 MB)",
+    "saveFirst": "Speichere die Bridge zuerst, um ein eigenes Symbol hochzuladen.",
+    "options": {
+      "auto": "Automatisch (nach Domain/Name)",
+      "light": "Licht",
+      "switch": "Schalter",
+      "climate": "Klima",
+      "cover": "Rollladen/Cover",
+      "fan": "Lüfter",
+      "lock": "Schloss",
+      "sensor": "Sensor",
+      "mediaPlayer": "Medienplayer",
+      "vacuum": "Saugroboter",
+      "remote": "Fernbedienung",
+      "humidifier": "Luftbefeuchter",
+      "speaker": "Lautsprecher",
+      "garage": "Garage",
+      "door": "Tür",
+      "window": "Fenster",
+      "motion": "Bewegung",
+      "battery": "Batterie",
+      "power": "Leistung",
+      "camera": "Kamera",
+      "default": "Standard"
+    }
+  },
+  "filterPreview": {
+    "previewButton": "Passende Entities anzeigen",
+    "fetchFailed": "Vorschau konnte nicht geladen werden",
+    "warningVacuum": "Dieser Filter enthält einen Saugroboter. Für Apple-Home-/Alexa-Kompatibilität solltest du den Servermodus verwenden (ein Gerät pro Bridge).",
+    "warningLargeBridge": "{{count}} Entities sind sehr viele. Für bessere Stabilität solltest du sie auf mehrere Bridges verteilen.",
+    "warningUnsupportedDomains": "Nicht unterstützte Domains werden übersprungen: {{domains}}",
+    "entitiesMatch_one": "{{count}} Entity passt",
+    "entitiesMatch_other": "{{count}} Entities passen",
+    "showingFirst": "Zeige erste {{count}}",
+    "hidePreview": "Vorschau ausblenden"
   }
 }

@@ -8,7 +8,15 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { generateTemplates } from "@rjsf/mui";
 import type { ObjectFieldTemplateProps } from "@rjsf/utils";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useFilterPresetLoader } from "../FilterPresetContext.tsx";
+
+const FilterPresetControls = lazy(() =>
+  import("../FilterPresetControls.tsx").then((m) => ({
+    default: m.FilterPresetControls,
+  })),
+);
 
 const muiTemplates = generateTemplates();
 const DefaultObjectFieldTemplate = muiTemplates.ObjectFieldTemplate!;
@@ -24,6 +32,8 @@ export function BridgeObjectFieldTemplate(props: ObjectFieldTemplateProps) {
 }
 
 function CollapsibleFilterTemplate(props: ObjectFieldTemplateProps) {
+  const { t } = useTranslation();
+  const loadPreset = useFilterPresetLoader();
   const includeCount =
     (props.formData?.include as unknown[] | undefined)?.length ?? 0;
   const excludeCount =
@@ -56,7 +66,7 @@ function CollapsibleFilterTemplate(props: ObjectFieldTemplateProps) {
       >
         <FilterListIcon fontSize="small" color="action" />
         <Typography variant="subtitle1" fontWeight={600}>
-          Entity Filters
+          {t("bridgeConfig.filter.title")}
         </Typography>
         <Badge
           badgeContent={totalRules}
@@ -68,9 +78,20 @@ function CollapsibleFilterTemplate(props: ObjectFieldTemplateProps) {
         </Badge>
         <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
           {expanded
-            ? "Click to collapse"
-            : `${totalRules} rule${totalRules !== 1 ? "s" : ""} configured`}
+            ? t("bridgeConfig.filter.clickToCollapse")
+            : `${t("bridgeConfig.filter.advancedFilters")} · ${t("bridgeConfig.filter.rulesConfigured", { count: totalRules })}`}
         </Typography>
+        {loadPreset && (
+          <Box
+            sx={{ ml: "auto" }}
+            onClick={(event) => event.stopPropagation()}
+            onFocus={(event) => event.stopPropagation()}
+          >
+            <Suspense fallback={null}>
+              <FilterPresetControls onFilterChange={loadPreset} />
+            </Suspense>
+          </Box>
+        )}
       </AccordionSummary>
       <AccordionDetails sx={{ px: 2, pb: 2 }}>
         {props.properties.map((prop) => (
