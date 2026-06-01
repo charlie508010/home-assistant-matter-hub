@@ -10,7 +10,8 @@ import type {
 } from "@rjsf/utils";
 import validator from "@rjsf/validator-ajv8";
 import type { JSONSchema7 } from "json-schema";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { ValidationError } from "./validation-error.ts";
 
 const Form = withTheme(Theme);
@@ -26,6 +27,18 @@ export interface FormEditorProps {
 }
 
 export const FormEditor = (props: FormEditorProps) => {
+  const { t } = useTranslation();
+  const uiSchema = useMemo(
+    () => ({
+      ...props.uiSchema,
+      "ui:submitButtonOptions": {
+        submitText: t("common.save"),
+        ...(props.uiSchema?.["ui:submitButtonOptions"] as object | undefined),
+      },
+    }),
+    [props.uiSchema, t],
+  );
+
   const onChange = (data: object, _errors: RJSFValidationError[]) => {
     // Only gate save on custom validation errors (e.g. port conflicts).
     // RJSF's schema errors may include false positives introduced by its
@@ -58,7 +71,7 @@ export const FormEditor = (props: FormEditorProps) => {
   return (
     <Form
       schema={props.schema}
-      uiSchema={props.uiSchema}
+      uiSchema={uiSchema}
       validator={validator}
       formData={props.value}
       liveValidate="onChange"
