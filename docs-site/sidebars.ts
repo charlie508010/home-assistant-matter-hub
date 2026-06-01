@@ -68,6 +68,7 @@ const sidebars: SidebarsConfig = {
         "developer/services",
         "developer/endpoints",
         "developer/behaviors",
+        "developer/alexa-controller-notes",
       ],
     },
     "support",
