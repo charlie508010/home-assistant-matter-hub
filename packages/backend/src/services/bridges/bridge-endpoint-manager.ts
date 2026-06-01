@@ -4,15 +4,25 @@ import type {
 } from "@home-assistant-matter-hub/common";
 import type { Logger } from "@matter/general";
 import { Endpoint } from "@matter/main";
+import { DescriptorServer } from "@matter/main/behaviors";
 import { Service } from "../../core/ioc/service.js";
 import { AggregatorEndpoint } from "../../matter/endpoints/aggregator-endpoint.js";
+import {
+  createStableEndpointId,
+  withStableEndpointUniqueId,
+} from "../../matter/endpoints/endpoint-unique-id.js";
 import type { EntityEndpoint } from "../../matter/endpoints/entity-endpoint.js";
 import { LegacyEndpoint } from "../../matter/endpoints/legacy/legacy-endpoint.js";
 import { createPluginEndpointType } from "../../plugins/plugin-device-factory.js";
 import type { PluginInstaller } from "../../plugins/plugin-installer.js";
 import type { PluginManager } from "../../plugins/plugin-manager.js";
 import type { PluginRegistry } from "../../plugins/plugin-registry.js";
-import type { PluginDevice, PluginMetadata } from "../../plugins/types.js";
+import type {
+  PluginConfigSchema,
+  PluginDevice,
+  PluginMetadata,
+  PluginUiStatus,
+} from "../../plugins/types.js";
 import { isHeapUnderPressure } from "../../utils/log-memory.js";
 import { diagnosticEventBus } from "../diagnostics/diagnostic-event-bus.js";
 import { subscribeEntities } from "../home-assistant/api/subscribe-entities.js";
@@ -93,9 +103,12 @@ export class BridgeEndpointManager extends Service {
       for (const cluster of device.clusters) {
         initialState[cluster.clusterId] = cluster.attributes;
       }
-      const configuredType = type.set(initialState);
+      const configuredType = withStableEndpointUniqueId(
+        type.set(initialState),
+        `plugin:${pluginName}:${device.id}`,
+      );
       const endpoint = new Endpoint(configuredType, {
-        id: `plugin_${device.id}`,
+        id: createStableEndpointId(`plugin_${device.id}`),
       });
       try {
         await this.root.add(endpoint);
@@ -297,11 +310,8 @@ export class BridgeEndpointManager extends Service {
     this.pluginManager?.resetPlugin(pluginName);
   }
 
-  getPluginConfigSchema(
-    pluginName: string,
-  ): Record<string, unknown> | undefined {
-    // biome-ignore lint/suspicious/noExplicitAny: PluginConfigSchema is structurally compatible
-    return this.pluginManager?.getConfigSchema(pluginName) as any;
+  getPluginConfigSchema(pluginName: string): PluginConfigSchema | undefined {
+    return this.pluginManager?.getConfigSchema(pluginName);
   }
 
   async updatePluginConfig(
@@ -310,6 +320,19 @@ export class BridgeEndpointManager extends Service {
   ): Promise<boolean> {
     return (
       (await this.pluginManager?.updateConfig(pluginName, config)) ?? false
+    );
+  }
+
+  getPluginUiStatus(pluginName: string): PluginUiStatus | undefined {
+    return this.pluginManager?.getUiStatus(pluginName);
+  }
+
+  async handlePluginAction(
+    pluginName: string,
+    actionId: string,
+  ): Promise<boolean> {
+    return (
+      (await this.pluginManager?.handleAction(pluginName, actionId)) ?? false
     );
   }
 
@@ -600,6 +623,52 @@ export class BridgeEndpointManager extends Service {
 
     if (this.unsubscribe) {
       this.startObserving();
+    }
+  }
+
+  getReadDiagnosticEndpointEntries() {
+    return this.root.parts.map((part) => {
+      const endpoint = part as EntityEndpoint;
+      const entity = this.registry.entity(endpoint.entityId);
+      const state = this.registry.initialState(endpoint.entityId);
+
+      return {
+        endpointId: endpoint.number,
+        endpointName: this.describeEndpoint(endpoint),
+        entityId: endpoint.entityId,
+        name:
+          entity?.name ??
+          entity?.original_name ??
+          state?.attributes?.friendly_name ??
+          endpoint.entityId,
+        friendlyName: state?.attributes?.friendly_name,
+        registryName: entity?.name ?? entity?.original_name,
+        deviceTypeList: this.readDeviceTypeList(endpoint),
+      };
+    });
+  }
+
+  private describeEndpoint(endpoint: Endpoint): string {
+    const type = endpoint.type as {
+      name?: string;
+      id?: string;
+      deviceType?: number;
+    };
+
+    return (
+      type.name ??
+      type.id ??
+      (type.deviceType === undefined
+        ? `Endpoint${endpoint.number}`
+        : `DeviceType(${type.deviceType})`)
+    );
+  }
+
+  private readDeviceTypeList(endpoint: Endpoint): unknown {
+    try {
+      return endpoint.stateOf(DescriptorServer).deviceTypeList;
+    } catch {
+      return undefined;
     }
   }
 

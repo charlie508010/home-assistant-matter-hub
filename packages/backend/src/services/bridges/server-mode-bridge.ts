@@ -1,3 +1,4 @@
+import * as fs from "node:fs";
 import {
   BridgeStatus,
   type UpdateBridgeRequest,
@@ -26,7 +27,48 @@ const AUTO_FORCE_SYNC_INTERVAL_MS = 90_000;
 // long before force-closing the dead sessions. This breaks the deadlock
 // where the controller holds a stale CASE session and never re-subscribes
 // because it doesn't know the server canceled its subscriptions (#266).
-const DEAD_SESSION_TIMEOUT_MS = 60_000;
+
+function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
+  try {
+    const peerFiles = [
+      "/config/data/matter-peers.json",
+      "/config/data/sqlite/matter-peers.json",
+    ];
+
+    const mapFiles = [
+      "/config/data/alexa-peer-map.json",
+      "/config/data/sqlite/alexa-peer-map.json",
+    ];
+
+    const peerFile = peerFiles.find((file) => fs.existsSync(file));
+    const mapFile = mapFiles.find((file) => fs.existsSync(file));
+
+    if (!peerFile || !mapFile) return "";
+
+    const peers = JSON.parse(fs.readFileSync(peerFile, "utf8")) as Array<{
+      peer?: unknown;
+      mac?: unknown;
+    }>;
+    const map = JSON.parse(fs.readFileSync(mapFile, "utf8")) as Record<
+      string,
+      { name?: unknown }
+    >;
+
+    const peer = String(peerNodeId);
+    const foundPeer = peers.find((p) => String(p.peer) === peer);
+    if (!foundPeer?.mac) return "";
+
+    const mac = String(foundPeer.mac).replace(/:$/, "").toUpperCase();
+    const mapped = map[mac];
+
+    return typeof mapped?.name === "string" ? ` name="${mapped.name}"` : "";
+  } catch {
+    return "";
+  }
+}
+
+const DEAD_SESSION_TIMEOUT_MS = 0;
+const DEAD_SESSION_CLEANUP_ENABLED = DEAD_SESSION_TIMEOUT_MS > 0;
 
 // Rotate sessions so iPhone re-subscribes and the tile unsticks (#287).
 export const DEFAULT_SESSION_MAX_AGE_HOURS = 4;
@@ -303,26 +345,29 @@ export class ServerModeBridge {
         for (const s of sessions) {
           totalSubs += s.subscriptions.size;
         }
-        this.log.info(
-          `Session ${session.id} (peer ${session.peerNodeId}): subscriptions=${session.subscriptions.size} | total: sessions=${sessions.length} subscriptions=${totalSubs}`,
+        this.log.debug(
+          `Session ${session.id} (peer ${session.peerNodeId}${getAlexaPeerLogSuffix(session.peerNodeId)}): subscriptions=${session.subscriptions.size} | total: sessions=${sessions.length} subscriptions=${totalSubs}`,
         );
         if (totalSubs === 0 && sessions.length > 0) {
-          this.log.warn(
+          this.log.debug(
             `All subscriptions lost, ${sessions.length} session(s) still active, waiting for controller to re-subscribe`,
           );
+          if (!DEAD_SESSION_CLEANUP_ENABLED) {
+            return;
+          }
           if (!this.deadSessionTimer) {
             this.deadSessionTimer = setTimeout(() => {
               this.deadSessionTimer = null;
               this.closeDeadSessions();
             }, DEAD_SESSION_TIMEOUT_MS);
-            this.log.info(
+            this.log.debug(
               `Scheduled dead session cleanup in ${DEAD_SESSION_TIMEOUT_MS / 1000}s`,
             );
           }
         } else if (totalSubs > 0 && this.deadSessionTimer) {
           clearTimeout(this.deadSessionTimer);
           this.deadSessionTimer = null;
-          this.log.info(
+          this.log.debug(
             "Subscriptions recovered, canceled dead session cleanup",
           );
         }
@@ -331,6 +376,7 @@ export class ServerModeBridge {
         // sessions that lose all subscriptions even when the bridge
         // as a whole still has active subscriptions from other peers.
         if (
+          DEAD_SESSION_CLEANUP_ENABLED &&
           session.subscriptions.size === 0 &&
           !this.staleSessionTimers.has(session.id)
         ) {
@@ -358,7 +404,7 @@ export class ServerModeBridge {
       }) => {
         this.sessionStartedAt.set(newSession.id, Date.now());
         this.log.info(
-          `Session opened: id=${newSession.id} peer=${newSession.peerNodeId}`,
+          `Session opened: id=${newSession.id} peer=${newSession.peerNodeId}${getAlexaPeerLogSuffix(newSession.peerNodeId)}`,
         );
         // Clean up stale sessions from the same peer that have lost all
         // subscriptions. matter.js 0.16.10 CaseServer does not close
@@ -372,8 +418,8 @@ export class ServerModeBridge {
             s.fabric?.fabricIndex === newSession.fabric?.fabricIndex &&
             s.subscriptions.size === 0
           ) {
-            this.log.info(
-              `Closing stale session ${s.id} (peer ${s.peerNodeId}, 0 subs), replaced by session ${newSession.id}`,
+            this.log.debug(
+              `Closing stale session ${s.id} (peer ${s.peerNodeId}${getAlexaPeerLogSuffix(s.peerNodeId)}, 0 subs), replaced by session ${newSession.id}`,
             );
             s.initiateForceClose().catch(() => {});
           }
@@ -385,8 +431,8 @@ export class ServerModeBridge {
       }) => {
         this.sessionStartedAt.delete(session.id);
         const sessions = [...sessionManager.sessions];
-        this.log.warn(
-          `Session closed: id=${session.id} peer=${session.peerNodeId} | remaining sessions=${sessions.length}`,
+        this.log.debug(
+          `Session closed: id=${session.id} peer=${session.peerNodeId}${getAlexaPeerLogSuffix(session.peerNodeId)} | remaining sessions=${sessions.length}`,
         );
       };
       sessionManager.sessions.added.on(this.sessionAddedHandler);
@@ -401,8 +447,8 @@ export class ServerModeBridge {
       const sessionManager = this.server.env.get(SessionManager);
       for (const s of [...sessionManager.sessions]) {
         if (s.id === sessionId && !s.isClosing && s.subscriptions.size === 0) {
-          this.log.warn(
-            `Closing stale session ${s.id} (peer ${s.peerNodeId}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
+          this.log.debug(
+            `Closing stale session ${s.id} (peer ${s.peerNodeId}${getAlexaPeerLogSuffix(s.peerNodeId)}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
           );
           s.initiateClose()
             .catch(() => {
@@ -426,8 +472,8 @@ export class ServerModeBridge {
       const closes: Promise<void>[] = [];
       for (const s of sessions) {
         if (!s.isClosing && s.subscriptions.size === 0) {
-          this.log.warn(
-            `Closing dead session ${s.id} (peer ${s.peerNodeId}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
+          this.log.debug(
+            `Closing dead session ${s.id} (peer ${s.peerNodeId}${getAlexaPeerLogSuffix(s.peerNodeId)}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
           );
           closes.push(
             s.initiateClose().catch(() => {
@@ -562,7 +608,7 @@ export class ServerModeBridge {
         }
         const ageMin = Math.round(ageMs / 60_000);
         this.log.info(
-          `Rotating session ${s.id} (peer ${s.peerNodeId}, age ${ageMin}min, subs ${s.subscriptions.size})`,
+          `Rotating session ${s.id} (peer ${s.peerNodeId}${getAlexaPeerLogSuffix(s.peerNodeId)}, age ${ageMin}min, subs ${s.subscriptions.size})`,
         );
         closes.push(
           s.initiateClose().catch(() => {

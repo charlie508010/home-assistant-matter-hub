@@ -1,16 +1,26 @@
+import * as fs from "node:fs";
 import {
   BridgeStatus,
   type UpdateBridgeRequest,
 } from "@home-assistant-matter-hub/common";
 import type { Environment } from "@matter/general";
 import type { Endpoint } from "@matter/main";
+import { DescriptorServer } from "@matter/main/behaviors";
 import { CommissioningServer } from "@matter/main/node";
 import { DeviceAdvertiser, SessionManager } from "@matter/main/protocol";
 import type { BetterLogger, LoggerService } from "../../core/app/logger.js";
 import { BridgeServerNode } from "../../matter/endpoints/bridge-server-node.js";
+import type {
+  PluginConfigSchema,
+  PluginUiStatus,
+} from "../../plugins/types.js";
 import { ensureCommissioningConfig } from "../../utils/ensure-commissioning-config.js";
 import { isHeapUnderPressure, logMemoryUsage } from "../../utils/log-memory.js";
 import { diagnosticEventBus } from "../diagnostics/diagnostic-event-bus.js";
+import {
+  clearMatterReadEndpointDiagnostics,
+  setMatterReadEndpointDiagnostics,
+} from "../diagnostics/matter-read-diagnostics.js";
 import type {
   BridgeDataProvider,
   BridgeServerStatus,
@@ -27,7 +37,48 @@ const AUTO_FORCE_SYNC_INTERVAL_MS = 90_000;
 // long before force-closing the dead sessions. This breaks the deadlock
 // where the controller holds a stale CASE session and never re-subscribes
 // because it doesn't know the server canceled its subscriptions (#266).
-const DEAD_SESSION_TIMEOUT_MS = 60_000;
+
+function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
+  try {
+    const peerFiles = [
+      "/config/data/matter-peers.json",
+      "/config/data/sqlite/matter-peers.json",
+    ];
+
+    const mapFiles = [
+      "/config/data/alexa-peer-map.json",
+      "/config/data/sqlite/alexa-peer-map.json",
+    ];
+
+    const peerFile = peerFiles.find((file) => fs.existsSync(file));
+    const mapFile = mapFiles.find((file) => fs.existsSync(file));
+
+    if (!peerFile || !mapFile) return "";
+
+    const peers = JSON.parse(fs.readFileSync(peerFile, "utf8")) as Array<{
+      peer?: unknown;
+      mac?: unknown;
+    }>;
+    const map = JSON.parse(fs.readFileSync(mapFile, "utf8")) as Record<
+      string,
+      { name?: unknown }
+    >;
+
+    const peer = String(peerNodeId);
+    const foundPeer = peers.find((p) => String(p.peer) === peer);
+    if (!foundPeer?.mac) return "";
+
+    const mac = String(foundPeer.mac).replace(/:$/, "").toUpperCase();
+    const mapped = map[mac];
+
+    return typeof mapped?.name === "string" ? ` name="${mapped.name}"` : "";
+  } catch {
+    return "";
+  }
+}
+
+const DEAD_SESSION_TIMEOUT_MS = 0;
+const DEAD_SESSION_CLEANUP_ENABLED = DEAD_SESSION_TIMEOUT_MS > 0;
 
 export class Bridge {
   private readonly log: BetterLogger;
@@ -164,9 +215,7 @@ export class Bridge {
     this.endpointManager.resetPlugin(pluginName);
   }
 
-  getPluginConfigSchema(
-    pluginName: string,
-  ): Record<string, unknown> | undefined {
+  getPluginConfigSchema(pluginName: string): PluginConfigSchema | undefined {
     return this.endpointManager.getPluginConfigSchema(pluginName);
   }
 
@@ -175,6 +224,17 @@ export class Bridge {
     config: Record<string, unknown>,
   ): Promise<boolean> {
     return this.endpointManager.updatePluginConfig(pluginName, config);
+  }
+
+  getPluginUiStatus(pluginName: string): PluginUiStatus | undefined {
+    return this.endpointManager.getPluginUiStatus(pluginName);
+  }
+
+  async handlePluginAction(
+    pluginName: string,
+    actionId: string,
+  ): Promise<boolean> {
+    return this.endpointManager.handlePluginAction(pluginName, actionId);
   }
 
   constructor(
@@ -203,14 +263,85 @@ export class Bridge {
 
   async initialize(): Promise<void> {
     await this.server.construction.ready.then();
+    this.logRootEndpointServerListDiagnostics();
     await this.refreshDevices();
   }
+
+  private logRootEndpointServerListDiagnostics(): void {
+    const activeBehaviors = [...this.server.behaviors.active].map((type) => {
+      const behavior = type as {
+        id?: string;
+        name?: string;
+        cluster?: { id?: number };
+      };
+
+      return {
+        name: behavior.name ?? behavior.id ?? "unknown",
+        id: behavior.id ?? null,
+        clusterId:
+          behavior.cluster?.id === undefined
+            ? null
+            : Number(behavior.cluster.id),
+      };
+    });
+
+    const activeBehaviorServerList = activeBehaviors
+      .map(({ clusterId }) => clusterId)
+      .filter((clusterId): clusterId is number => clusterId !== null);
+
+    const descriptorServerList = this.readRootDescriptorServerList();
+    const effectiveServerList =
+      descriptorServerList ?? activeBehaviorServerList;
+
+    this.log.debug(
+      `Root EP0 effective serverList before startup: [${effectiveServerList.join(", ")}]`,
+    );
+    this.log.debugCtx("Root EP0 serverList diagnostic sources", {
+      effectiveSource:
+        descriptorServerList === undefined
+          ? "behaviors.active"
+          : "statischer Descriptor Patch / DescriptorServer.state.serverList",
+      behaviorsActiveServerList: activeBehaviorServerList,
+      descriptorServerList: descriptorServerList ?? null,
+      descriptorPatchSource: "DescriptorServer #serverList implementation",
+      rootEndpointWithSource:
+        "createBridgeServerConfig ServerNode.RootEndpoint.with(...)",
+    });
+    this.log.debugCtx("Root EP0 active behaviors before startup", {
+      behaviors: activeBehaviors,
+    });
+  }
+
+  private readRootDescriptorServerList(): number[] | undefined {
+    try {
+      const descriptorState = this.server.stateOf(DescriptorServer) as {
+        serverList?: unknown;
+      };
+      const { serverList } = descriptorState;
+
+      if (!Array.isArray(serverList)) {
+        return undefined;
+      }
+
+      return serverList
+        .map((clusterId) => Number(clusterId))
+        .filter((clusterId) => Number.isFinite(clusterId));
+    } catch (error) {
+      this.log.warnCtx("Unable to read Root EP0 Descriptor serverList", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return undefined;
+    }
+  }
+
   async dispose(): Promise<void> {
+    clearMatterReadEndpointDiagnostics(this.dataProvider.id);
     await this.stop();
   }
 
   async refreshDevices() {
     await this.endpointManager.refreshDevices();
+    this.updateMatterReadEndpointDiagnostics();
     // Prune stale entries from lastSyncedStates for entities that were removed
     const currentEntityIds = new Set(
       [...this.aggregator.parts].map(
@@ -221,6 +352,32 @@ export class Bridge {
       if (!currentEntityIds.has(entityId)) {
         this.lastSyncedStates.delete(entityId);
       }
+    }
+  }
+
+  private updateMatterReadEndpointDiagnostics(): void {
+    setMatterReadEndpointDiagnostics(this.dataProvider.id, [
+      {
+        endpointId: this.server.number,
+        endpointName: "RootNode",
+        name: "RootNode",
+        deviceTypeList: this.readEndpointDeviceTypeList(this.server),
+      },
+      {
+        endpointId: this.aggregator.number,
+        endpointName: "Aggregator",
+        name: "Aggregator",
+        deviceTypeList: this.readEndpointDeviceTypeList(this.aggregator),
+      },
+      ...this.endpointManager.getReadDiagnosticEndpointEntries(),
+    ]);
+  }
+
+  private readEndpointDeviceTypeList(endpoint: Endpoint): unknown {
+    try {
+      return endpoint.stateOf(DescriptorServer).deviceTypeList;
+    } catch {
+      return undefined;
     }
   }
 
@@ -353,8 +510,8 @@ export class Bridge {
         for (const s of sessions) {
           totalSubs += s.subscriptions.size;
         }
-        this.log.info(
-          `Session ${session.id} (peer ${session.peerNodeId}): subscriptions=${session.subscriptions.size} | total: sessions=${sessions.length} subscriptions=${totalSubs}`,
+        this.log.debug(
+          `Session ${session.id} (peer ${session.peerNodeId}${getAlexaPeerLogSuffix(session.peerNodeId)}): subscriptions=${session.subscriptions.size} | total: sessions=${sessions.length} subscriptions=${totalSubs}`,
         );
         diagnosticEventBus.emit(
           "subscription_changed",
@@ -371,22 +528,25 @@ export class Bridge {
           },
         );
         if (totalSubs === 0 && sessions.length > 0) {
-          this.log.warn(
+          this.log.debug(
             `All subscriptions lost, ${sessions.length} session(s) still active, waiting for controller to re-subscribe`,
           );
+          if (!DEAD_SESSION_CLEANUP_ENABLED) {
+            return;
+          }
           if (!this.deadSessionTimer) {
             this.deadSessionTimer = setTimeout(() => {
               this.deadSessionTimer = null;
               this.closeDeadSessions();
             }, DEAD_SESSION_TIMEOUT_MS);
-            this.log.info(
+            this.log.debug(
               `Scheduled dead session cleanup in ${DEAD_SESSION_TIMEOUT_MS / 1000}s`,
             );
           }
         } else if (totalSubs > 0 && this.deadSessionTimer) {
           clearTimeout(this.deadSessionTimer);
           this.deadSessionTimer = null;
-          this.log.info(
+          this.log.debug(
             "Subscriptions recovered, canceled dead session cleanup",
           );
         }
@@ -395,6 +555,7 @@ export class Bridge {
         // sessions that lose all subscriptions even when the bridge
         // as a whole still has active subscriptions from other peers.
         if (
+          DEAD_SESSION_CLEANUP_ENABLED &&
           session.subscriptions.size === 0 &&
           !this.staleSessionTimers.has(session.id)
         ) {
@@ -421,11 +582,11 @@ export class Bridge {
         fabric?: { fabricIndex: unknown };
       }) => {
         this.log.info(
-          `Session opened: id=${newSession.id} peer=${newSession.peerNodeId}`,
+          `Session opened: id=${newSession.id} peer=${newSession.peerNodeId}${getAlexaPeerLogSuffix(newSession.peerNodeId)}`,
         );
         diagnosticEventBus.emit(
           "session_opened",
-          `Session ${newSession.id} opened (peer ${newSession.peerNodeId})`,
+          `Session ${newSession.id} opened (peer ${newSession.peerNodeId}${getAlexaPeerLogSuffix(newSession.peerNodeId)})`,
           {
             bridgeId: this.data.id,
             bridgeName: this.data.name,
@@ -444,8 +605,8 @@ export class Bridge {
             s.fabric?.fabricIndex === newSession.fabric?.fabricIndex &&
             s.subscriptions.size === 0
           ) {
-            this.log.info(
-              `Closing stale session ${s.id} (peer ${s.peerNodeId}, 0 subs), replaced by session ${newSession.id}`,
+            this.log.debug(
+              `Closing stale session ${s.id} (peer ${s.peerNodeId}${getAlexaPeerLogSuffix(s.peerNodeId)}, 0 subs), replaced by session ${newSession.id}`,
             );
             s.initiateForceClose().catch(() => {});
           }
@@ -456,8 +617,8 @@ export class Bridge {
         peerNodeId: unknown;
       }) => {
         const sessions = [...sessionManager.sessions];
-        this.log.warn(
-          `Session closed: id=${session.id} peer=${session.peerNodeId} | remaining sessions=${sessions.length}`,
+        this.log.debug(
+          `Session closed: id=${session.id} peer=${session.peerNodeId}${getAlexaPeerLogSuffix(session.peerNodeId)} | remaining sessions=${sessions.length}`,
         );
         diagnosticEventBus.emit(
           "session_closed",
@@ -484,8 +645,8 @@ export class Bridge {
       const sessionManager = this.server.env.get(SessionManager);
       for (const s of [...sessionManager.sessions]) {
         if (s.id === sessionId && !s.isClosing && s.subscriptions.size === 0) {
-          this.log.warn(
-            `Closing stale session ${s.id} (peer ${s.peerNodeId}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
+          this.log.debug(
+            `Closing stale session ${s.id} (peer ${s.peerNodeId}${getAlexaPeerLogSuffix(s.peerNodeId)}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
           );
           s.initiateClose()
             .catch(() => {
@@ -509,8 +670,8 @@ export class Bridge {
       const closes: Promise<void>[] = [];
       for (const s of sessions) {
         if (!s.isClosing && s.subscriptions.size === 0) {
-          this.log.warn(
-            `Closing dead session ${s.id} (peer ${s.peerNodeId}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
+          this.log.debug(
+            `Closing dead session ${s.id} (peer ${s.peerNodeId}${getAlexaPeerLogSuffix(s.peerNodeId)}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
           );
           closes.push(
             s.initiateClose().catch(() => {
@@ -599,9 +760,12 @@ export class Bridge {
     if (this.status.code !== BridgeStatus.Running) {
       return;
     }
+    this.log.info("Factory reset requested");
     await this.server.factoryReset();
+    this.log.info("Factory reset completed; restarting bridge");
     this.setStatus({ code: BridgeStatus.Stopped });
     await this.start();
+    this.log.info("commissioning window opened after reset/remove");
   }
 
   /**
