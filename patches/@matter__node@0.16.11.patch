@@ -65,7 +65,7 @@ index e1655864865d84eae9f50c0c0eb79662ae3f189d..b15cc35f947acaa9c2d833cff2ab1da5
        statusCode: import_operational_credentials.OperationalCredentials.NodeOperationalCertStatus.Ok,
        fabricIndex
 diff --git a/dist/cjs/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.js b/dist/cjs/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.js
-index 81870836236328447186932995fe23d975ebaca9..540efa05d6ee603c884daa55be13b9325d9e8227 100644
+index 81870836236328447186932995fe23d975ebaca9..6774885f671d227ee1f4168b07ccacf8cabed33f 100644
 --- a/dist/cjs/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.js
 +++ b/dist/cjs/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.js
 @@ -42,6 +42,8 @@ const logger = import_general.Logger.get("OtaSoftwareUpdateRequestorServer");
@@ -85,7 +85,7 @@ index 81870836236328447186932995fe23d975ebaca9..540efa05d6ee603c884daa55be13b932
      logger.info(
        `${announcementReason === import_ota_software_update_requestor.OtaSoftwareUpdateRequestor.AnnouncementReason.UrgentUpdateAvailable ? "Urgent " : ""}OTA Provider announcement received:`,
        import_general.Diagnostic.dict({
-@@ -251,8 +252,11 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+@@ -251,8 +252,19 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
          vendorId
        })
      );
@@ -96,10 +96,18 @@ index 81870836236328447186932995fe23d975ebaca9..540efa05d6ee603c884daa55be13b932
 +      return;
 +    }
 +    await this.#addActiveOtaProvider(provider, metadataForNode);
++    if (hamhRuntimeBusySuppressed) {
++      logger.debug(
++        `Ignoring OTA provider announcement because Busy retries are suppressed for this bridge runtime.`,
++        import_general.Diagnostic.dict(provider)
++      );
++      this.#markActiveOtaProviderNoUpdate(provider);
++      return;
++    }
      if (announcementReason !== import_ota_software_update_requestor.OtaSoftwareUpdateRequestor.AnnouncementReason.SimpleAnnouncement) {
        const delay = (0, import_general.Seconds)(Math.floor(Math.random() * 599) + 1);
        logger.info(`Scheduling urgent update query in`, delay);
-@@ -261,11 +265,56 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+@@ -261,11 +273,56 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
        this.#scheduleUpdateQuery();
      }
    }
@@ -158,7 +166,7 @@ index 81870836236328447186932995fe23d975ebaca9..540efa05d6ee603c884daa55be13b932
      );
      const activeProviderEntry = {
        location: provider,
-@@ -283,15 +332,15 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+@@ -283,15 +340,15 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
    }
    /** Removes an OTA provider from the active and default list */
    #removeOtaProvider(provider) {
@@ -177,7 +185,7 @@ index 81870836236328447186932995fe23d975ebaca9..540efa05d6ee603c884daa55be13b932
      );
      if (defaultProviderIndex !== -1) {
        this.state.defaultOtaProviders.splice(defaultProviderIndex, 1);
-@@ -299,9 +348,8 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+@@ -299,9 +356,8 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
    }
    /**  Marks an OTA provider as active but with no update available (timestamp 0) */
    #markActiveOtaProviderNoUpdate(provider) {
@@ -188,7 +196,7 @@ index 81870836236328447186932995fe23d975ebaca9..540efa05d6ee603c884daa55be13b932
      );
      if (activeProviderIndex !== -1) {
        this.state.activeOtaProviders[activeProviderIndex].previousQueryTimestamp = import_general.Time.nowMs;
-@@ -354,10 +402,16 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+@@ -354,10 +410,16 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
    }
    /** Choose the next OTA provider to use for an update */
    #chooseUpdateProvider() {
@@ -205,7 +213,7 @@ index 81870836236328447186932995fe23d975ebaca9..540efa05d6ee603c884daa55be13b932
        return selected;
      }
      if (this.state.activeOtaProviders.length > 0) {
-@@ -371,6 +425,11 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+@@ -371,6 +433,11 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
          (0, import_protocol.PeerAddress)({ nodeId: location.providerNodeId, fabricIndex: location.fabricIndex }),
          `ep${location.endpoint}`
        );
@@ -217,7 +225,7 @@ index 81870836236328447186932995fe23d975ebaca9..540efa05d6ee603c884daa55be13b932
        return location;
      }
      return;
-@@ -378,6 +437,10 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+@@ -378,6 +445,10 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
    /** Helper to connect to an OTA provider, initialize an OTA Provider Cluster Client, and return this endpoint */
    async #connectOtaProviderFor(location) {
      const { providerNodeId, fabricIndex, endpoint } = location;
@@ -228,7 +236,7 @@ index 81870836236328447186932995fe23d975ebaca9..540efa05d6ee603c884daa55be13b932
      const peerAddress = (0, import_protocol.PeerAddress)({ nodeId: providerNodeId, fabricIndex });
      logger.debug(`Establish connection for OTA to ${peerAddress}`);
      const node = await import_Node.Node.forEndpoint(this.endpoint).peers.forAddress(peerAddress);
-@@ -443,7 +506,18 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
+@@ -443,7 +514,18 @@ class OtaSoftwareUpdateRequestorServer extends import_OtaSoftwareUpdateRequestor
      switch (status) {
        case import_ota_software_update_provider2.OtaSoftwareUpdateProvider.Status.Busy:
        case import_ota_software_update_provider2.OtaSoftwareUpdateProvider.Status.NotAvailable:
@@ -424,7 +432,7 @@ index 18752f0ca2c856445add4ecabea28fdb0818e825..1a3f751000d02bf06d5ddd16b12734c2
        statusCode: OperationalCredentials.NodeOperationalCertStatus.Ok,
        fabricIndex
 diff --git a/dist/esm/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.js b/dist/esm/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.js
-index 2671a1416a2b357a1102327fa1712665f9fa3388..903efd6547b8a08c68cb32da924a63a5d5f7e513 100644
+index 2671a1416a2b357a1102327fa1712665f9fa3388..3dfcb0d23b17151bb60a66f2b57c97ac9709625c 100644
 --- a/dist/esm/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.js
 +++ b/dist/esm/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.js
 @@ -42,6 +42,8 @@ const logger = Logger.get("OtaSoftwareUpdateRequestorServer");
@@ -444,7 +452,7 @@ index 2671a1416a2b357a1102327fa1712665f9fa3388..903efd6547b8a08c68cb32da924a63a5
      logger.info(
        `${announcementReason === OtaSoftwareUpdateRequestor.AnnouncementReason.UrgentUpdateAvailable ? "Urgent " : ""}OTA Provider announcement received:`,
        Diagnostic.dict({
-@@ -251,8 +252,11 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+@@ -251,8 +252,19 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
          vendorId
        })
      );
@@ -455,10 +463,18 @@ index 2671a1416a2b357a1102327fa1712665f9fa3388..903efd6547b8a08c68cb32da924a63a5
 +      return;
 +    }
 +    await this.#addActiveOtaProvider(provider, metadataForNode);
++    if (hamhRuntimeBusySuppressed) {
++      logger.debug(
++        `Ignoring OTA provider announcement because Busy retries are suppressed for this bridge runtime.`,
++        Diagnostic.dict(provider)
++      );
++      this.#markActiveOtaProviderNoUpdate(provider);
++      return;
++    }
      if (announcementReason !== OtaSoftwareUpdateRequestor.AnnouncementReason.SimpleAnnouncement) {
        const delay = Seconds(Math.floor(Math.random() * 599) + 1);
        logger.info(`Scheduling urgent update query in`, delay);
-@@ -261,11 +265,56 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+@@ -261,11 +273,56 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
        this.#scheduleUpdateQuery();
      }
    }
@@ -517,7 +533,7 @@ index 2671a1416a2b357a1102327fa1712665f9fa3388..903efd6547b8a08c68cb32da924a63a5
      );
      const activeProviderEntry = {
        location: provider,
-@@ -283,15 +332,15 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+@@ -283,15 +340,15 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
    }
    /** Removes an OTA provider from the active and default list */
    #removeOtaProvider(provider) {
@@ -536,7 +552,7 @@ index 2671a1416a2b357a1102327fa1712665f9fa3388..903efd6547b8a08c68cb32da924a63a5
      );
      if (defaultProviderIndex !== -1) {
        this.state.defaultOtaProviders.splice(defaultProviderIndex, 1);
-@@ -299,9 +348,8 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+@@ -299,9 +356,8 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
    }
    /**  Marks an OTA provider as active but with no update available (timestamp 0) */
    #markActiveOtaProviderNoUpdate(provider) {
@@ -547,7 +563,7 @@ index 2671a1416a2b357a1102327fa1712665f9fa3388..903efd6547b8a08c68cb32da924a63a5
      );
      if (activeProviderIndex !== -1) {
        this.state.activeOtaProviders[activeProviderIndex].previousQueryTimestamp = Time.nowMs;
-@@ -354,10 +402,16 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+@@ -354,10 +410,16 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
    }
    /** Choose the next OTA provider to use for an update */
    #chooseUpdateProvider() {
@@ -564,7 +580,7 @@ index 2671a1416a2b357a1102327fa1712665f9fa3388..903efd6547b8a08c68cb32da924a63a5
        return selected;
      }
      if (this.state.activeOtaProviders.length > 0) {
-@@ -371,6 +425,11 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+@@ -371,6 +433,11 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
          PeerAddress({ nodeId: location.providerNodeId, fabricIndex: location.fabricIndex }),
          `ep${location.endpoint}`
        );
@@ -576,7 +592,7 @@ index 2671a1416a2b357a1102327fa1712665f9fa3388..903efd6547b8a08c68cb32da924a63a5
        return location;
      }
      return;
-@@ -378,6 +437,10 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+@@ -378,6 +445,10 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
    /** Helper to connect to an OTA provider, initialize an OTA Provider Cluster Client, and return this endpoint */
    async #connectOtaProviderFor(location) {
      const { providerNodeId, fabricIndex, endpoint } = location;
@@ -587,7 +603,7 @@ index 2671a1416a2b357a1102327fa1712665f9fa3388..903efd6547b8a08c68cb32da924a63a5
      const peerAddress = PeerAddress({ nodeId: providerNodeId, fabricIndex });
      logger.debug(`Establish connection for OTA to ${peerAddress}`);
      const node = await Node.forEndpoint(this.endpoint).peers.forAddress(peerAddress);
-@@ -443,7 +506,18 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
+@@ -443,7 +514,18 @@ class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestorBehavio
      switch (status) {
        case OtaSoftwareUpdateProvider.Status.Busy:
        case OtaSoftwareUpdateProvider.Status.NotAvailable:
@@ -786,7 +802,7 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..2f08014189dc2a70bb513ea1e9de592c
              statusCode: OperationalCredentials.NodeOperationalCertStatus.Ok,
              fabricIndex,
 diff --git a/src/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.ts b/src/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.ts
-index 1792f4f4732a10f624353adc09b40bfca3b271bb..b5b85741b92f88bc068d95771d944788b429da7d 100644
+index 1792f4f4732a10f624353adc09b40bfca3b271bb..26894bd73a06784891f3ad8610ce202feebed3d4 100644
 --- a/src/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.ts
 +++ b/src/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.ts
 @@ -56,6 +56,8 @@ const OTA_BDX_MAX_BLOCK_SIZE_TCP = 8_192; // 8192 is the max defined by the spec
@@ -809,7 +825,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..b5b85741b92f88bc068d95771d944788
          logger.info(
              `${announcementReason === OtaSoftwareUpdateRequestor.AnnouncementReason.UrgentUpdateAvailable ? "Urgent " : ""}OTA Provider announcement received:`,
              Diagnostic.dict({
-@@ -373,8 +371,13 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+@@ -373,8 +371,22 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
              }),
          );
  
@@ -822,10 +838,19 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..b5b85741b92f88bc068d95771d944788
 +
 +        // Remember this provider as active to use it potentially with precedence
 +        await this.#addActiveOtaProvider(provider, metadataForNode);
++
++        if (hamhRuntimeBusySuppressed) {
++            logger.debug(
++                `Ignoring OTA provider announcement because Busy retries are suppressed for this bridge runtime.`,
++                Diagnostic.dict(provider),
++            );
++            this.#markActiveOtaProviderNoUpdate(provider);
++            return;
++        }
  
          if (announcementReason !== OtaSoftwareUpdateRequestor.AnnouncementReason.SimpleAnnouncement) {
              // If Urgent or UpdateAvailable, we schedule an update query earlier as we would have done before
-@@ -387,11 +390,66 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+@@ -387,11 +399,66 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
          }
      }
  
@@ -894,7 +919,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..b5b85741b92f88bc068d95771d944788
          );
          const activeProviderEntry: ActiveProviderLocation = {
              location: provider,
-@@ -411,16 +469,16 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+@@ -411,16 +478,16 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
  
      /** Removes an OTA provider from the active and default list */
      #removeOtaProvider(provider: ProviderLocation) {
@@ -914,7 +939,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..b5b85741b92f88bc068d95771d944788
          );
          if (defaultProviderIndex !== -1) {
              this.state.defaultOtaProviders.splice(defaultProviderIndex, 1);
-@@ -429,9 +487,8 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+@@ -429,9 +496,8 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
  
      /**  Marks an OTA provider as active but with no update available (timestamp 0) */
      #markActiveOtaProviderNoUpdate(provider: ProviderLocation) {
@@ -925,7 +950,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..b5b85741b92f88bc068d95771d944788
          );
          if (activeProviderIndex !== -1) {
              this.state.activeOtaProviders[activeProviderIndex].previousQueryTimestamp = Time.nowMs;
-@@ -492,11 +549,18 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+@@ -492,11 +558,18 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
  
      /** Choose the next OTA provider to use for an update */
      #chooseUpdateProvider(): ProviderLocation | undefined {
@@ -944,7 +969,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..b5b85741b92f88bc068d95771d944788
              return selected;
          }
  
-@@ -512,6 +576,11 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+@@ -512,6 +585,11 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
                  PeerAddress({ nodeId: location.providerNodeId, fabricIndex: location.fabricIndex }),
                  `ep${location.endpoint}`,
              );
@@ -956,7 +981,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..b5b85741b92f88bc068d95771d944788
              return location;
          }
  
-@@ -521,6 +590,10 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+@@ -521,6 +599,10 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
      /** Helper to connect to an OTA provider, initialize an OTA Provider Cluster Client, and return this endpoint */
      async #connectOtaProviderFor(location: ProviderLocation) {
          const { providerNodeId, fabricIndex, endpoint } = location;
@@ -967,7 +992,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..b5b85741b92f88bc068d95771d944788
  
          const peerAddress = PeerAddress({ nodeId: providerNodeId, fabricIndex });
  
-@@ -611,10 +684,19 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
+@@ -611,10 +693,19 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
              case OtaSoftwareUpdateProvider.Status.Busy:
              case OtaSoftwareUpdateProvider.Status.NotAvailable:
                  // If we already had 3 BUSY responses, we treat it as not available and try another provider

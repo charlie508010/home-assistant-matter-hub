@@ -51,6 +51,7 @@
       "@codemirror/state": "6.6.0"
     },
     "patchedDependencies": {
+      "@matter/node@0.16.11": "patches/@matter__node@0.16.11.patch",
       "@matter/protocol@0.16.11": "patches/@matter__protocol@0.16.11.patch"
     }
   },
