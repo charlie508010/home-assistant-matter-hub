@@ -62,6 +62,7 @@ export function pluginApi(
         source: meta.source,
         enabled: meta.enabled,
         config: meta.config,
+        uiStatus: bridge.getPluginUiStatus(meta.name),
         circuitBreaker: info.circuitBreakers[meta.name],
         devices: info.devices
           .filter((d) => d.pluginName === meta.name)
@@ -146,6 +147,31 @@ export function pluginApi(
       return;
     }
     res.json({ success: true, pluginName: req.params.pluginName });
+  });
+
+  /**
+   * POST /api/plugins/:bridgeId/:pluginName/action/:actionId
+   * Execute a plugin UI action.
+   */
+  router.post("/:bridgeId/:pluginName/action/:actionId", async (req, res) => {
+    const bridge = bridgeService.get(req.params.bridgeId);
+    if (!bridge) {
+      res.status(404).json({ error: "Bridge not found" });
+      return;
+    }
+    const ok = await bridge.handlePluginAction(
+      req.params.pluginName,
+      req.params.actionId,
+    );
+    if (!ok) {
+      res.status(404).json({ error: "Plugin action not found" });
+      return;
+    }
+    res.json({
+      success: true,
+      pluginName: req.params.pluginName,
+      actionId: req.params.actionId,
+    });
   });
 
   /**

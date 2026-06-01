@@ -7,10 +7,13 @@ import type { Logger } from "@matter/general";
 export interface PluginConfigSchema {
   title: string;
   description?: string;
+  externalPopup?: boolean;
+  externalPopupUrl?: string;
+  externalPopupButtonText?: string;
   properties: Record<
     string,
     {
-      type: "string" | "number" | "boolean" | "select";
+      type: "string" | "number" | "boolean" | "select" | "secret";
       title: string;
       description?: string;
       default?: unknown;
@@ -112,6 +115,46 @@ export interface PluginContext {
  * A plugin is a "device provider", it discovers/creates devices and
  * registers them with the bridge via the PluginContext.
  */
+export interface PluginUiStatus {
+  status?: string;
+  statusText?: string;
+  statusColor?: "success" | "warning" | "error" | "info";
+  matchedDevices?: number;
+  totalDevices?: number;
+  hideConfigButton?: boolean;
+  externalPopup?: boolean;
+  externalPopupUrl?: string;
+  externalPopupButtonText?: string;
+  externalPopupMode?: "open" | "saveThenOpen";
+  tables?: Array<{
+    id?: string;
+    title?: string;
+    show?: boolean;
+    collapsible?: boolean;
+    defaultCollapsed?: boolean;
+    emptyText?: string;
+    columns: Array<{
+      key: string;
+      label: string;
+      width?: string;
+      type?: "text" | "chip" | "boolean" | "status";
+    }>;
+    rows: Array<Record<string, unknown>>;
+  }>;
+  actions?: Array<{
+    id: string;
+    label: string;
+    variant?: "text" | "contained" | "outlined";
+    color?: "primary" | "error" | "warning" | "success";
+    disabled?: boolean;
+    tooltip?: string;
+    confirmText?: string;
+    refreshAfterAction?: boolean;
+    externalPopupUrl?: string;
+    externalPopupMode?: "open" | "saveThenOpen";
+  }>;
+}
+
 export interface MatterHubPlugin {
   /** Unique plugin identifier (npm package name or built-in name) */
   readonly name: string;
@@ -139,6 +182,12 @@ export interface MatterHubPlugin {
 
   /** Optional: JSON schema for plugin config UI */
   getConfigSchema?(): PluginConfigSchema;
+
+  /** Optional: UI status shown on plugin page */
+  getUiStatus?(): PluginUiStatus;
+
+  /** Optional: handle plugin UI action button */
+  onAction?(actionId: string): Promise<void>;
 
   /** Called when the user updates plugin config via the UI */
   onConfigChanged?(config: Record<string, unknown>): Promise<void>;

@@ -6,7 +6,10 @@ import PowerIcon from "@mui/icons-material/Power";
 import PowerOffIcon from "@mui/icons-material/PowerOff";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import SettingsIcon from "@mui/icons-material/Settings";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -14,22 +17,29 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import Collapse from "@mui/material/Collapse";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
+import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
+import Switch from "@mui/material/Switch";
+import { useTheme } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface PluginDevice {
@@ -45,12 +55,66 @@ interface CircuitBreakerInfo {
   disabledAt?: number;
 }
 
+interface PluginUiTable {
+  id?: string;
+  title?: string;
+  show?: boolean;
+  collapsible?: boolean;
+  defaultCollapsed?: boolean;
+  emptyText?: string;
+  columns: Array<{
+    key: string;
+    label: string;
+    width?: string;
+    type?: "text" | "chip" | "boolean" | "status";
+  }>;
+  rows: Array<Record<string, unknown>>;
+}
+
+interface PluginUiStatus {
+  status?: string;
+  statusText?: string;
+  statusColor?: "success" | "warning" | "error" | "info";
+  matchedDevices?: number;
+  totalDevices?: number;
+  hideConfigButton?: boolean;
+  externalPopup?: boolean;
+  externalPopupUrl?: string;
+  externalPopupButtonText?: string;
+  externalPopupMode?: "open" | "saveThenOpen";
+  deviceList?: Array<{
+    name?: string;
+    serial?: string;
+    deviceType?: string;
+    deviceTypeLabel?: string;
+    peer?: string;
+    ip?: string;
+    mac?: string;
+    online?: boolean;
+    source?: string;
+  }>;
+  tables?: PluginUiTable[];
+  actions?: Array<{
+    id: string;
+    label: string;
+    variant?: "text" | "contained" | "outlined";
+    color?: "primary" | "error" | "warning" | "success";
+    disabled?: boolean;
+    tooltip?: string;
+    confirmText?: string;
+    refreshAfterAction?: boolean;
+    externalPopupUrl?: string;
+    externalPopupMode?: "open" | "saveThenOpen";
+  }>;
+}
+
 interface PluginInfo {
   name: string;
   version: string;
   source: string;
   enabled: boolean;
   config: Record<string, unknown>;
+  uiStatus?: PluginUiStatus;
   circuitBreaker?: CircuitBreakerInfo;
   devices: PluginDevice[];
 }
@@ -61,10 +125,30 @@ interface BridgePlugins {
   plugins: PluginInfo[];
 }
 
+interface PluginConfigSchema {
+  title: string;
+  description?: string;
+  externalPopup?: boolean;
+  externalPopupUrl?: string;
+  externalPopupButtonText?: string;
+  properties: Record<
+    string,
+    {
+      type: "string" | "number" | "boolean" | "select" | "secret";
+      title: string;
+      description?: string;
+      default?: unknown;
+      required?: boolean;
+      options?: Array<{ label: string; value: string }>;
+    }
+  >;
+}
+
 interface InstalledPlugin {
   packageName: string;
   version: string;
   config: Record<string, unknown>;
+  uiStatus?: PluginUiStatus;
   autoLoad: boolean;
   installedAt: number;
   path: string;
@@ -76,8 +160,113 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
+function pluginTablesFromStatus(status?: PluginUiStatus): PluginUiTable[] {
+  const configuredTables = (status?.tables ?? []).filter(
+    (table) => table.show !== false && table.columns.length > 0,
+  );
+
+  if (configuredTables.length > 0) {
+    return configuredTables;
+  }
+
+  if (!status?.deviceList?.length) {
+    return [];
+  }
+
+  return [
+    {
+      id: "deviceList",
+      columns: [
+        { key: "name", label: "Name", width: "minmax(150px, 1.2fr)" },
+        { key: "serial", label: "Serial", width: "minmax(170px, 1.15fr)" },
+        {
+          key: "deviceTypeLabel",
+          label: "Type",
+          width: "minmax(130px, 0.9fr)",
+        },
+        { key: "peer", label: "Peer", width: "minmax(250px, 1.45fr)" },
+        { key: "ip", label: "IP", width: "minmax(130px, 0.8fr)" },
+        {
+          key: "online",
+          label: "Status",
+          width: "minmax(100px, 0.7fr)",
+          type: "status" as const,
+        },
+      ],
+      rows: status.deviceList.map(
+        (device): Record<string, unknown> => ({
+          ...device,
+          deviceTypeLabel: device.deviceTypeLabel ?? device.deviceType ?? "-",
+          peer: device.peer ?? "not matched",
+        }),
+      ),
+    },
+  ];
+}
+
+function renderPluginTableCell(
+  value: unknown,
+  type?: "text" | "chip" | "boolean" | "status",
+) {
+  if (type === "status") {
+    const online = value !== false && value !== "offline" && value !== "false";
+    return (
+      <Chip
+        label={online ? "online" : "offline"}
+        size="small"
+        color={online ? "success" : "error"}
+        variant="outlined"
+      />
+    );
+  }
+
+  if (type === "boolean") {
+    return (
+      <Chip
+        label={value ? "yes" : "no"}
+        size="small"
+        color={value ? "success" : "default"}
+        variant="outlined"
+      />
+    );
+  }
+
+  if (type === "chip") {
+    return (
+      <Chip label={String(value ?? "-")} size="small" variant="outlined" />
+    );
+  }
+
+  const text =
+    value === undefined || value === null || value === "" ? "-" : String(value);
+  return (
+    <Typography
+      variant="body2"
+      sx={{
+        minWidth: 0,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+      }}
+      title={text}
+    >
+      {text}
+    </Typography>
+  );
+}
+
 export const PluginsPage = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [bridgePlugins, setBridgePlugins] = useState<BridgePlugins[]>([]);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [configBridgeId, setConfigBridgeId] = useState("");
+  const [configPluginName, setConfigPluginName] = useState("");
+  const [configSchema, setConfigSchema] = useState<PluginConfigSchema | null>(
+    null,
+  );
+  const [configValues, setConfigValues] = useState<Record<string, unknown>>({});
+  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [installed, setInstalled] = useState<InstalledPlugin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
@@ -87,6 +276,11 @@ export const PluginsPage = () => {
   const [localPath, setLocalPath] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [installing, setInstalling] = useState(false);
+  const [restartPromptOpen, setRestartPromptOpen] = useState(false);
+  const [restarting, setRestarting] = useState(false);
+  const [collapsedTables, setCollapsedTables] = useState<
+    Record<string, boolean>
+  >({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
@@ -122,6 +316,7 @@ export const PluginsPage = () => {
       setPackageName("");
       setInstallOpen(false);
       await refresh();
+      setRestartPromptOpen(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -150,6 +345,7 @@ export const PluginsPage = () => {
       if (fileInputRef.current) fileInputRef.current.value = "";
       setInstallOpen(false);
       await refresh();
+      setRestartPromptOpen(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -169,10 +365,22 @@ export const PluginsPage = () => {
       setLocalPath("");
       setInstallOpen(false);
       await refresh();
+      setRestartPromptOpen(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setInstalling(false);
+    }
+  };
+
+  const handleRestartApplication = async () => {
+    setRestarting(true);
+    setRestartPromptOpen(false);
+    try {
+      await fetchJson("api/backup/restart", { method: "POST" });
+      setError(undefined);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -184,6 +392,94 @@ export const PluginsPage = () => {
         body: JSON.stringify({ packageName: pkg }),
       });
       await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleConfigurePlugin = useCallback(
+    async (bridgeId: string, plugin: PluginInfo) => {
+      try {
+        const response = await fetchJson<{ schema: PluginConfigSchema | null }>(
+          `api/plugins/${bridgeId}/${plugin.name}/config-schema`,
+        );
+
+        const schema = response.schema;
+        if (!schema) {
+          throw new Error("Plugin has no config schema");
+        }
+
+        const values: Record<string, unknown> = {};
+
+        for (const [key, prop] of Object.entries(schema.properties ?? {})) {
+          values[key] = plugin.config?.[key] ?? prop.default ?? "";
+        }
+
+        setConfigBridgeId(bridgeId);
+        setConfigPluginName(plugin.name);
+        setConfigSchema(schema);
+        setConfigValues(values);
+        setConfigOpen(true);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [],
+  );
+
+  const handleSavePluginConfig = useCallback(async () => {
+    try {
+      await fetchJson(
+        `api/plugins/${configBridgeId}/${configPluginName}/config`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ config: configValues }),
+        },
+      );
+
+      setConfigOpen(false);
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [configBridgeId, configPluginName, configValues, refresh]);
+
+  const handlePluginUiAction = async (
+    bridgeId: string,
+    pluginName: string,
+    action: NonNullable<PluginUiStatus["actions"]>[number],
+  ) => {
+    try {
+      if (action.confirmText && !window.confirm(action.confirmText)) {
+        return;
+      }
+
+      await fetchJson(
+        `api/plugins/${bridgeId}/${pluginName}/action/${action.id}`,
+        { method: "POST" },
+      );
+
+      if (action.externalPopupUrl) {
+        await new Promise((resolve) => setTimeout(resolve, 700));
+
+        const popup = window.open(
+          action.externalPopupUrl,
+          "plugin-external-popup",
+          "popup,width=900,height=900",
+        );
+
+        const timer = window.setInterval(async () => {
+          if (!popup || popup.closed) {
+            window.clearInterval(timer);
+            await refresh();
+          }
+        }, 1000);
+      }
+
+      if (action.refreshAfterAction !== false) {
+        await refresh();
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -203,6 +499,157 @@ export const PluginsPage = () => {
       setError(e instanceof Error ? e.message : String(e));
     }
   };
+
+  const renderPluginActions = (
+    bridge: BridgePlugins,
+    plugin: PluginInfo,
+    mobile = false,
+  ) => (
+    <Stack
+      direction="row"
+      spacing={0.75}
+      useFlexGap
+      sx={{
+        alignItems: "center",
+        flexWrap: "wrap",
+        justifyContent: "flex-start",
+        width: mobile ? "100%" : "auto",
+        maxWidth: "100%",
+      }}
+    >
+      {plugin.uiStatus?.actions?.map((action) => (
+        <Tooltip key={action.id} title={action.tooltip ?? ""}>
+          <span style={{ flex: mobile ? "1 1 150px" : undefined }}>
+            <Button
+              size="small"
+              variant={action.variant ?? "outlined"}
+              color={action.color ?? "primary"}
+              disabled={action.disabled}
+              onClick={() =>
+                handlePluginUiAction(bridge.bridgeId, plugin.name, action)
+              }
+              sx={{ width: mobile ? "100%" : "auto" }}
+            >
+              {action.label}
+            </Button>
+          </span>
+        </Tooltip>
+      ))}
+      {plugin.circuitBreaker?.disabled && (
+        <Tooltip title="Reset circuit breaker">
+          {mobile ? (
+            <Button
+              size="small"
+              variant="outlined"
+              color="warning"
+              startIcon={<RestartAltIcon />}
+              onClick={() =>
+                handlePluginAction(bridge.bridgeId, plugin.name, "reset")
+              }
+              sx={{ flex: { xs: "1 1 150px", sm: "0 0 auto" } }}
+            >
+              Reset
+            </Button>
+          ) : (
+            <IconButton
+              size="small"
+              onClick={() =>
+                handlePluginAction(bridge.bridgeId, plugin.name, "reset")
+              }
+            >
+              <RestartAltIcon />
+            </IconButton>
+          )}
+        </Tooltip>
+      )}
+    </Stack>
+  );
+
+  const renderPluginStatusChips = (plugin: PluginInfo) => (
+    <Stack direction="row" spacing={0.75} useFlexGap sx={{ flexWrap: "wrap" }}>
+      {plugin.source === "builtin" && <Chip label="built-in" size="small" />}
+      {plugin.circuitBreaker?.disabled && (
+        <Chip label="circuit breaker open" size="small" color="error" />
+      )}
+    </Stack>
+  );
+
+  const renderPluginControls = (bridge: BridgePlugins, plugin: PluginInfo) => (
+    <Stack
+      direction="row"
+      spacing={0.75}
+      useFlexGap
+      sx={{
+        alignItems: "center",
+        flexWrap: "wrap",
+        justifyContent: "flex-end",
+      }}
+    >
+      {plugin.uiStatus?.statusText && (
+        <Chip
+          label={plugin.uiStatus.statusText}
+          size="small"
+          color={plugin.uiStatus.statusColor ?? "info"}
+          sx={{ mr: 0.5 }}
+        />
+      )}
+      <Tooltip title={plugin.enabled ? "Disable" : "Enable"}>
+        <Button
+          size="small"
+          variant="outlined"
+          color={plugin.enabled ? "warning" : "success"}
+          startIcon={plugin.enabled ? <PowerOffIcon /> : <PowerIcon />}
+          onClick={() =>
+            handlePluginAction(
+              bridge.bridgeId,
+              plugin.name,
+              plugin.enabled ? "disable" : "enable",
+            )
+          }
+        >
+          {plugin.enabled ? "Disable" : "Enable"}
+        </Button>
+      </Tooltip>
+      {!plugin.uiStatus?.hideConfigButton && (
+        <Tooltip title="Configure">
+          <IconButton
+            size="small"
+            onClick={() => handleConfigurePlugin(bridge.bridgeId, plugin)}
+          >
+            <SettingsIcon />
+          </IconButton>
+        </Tooltip>
+      )}
+    </Stack>
+  );
+
+  const renderPluginTableToggles = (
+    bridge: BridgePlugins,
+    plugin: PluginInfo,
+  ) =>
+    pluginTablesFromStatus(plugin.uiStatus)
+      .filter((table) => table.collapsible)
+      .map((table) => {
+        const tableKey = `${bridge.bridgeId}:${plugin.name}:${table.id ?? table.title ?? "table"}`;
+        const collapsed =
+          collapsedTables[tableKey] ?? Boolean(table.defaultCollapsed);
+
+        return (
+          <Button
+            key={tableKey}
+            size="small"
+            variant="outlined"
+            onClick={() =>
+              setCollapsedTables((old) => ({
+                ...old,
+                [tableKey]: !collapsed,
+              }))
+            }
+          >
+            {collapsed ? "Show" : "Hide"}
+          </Button>
+        );
+      });
 
   if (loading) {
     return (
@@ -303,9 +750,6 @@ export const PluginsPage = () => {
       {bridgePlugins.map((bridge) => (
         <Card key={bridge.bridgeId} variant="outlined">
           <CardContent>
-            <Typography variant="h6" gutterBottom>
-              {bridge.bridgeName}
-            </Typography>
             {bridge.plugins.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
                 No active plugins on this bridge.
@@ -315,45 +759,15 @@ export const PluginsPage = () => {
                 {bridge.plugins.map((plugin) => (
                   <Box key={plugin.name}>
                     <ListItem
+                      sx={{
+                        alignItems: "flex-start",
+                        px: { xs: 0, md: 2 },
+                        pr: { xs: 0, md: 26 },
+                      }}
                       secondaryAction={
-                        <Stack direction="row" spacing={0.5}>
-                          {plugin.circuitBreaker?.disabled && (
-                            <Tooltip title="Reset circuit breaker">
-                              <IconButton
-                                size="small"
-                                onClick={() =>
-                                  handlePluginAction(
-                                    bridge.bridgeId,
-                                    plugin.name,
-                                    "reset",
-                                  )
-                                }
-                              >
-                                <RestartAltIcon />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                          <Tooltip
-                            title={plugin.enabled ? "Disable" : "Enable"}
-                          >
-                            <IconButton
-                              size="small"
-                              onClick={() =>
-                                handlePluginAction(
-                                  bridge.bridgeId,
-                                  plugin.name,
-                                  plugin.enabled ? "disable" : "enable",
-                                )
-                              }
-                            >
-                              {plugin.enabled ? (
-                                <PowerOffIcon />
-                              ) : (
-                                <PowerIcon />
-                              )}
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
+                        isMobile
+                          ? undefined
+                          : renderPluginControls(bridge, plugin)
                       }
                     >
                       <ListItemIcon>
@@ -363,45 +777,265 @@ export const PluginsPage = () => {
                       </ListItemIcon>
                       <ListItemText
                         primary={
-                          <Box
+                          <Stack
+                            direction="row"
+                            spacing={0.75}
+                            useFlexGap
                             sx={{
-                              display: "flex",
                               alignItems: "center",
-                              gap: 1,
+                              flexWrap: "wrap",
+                              minWidth: 0,
                             }}
                           >
-                            {plugin.name}
+                            <Typography
+                              component="span"
+                              variant="body1"
+                              fontWeight={600}
+                              sx={{
+                                minWidth: 0,
+                                maxWidth: "100%",
+                                wordBreak: "break-word",
+                                overflowWrap: "break-word",
+                              }}
+                            >
+                              {plugin.name}
+                            </Typography>
                             <Chip
                               label={`v${plugin.version}`}
                               size="small"
                               variant="outlined"
                             />
-                            {plugin.source === "builtin" && (
-                              <Chip label="built-in" size="small" />
-                            )}
-                            {!plugin.enabled && (
-                              <Chip
-                                label="disabled"
-                                size="small"
-                                color="warning"
-                              />
-                            )}
-                            {plugin.circuitBreaker?.disabled && (
-                              <Chip
-                                label="circuit breaker open"
-                                size="small"
-                                color="error"
-                              />
-                            )}
-                          </Box>
+                          </Stack>
                         }
                         secondary={
                           plugin.devices.length > 0
                             ? `${plugin.devices.length} device(s)`
-                            : "No devices registered"
+                            : plugin.uiStatus?.deviceList?.length
+                              ? ""
+                              : "No devices registered"
                         }
                       />
                     </ListItem>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: { xs: "flex-start", md: "flex-end" },
+                        flexWrap: "wrap",
+                        gap: 0.75,
+                        pl: 7,
+                        pr: { xs: 0, md: 2 },
+                        pb: 1,
+                      }}
+                    >
+                      {renderPluginStatusChips(plugin)}
+                      {isMobile
+                        ? renderPluginActions(bridge, plugin, true)
+                        : renderPluginActions(bridge, plugin)}
+                      {renderPluginTableToggles(bridge, plugin)}
+                    </Box>
+                    {pluginTablesFromStatus(plugin.uiStatus).map((table) => {
+                      const gridTemplateColumns = table.columns
+                        .map((column) => column.width ?? "minmax(120px, 1fr)")
+                        .join(" ");
+                      const tableKey = `${bridge.bridgeId}:${plugin.name}:${table.id ?? table.title ?? "table"}`;
+                      const collapsed =
+                        collapsedTables[tableKey] ??
+                        Boolean(table.defaultCollapsed);
+                      const rows = table.rows ?? [];
+
+                      return (
+                        <Box
+                          key={table.id ?? table.title ?? "table"}
+                          sx={{
+                            pl: { xs: 0, md: 6 },
+                            pr: { xs: 0, md: 2 },
+                            pb: 1,
+                          }}
+                        >
+                          {table.title && (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                px: 1,
+                                py: 0.75,
+                              }}
+                            >
+                              <Typography variant="subtitle2">
+                                {table.title}
+                              </Typography>
+                            </Box>
+                          )}
+
+                          <Collapse
+                            in={!collapsed}
+                            timeout="auto"
+                            unmountOnExit
+                          >
+                            <Box
+                              sx={{
+                                display: { xs: "none", md: "grid" },
+                                gridTemplateColumns,
+                                gap: 1,
+                                py: 0.75,
+                                px: 1,
+                                color: "text.secondary",
+                                fontSize: 12,
+                                borderBottom: "1px solid",
+                                borderColor: "divider",
+                              }}
+                            >
+                              {table.columns.map((column) => (
+                                <Box key={column.key}>{column.label}</Box>
+                              ))}
+                            </Box>
+
+                            {rows.length === 0 ? (
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ px: 1, py: 1 }}
+                              >
+                                {table.emptyText ?? "No rows"}
+                              </Typography>
+                            ) : (
+                              <>
+                                <Box
+                                  sx={{ display: { xs: "none", md: "block" } }}
+                                >
+                                  {rows.map((row, rowIndex) => (
+                                    <Box
+                                      key={`${table.id ?? "table"}-${rowIndex}`}
+                                      sx={{
+                                        display: "grid",
+                                        gridTemplateColumns,
+                                        gap: 1,
+                                        py: 0.75,
+                                        px: 1,
+                                        alignItems: "center",
+                                        borderBottom: "1px solid",
+                                        borderColor: "divider",
+                                      }}
+                                    >
+                                      {table.columns.map((column) => (
+                                        <Box
+                                          key={column.key}
+                                          sx={{ minWidth: 0 }}
+                                        >
+                                          {renderPluginTableCell(
+                                            row[column.key],
+                                            column.type,
+                                          )}
+                                        </Box>
+                                      ))}
+                                    </Box>
+                                  ))}
+                                </Box>
+
+                                <Stack
+                                  spacing={1}
+                                  sx={{ display: { xs: "flex", md: "none" } }}
+                                >
+                                  {rows.map((row, rowIndex) => {
+                                    const titleColumn = table.columns[0];
+                                    const statusColumn =
+                                      table.columns.find(
+                                        (column) => column.type === "status",
+                                      ) ??
+                                      table.columns.find(
+                                        (column) => column.key === "online",
+                                      );
+                                    const detailColumns = table.columns.filter(
+                                      (column) =>
+                                        column.key !== titleColumn?.key &&
+                                        column.key !== statusColumn?.key,
+                                    );
+
+                                    return (
+                                      <Box
+                                        key={`${table.id ?? "table"}-mobile-${rowIndex}`}
+                                        sx={{
+                                          border: "1px solid",
+                                          borderColor: "divider",
+                                          borderRadius: 1,
+                                          p: 1,
+                                          minWidth: 0,
+                                        }}
+                                      >
+                                        <Box
+                                          sx={{
+                                            display: "flex",
+                                            alignItems: "flex-start",
+                                            justifyContent: "space-between",
+                                            gap: 1,
+                                            minWidth: 0,
+                                          }}
+                                        >
+                                          <Box sx={{ minWidth: 0 }}>
+                                            <Typography
+                                              variant="body2"
+                                              fontWeight={700}
+                                              sx={{
+                                                wordBreak: "break-word",
+                                                overflowWrap: "break-word",
+                                              }}
+                                            >
+                                              {String(
+                                                row[
+                                                  titleColumn?.key ?? "name"
+                                                ] ?? "Unknown",
+                                              )}
+                                            </Typography>
+                                          </Box>
+                                          {statusColumn && (
+                                            <Box sx={{ flexShrink: 0 }}>
+                                              {renderPluginTableCell(
+                                                row[statusColumn.key],
+                                                statusColumn.type,
+                                              )}
+                                            </Box>
+                                          )}
+                                        </Box>
+
+                                        <Stack spacing={0.25} sx={{ mt: 0.75 }}>
+                                          {detailColumns.map((column) => (
+                                            <Box
+                                              key={column.key}
+                                              sx={{
+                                                display: "grid",
+                                                gridTemplateColumns:
+                                                  "72px minmax(0, 1fr)",
+                                                gap: 1,
+                                                minWidth: 0,
+                                              }}
+                                            >
+                                              <Typography
+                                                variant="caption"
+                                                color="text.secondary"
+                                              >
+                                                {column.label}
+                                              </Typography>
+                                              <Box sx={{ minWidth: 0 }}>
+                                                {renderPluginTableCell(
+                                                  row[column.key],
+                                                  column.type,
+                                                )}
+                                              </Box>
+                                            </Box>
+                                          ))}
+                                        </Stack>
+                                      </Box>
+                                    );
+                                  })}
+                                </Stack>
+                              </>
+                            )}
+                          </Collapse>
+                        </Box>
+                      );
+                    })}
                     {plugin.circuitBreaker?.disabled &&
                       plugin.circuitBreaker.lastError && (
                         <Alert severity="error" sx={{ mx: 2, mb: 1 }}>
@@ -428,6 +1062,128 @@ export const PluginsPage = () => {
           </CardContent>
         </Card>
       ))}
+
+      <Dialog
+        open={configOpen}
+        onClose={() => setConfigOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>{configSchema?.title ?? "Plugin Config"}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            {configSchema &&
+              Object.entries(configSchema?.properties ?? {}).map(
+                ([key, prop]) => {
+                  const value = configValues[key];
+
+                  if (prop.type === "boolean") {
+                    return (
+                      <FormControlLabel
+                        key={key}
+                        control={
+                          <Switch
+                            checked={Boolean(value)}
+                            onChange={(e) =>
+                              setConfigValues((old) => ({
+                                ...old,
+                                [key]: e.target.checked,
+                              }))
+                            }
+                          />
+                        }
+                        label={prop.title}
+                      />
+                    );
+                  }
+
+                  if (prop.type === "select") {
+                    return (
+                      <TextField
+                        key={key}
+                        select
+                        fullWidth
+                        label={prop.title}
+                        helperText={prop.description}
+                        value={String(value ?? "")}
+                        onChange={(e) =>
+                          setConfigValues((old) => ({
+                            ...old,
+                            [key]: e.target.value,
+                          }))
+                        }
+                      >
+                        {(prop.options ?? []).map((opt) => (
+                          <MenuItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    );
+                  }
+
+                  return (
+                    <TextField
+                      key={key}
+                      fullWidth
+                      type={
+                        prop.type === "number"
+                          ? "number"
+                          : prop.type === "secret" && !showSecrets[key]
+                            ? "password"
+                            : "text"
+                      }
+                      label={prop.title}
+                      helperText={prop.description}
+                      required={prop.required}
+                      InputProps={
+                        prop.type === "secret"
+                          ? {
+                              endAdornment: (
+                                <InputAdornment position="end">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() =>
+                                      setShowSecrets((old) => ({
+                                        ...old,
+                                        [key]: !old[key],
+                                      }))
+                                    }
+                                  >
+                                    {showSecrets[key] ? (
+                                      <VisibilityOffIcon />
+                                    ) : (
+                                      <VisibilityIcon />
+                                    )}
+                                  </IconButton>
+                                </InputAdornment>
+                              ),
+                            }
+                          : undefined
+                      }
+                      value={String(value ?? "")}
+                      onChange={(e) =>
+                        setConfigValues((old) => ({
+                          ...old,
+                          [key]:
+                            prop.type === "number"
+                              ? Number(e.target.value)
+                              : e.target.value,
+                        }))
+                      }
+                    />
+                  );
+                },
+              )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfigOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSavePluginConfig}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={installOpen}
@@ -551,6 +1307,42 @@ export const PluginsPage = () => {
               {installing ? <CircularProgress size={20} /> : "Link"}
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={restartPromptOpen}
+        onClose={() => setRestartPromptOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <RestartAltIcon />
+          Neustart erforderlich
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">
+            Das Plugin wurde installiert. HAMH jetzt neu starten, damit das
+            Plugin geladen wird?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setRestartPromptOpen(false)}
+            disabled={restarting}
+          >
+            Später
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleRestartApplication}
+            disabled={restarting}
+            startIcon={
+              restarting ? <CircularProgress size={18} /> : <RestartAltIcon />
+            }
+          >
+            Jetzt neu starten
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

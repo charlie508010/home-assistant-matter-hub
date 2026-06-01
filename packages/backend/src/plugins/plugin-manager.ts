@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { pathToFileURL } from "node:url";
 import { Logger } from "@matter/general";
 import { getSupportedPluginDeviceTypes } from "./plugin-device-factory.js";
 import type { PluginRegistry } from "./plugin-registry.js";
@@ -157,7 +158,7 @@ export class PluginManager {
       const module = await this.runner.run(
         manifest.name,
         "import",
-        () => import(packagePath),
+        () => import(pathToFileURL(path.join(packagePath, "index.js")).href),
         15_000,
       );
       if (!module) {
@@ -409,6 +410,21 @@ export class PluginManager {
     const instance = this.instances.get(pluginName);
     if (!instance) return undefined;
     return instance.plugin.getConfigSchema?.();
+  }
+
+  getUiStatus(pluginName: string) {
+    const instance = this.instances.get(pluginName);
+    if (!instance) return undefined;
+    return instance.plugin.getUiStatus?.();
+  }
+
+  async handleAction(pluginName: string, actionId: string): Promise<boolean> {
+    const instance = this.instances.get(pluginName);
+    if (!instance?.plugin.onAction) return false;
+    await this.runner.run(pluginName, "onAction", () =>
+      instance.plugin.onAction!(actionId),
+    );
+    return true;
   }
 
   getDomainMappings(): Map<string, PluginDomainMapping> {
