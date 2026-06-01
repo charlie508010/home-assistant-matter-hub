@@ -3,7 +3,8 @@ import { assertOk, parseJsonResponse } from "./fetch-utils.js";
 export interface SettingsAuthResponse {
   enabled: boolean;
   username?: string;
-  source: "environment" | "storage" | "none";
+  source: "configuration" | "none";
+  managedExternally: boolean;
 }
 
 export async function fetchAuthSettings(): Promise<SettingsAuthResponse> {

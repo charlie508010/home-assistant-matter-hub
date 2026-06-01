@@ -3,6 +3,10 @@ import path from "node:path";
 import type { BridgeData } from "@home-assistant-matter-hub/common";
 import { Logger } from "@matter/general";
 import archiver from "archiver";
+import {
+  resolveStorageBackend,
+  type StorageBackend,
+} from "../../core/app/storage.js";
 import type { AppSettingsStorage } from "../storage/app-settings-storage.js";
 import type { BridgeStorage } from "../storage/bridge-storage.js";
 import type { EntityMappingStorage } from "../storage/entity-mapping-storage.js";
@@ -13,6 +17,10 @@ export interface BackupMetadata {
   createdAt: string;
   sizeBytes: number;
   auto: boolean;
+  storageBackend?: StorageBackend;
+  activeStorageRoot?: string;
+  includesIdentity?: boolean;
+  backupType?: "config" | "full";
 }
 
 export interface BackupServiceProps {
@@ -32,6 +40,7 @@ export class BackupService {
   ) {
     this.backupDir = path.join(props.storageLocation, "backups");
     fs.mkdirSync(this.backupDir, { recursive: true });
+    this.logStorageContext();
   }
 
   async createBackup(auto: boolean): Promise<BackupMetadata> {
@@ -70,8 +79,13 @@ export class BackupService {
       createdAt: now.toISOString(),
       bridges,
       entityMappings,
+      filterPresets: this.settingsStorage.filterPresets,
       includesIdentity: true,
       includesIcons,
+      storageBackend: this.activeStorageBackend,
+      activeStorageRoot: this.props.storageLocation,
+      includesStorage: true,
+      backupType: "full" as const,
       appVersion: version,
       auto,
     };
@@ -103,15 +117,7 @@ export class BackupService {
         { name: "README.txt" },
       );
 
-      for (const bridge of bridges) {
-        const bridgeStoragePath = path.join(
-          this.props.storageLocation,
-          bridge.id,
-        );
-        if (fs.existsSync(bridgeStoragePath)) {
-          archive.directory(bridgeStoragePath, `identity/${bridge.id}`);
-        }
-      }
+      this.appendStorageRoot(archive);
 
       if (includesIcons) {
         const iconFiles = fs.readdirSync(iconsDir);
@@ -135,7 +141,15 @@ export class BackupService {
       createdAt: now.toISOString(),
       sizeBytes: stat.size,
       auto,
+      storageBackend: backupData.storageBackend,
+      activeStorageRoot: backupData.activeStorageRoot,
+      includesIdentity: backupData.includesIdentity,
+      backupType: backupData.backupType,
     };
+    fs.writeFileSync(
+      this.metadataPath(filename),
+      JSON.stringify(metadata, null, 2),
+    );
 
     this.log.info(
       `Backup created: ${filename} (${Math.round(stat.size / 1024)} KB)`,
@@ -174,13 +188,19 @@ export class BackupService {
         try {
           const stat = fs.statSync(path.join(this.backupDir, filename));
           const parsed = this.parseFilename(filename);
-          return {
+          const metadata = this.readBackupMetadata(filename);
+          const backup: BackupMetadata = {
             filename,
             version: parsed.version,
-            createdAt: stat.mtime.toISOString(),
+            createdAt: metadata?.createdAt ?? stat.mtime.toISOString(),
             sizeBytes: stat.size,
             auto: parsed.auto,
+            storageBackend: metadata?.storageBackend,
+            activeStorageRoot: metadata?.activeStorageRoot,
+            includesIdentity: metadata?.includesIdentity,
+            backupType: metadata?.backupType,
           };
+          return backup;
         } catch {
           return null;
         }
@@ -208,6 +228,7 @@ export class BackupService {
     if (!filepath) return false;
     try {
       fs.unlinkSync(filepath);
+      fs.rmSync(this.metadataPath(filename), { force: true });
       this.log.info(`Backup deleted: ${filename}`);
       return true;
     } catch (e) {
@@ -249,5 +270,108 @@ export class BackupService {
     );
     const version = dateMatch ? dateMatch[1] : withoutPrefix;
     return { version, auto };
+  }
+
+  private get activeStorageBackend(): StorageBackend {
+    const backend = resolveStorageBackend(process.env.HAMH_STORAGE_BACKEND);
+    return path.basename(this.props.storageLocation) === backend
+      ? backend
+      : resolveStorageBackend(path.basename(this.props.storageLocation));
+  }
+
+  private appendStorageRoot(archive: archiver.Archiver) {
+    if (!fs.existsSync(this.props.storageLocation)) {
+      return;
+    }
+
+    this.appendDirectoryRecursive(
+      archive,
+      this.props.storageLocation,
+      this.props.storageLocation,
+      `storage/${this.activeStorageBackend}`,
+    );
+  }
+
+  private appendDirectoryRecursive(
+    archive: archiver.Archiver,
+    sourcePath: string,
+    rootPath: string,
+    archivePrefix: string,
+  ) {
+    const entries = fs.readdirSync(sourcePath, { withFileTypes: true });
+    for (const entry of entries) {
+      const childPath = path.join(sourcePath, entry.name);
+      const relativePath = path.relative(rootPath, childPath);
+      if (
+        relativePath === "backups" ||
+        relativePath.startsWith(`backups${path.sep}`) ||
+        relativePath.startsWith("file-store-backup-")
+      ) {
+        continue;
+      }
+
+      const archivePath = path.posix.join(
+        archivePrefix,
+        relativePath.split(path.sep).join(path.posix.sep),
+      );
+      if (entry.isDirectory()) {
+        this.appendDirectoryRecursive(
+          archive,
+          childPath,
+          rootPath,
+          archivePrefix,
+        );
+      } else if (entry.isFile()) {
+        archive.file(childPath, { name: archivePath });
+      }
+    }
+  }
+
+  private readBackupMetadata(filename: string): Partial<BackupMetadata> | null {
+    const metadataPath = this.metadataPath(filename);
+    try {
+      if (!fs.existsSync(metadataPath)) {
+        return null;
+      }
+      return JSON.parse(
+        fs.readFileSync(metadataPath, "utf8"),
+      ) as Partial<BackupMetadata>;
+    } catch {
+      return null;
+    }
+  }
+
+  private metadataPath(filename: string): string {
+    return path.join(this.backupDir, `${filename}.metadata.json`);
+  }
+
+  private logStorageContext() {
+    const activeStorageRoot = this.props.storageLocation;
+    const baseStorageRoot =
+      path.basename(activeStorageRoot) === this.activeStorageBackend
+        ? path.dirname(activeStorageRoot)
+        : activeStorageRoot;
+    const legacyRoots = fs.existsSync(baseStorageRoot)
+      ? fs
+          .readdirSync(baseStorageRoot, { withFileTypes: true })
+          .filter((entry) => {
+            const entryPath = path.join(baseStorageRoot, entry.name);
+            return (
+              entry.isDirectory() &&
+              (entry.name.startsWith("file-store-backup-") ||
+                entry.name === "app" ||
+                (entry.name !== "file" &&
+                  entry.name !== "sqlite" &&
+                  fs.existsSync(entryPath)))
+            );
+          })
+          .map((entry) => path.join(baseStorageRoot, entry.name))
+      : [];
+
+    this.log.info(`Backup storage backend: ${this.activeStorageBackend}`);
+    this.log.info(`Backup active storage root: ${activeStorageRoot}`);
+    if (legacyRoots.length > 0) {
+      this.log.info(`Legacy storage roots detected: ${legacyRoots.join(", ")}`);
+    }
   }
 }

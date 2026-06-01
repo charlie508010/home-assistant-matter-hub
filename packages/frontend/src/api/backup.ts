@@ -6,11 +6,32 @@ export interface BackupMetadata {
   createdAt: string;
   sizeBytes: number;
   auto: boolean;
+  storageBackend?: "file" | "sqlite";
+  activeStorageRoot?: string;
+  includesIdentity?: boolean;
+  backupType?: "config" | "full";
 }
 
 export interface BackupSettings {
   autoBackup: boolean;
   backupRetentionCount: number;
+}
+
+export interface StorageStatus {
+  storageBackend: "file" | "sqlite";
+  activeStorageRoot: string;
+  legacyStoragePresent: boolean;
+  lastBackup?: {
+    createdAt: string;
+    backupType: "config" | "full" | "legacy";
+    storageBackend: "file" | "sqlite" | "legacy";
+  };
+}
+
+export async function fetchStorageStatus(): Promise<StorageStatus> {
+  const res = await fetch("api/backup/status");
+  await assertOk(res, "Failed to fetch storage status");
+  return parseJsonResponse(res);
 }
 
 export async function fetchBackupSnapshots(): Promise<BackupMetadata[]> {

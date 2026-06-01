@@ -51,6 +51,32 @@ fi
 bashio::log.info "Memory: total=${total_mem_mb:-?}MB, available=${avail_mem_mb:-?}MB, cgroup=${cgroup_limit_mb:-none}MB → using ${mem_source} (${effective_mem}MB) → heap: ${heap_size}MB"
 export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=${heap_size}}"
 export APP_VERSION="${APP_VERSION:-$(bashio::addon.version)}"
+storage_backend="$(bashio::config 'storage_backend')"
+storage_backend="${storage_backend:-file}"
+export HAMH_STORAGE_BACKEND="${storage_backend}"
+bashio::log.info "Storage backend: ${HAMH_STORAGE_BACKEND}"
+
+http_auth_enabled="$(bashio::config 'http_auth_enabled')"
+http_auth_username="$(bashio::config 'http_auth_username')"
+http_auth_password="$(bashio::config 'http_auth_password')"
+http_auth_enabled="${http_auth_enabled:-false}"
+
+resolved_http_auth_username="${HAMH_HTTP_AUTH_USERNAME:-$http_auth_username}"
+resolved_http_auth_password="${HAMH_HTTP_AUTH_PASSWORD:-$http_auth_password}"
+
+if [ -n "${HAMH_HTTP_AUTH_USERNAME:-}" ] && [ -n "${HAMH_HTTP_AUTH_PASSWORD:-}" ]; then
+  bashio::log.info "HTTP authentication: enabled from HAMH_HTTP_AUTH_* environment variables"
+elif [ "$http_auth_enabled" = "true" ] && [ -n "$resolved_http_auth_username" ] && [ -n "$resolved_http_auth_password" ]; then
+  export HAMH_HTTP_AUTH_USERNAME="$resolved_http_auth_username"
+  export HAMH_HTTP_AUTH_PASSWORD="$resolved_http_auth_password"
+  bashio::log.info "HTTP authentication: enabled from add-on configuration"
+elif [ -n "${HAMH_HTTP_AUTH_USERNAME:-}" ] || [ -n "${HAMH_HTTP_AUTH_PASSWORD:-}" ]; then
+  bashio::log.warning "HTTP authentication environment variables are incomplete; authentication remains disabled"
+elif [ "$http_auth_enabled" = "true" ]; then
+  bashio::log.warning "HTTP authentication requested but username/password are incomplete; authentication remains disabled"
+else
+  bashio::log.info "HTTP authentication: disabled"
+fi
 
 exec home-assistant-matter-hub start \
   --log-level=$(bashio::config 'app_log_level') \
