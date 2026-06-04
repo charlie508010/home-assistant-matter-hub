@@ -383,10 +383,104 @@ index 12ded45c5f73e47d17974dc2b39fca92135771ba..ae45a816f5490ed1445d3b2fb6acf7c3
        "Read",
        import_protocol.Mark.INBOUND,
 diff --git a/dist/cjs/node/server/ServerSubscription.js b/dist/cjs/node/server/ServerSubscription.js
-index 9c1aa6236867a1e021828704dcd3150ab99b2240..8d7a64658ac2223ed32112f69d92beede221add4 100644
+index 9c1aa6236867a1e021828704dcd3150ab99b2240..317ac4a345c0c10a95ce8a253f8a77a26bdd1460 100644
 --- a/dist/cjs/node/server/ServerSubscription.js
 +++ b/dist/cjs/node/server/ServerSubscription.js
-@@ -357,10 +357,11 @@ class ServerSubscription {
+@@ -120,6 +120,7 @@ class ServerSubscription {
+   #peerAddress;
+   #sendNextUpdateImmediately = false;
+   #sendUpdateErrorCounter = 0;
++  #sendRetryBackoffTimer;
+   #currentUpdatePromise;
+   constructor(options) {
+     const { id, context, request, subscriptionOptions, useAsMaxInterval, useAsSendInterval } = options;
+@@ -193,6 +194,7 @@ class ServerSubscription {
+   }
+   async handlePeerCancel() {
+     this.#isCanceledByPeer = true;
++    this.#clearPendingRetryState(true);
+     await this.close();
+   }
+   #determineSendingIntervals(subscriptionMinInterval, subscriptionMaxInterval, subscriptionRandomizationWindow) {
+@@ -317,6 +319,14 @@ class ServerSubscription {
+     ).start();
+   }
+   #triggerSendUpdate(onlyWithData = false, session) {
++    if (this.#isClosed || this.#isCanceledByPeer) {
++      return;
++    }
++    if (this.#sendRetryBackoffTimer?.isRunning) {
++      logger.debug("Sending update retry backoff active, coalescing update ...");
++      this.#sendNextUpdateImmediately = true;
++      return;
++    }
+     if (this.#currentUpdatePromise !== void 0) {
+       logger.debug("Sending update already in progress, delaying update ...");
+       this.#sendNextUpdateImmediately = true;
+@@ -324,6 +334,53 @@ class ServerSubscription {
+     }
+     this.#currentUpdatePromise = this.#sendUpdate(onlyWithData, session).catch((error) => logger.warn("Sending subscription update failed:", error)).finally(() => this.#currentUpdatePromise = void 0);
+   }
++  #clearPendingRetryState(dropOutstandingUpdates = false) {
++    this.#sendRetryBackoffTimer?.stop();
++    this.#sendRetryBackoffTimer = void 0;
++    this.#sendNextUpdateImmediately = false;
++    if (dropOutstandingUpdates) {
++      this.#outstandingAttributeUpdates = void 0;
++      this.#outstandingEventsMinNumber = void 0;
++    }
++  }
++  #isRetryableSendError(error) {
++    return error instanceof import_general.NoResponseTimeoutError || error instanceof import_general.NetworkError || error instanceof import_protocol.SessionClosedError;
++  }
++  #currentRetryBackoffDelay() {
++    if (this.#sendUpdateErrorCounter <= 1) return (0, import_general.Seconds)(5);
++    if (this.#sendUpdateErrorCounter === 2) return (0, import_general.Seconds)(10);
++    return (0, import_general.Seconds)(30);
++  }
++  #scheduleRetryBackoff() {
++    const delay = this.#currentRetryBackoffDelay();
++    this.#sendRetryBackoffTimer?.stop();
++    this.#sendRetryBackoffTimer = import_general.Time.getTimer(`Subscription ${this.idStr} retry backoff`, delay, () => {
++      this.#sendRetryBackoffTimer = void 0;
++      if (this.#isClosed || this.#isCanceledByPeer || !this.#sendUpdatesActivated) {
++        this.#clearPendingRetryState(true);
++        return;
++      }
++      this.#sendNextUpdateImmediately = false;
++      this.#triggerSendUpdate(true);
++    }).start();
++    logger.debug(`Delaying subscription ${this.idStr} update retry by ${(0, import_general.Millis)(delay)}ms`);
++  }
++  #restoreOutstandingUpdates(attributeFilter, eventsMinNumber) {
++    if (attributeFilter !== void 0) {
++      for (const [endpointId, clusters] of Object.entries(attributeFilter)) {
++        for (const [clusterId, attributes] of Object.entries(clusters)) {
++          this.#addOutstandingAttributes(
++            (0, import_types.EndpointNumber)(parseInt(endpointId)),
++            (0, import_types.ClusterId)(parseInt(clusterId)),
++            Array.from(attributes)
++          );
++        }
++      }
++    }
++    if (eventsMinNumber !== void 0) {
++      this.#outstandingEventsMinNumber = eventsMinNumber;
++    }
++  }
+   /**
+    * Determine all attributes that have changed since the last update and send them out to the subscriber.
+    */
+@@ -346,6 +403,8 @@ class ServerSubscription {
+             const sending = __using(_stack, updating?.join("sending"));
+             if (await this.#sendUpdateMessage(sending, attributeFilter, eventsMinNumber, onlyWithData, session)) {
+               this.#sendUpdateErrorCounter = 0;
++              this.#sendRetryBackoffTimer?.stop();
++              this.#sendRetryBackoffTimer = void 0;
+             }
+           } catch (_) {
+             var _error = _, _hasError = true;
+@@ -357,45 +416,24 @@ class ServerSubscription {
              return;
            }
            this.#sendUpdateErrorCounter++;
@@ -394,34 +488,77 @@ index 9c1aa6236867a1e021828704dcd3150ab99b2240..8d7a64658ac2223ed32112f69d92beed
 -            `Error sending subscription update message (error count=${this.#sendUpdateErrorCounter}):`,
 -            error instanceof import_general.MatterError && error.message || error
 -          );
+-          if (this.#sendUpdateErrorCounter <= 2) {
+-            if (attributeFilter !== void 0) {
+-              for (const [endpointId, clusters] of Object.entries(attributeFilter)) {
+-                for (const [clusterId, attributes] of Object.entries(clusters)) {
+-                  this.#addOutstandingAttributes(
+-                    (0, import_types.EndpointNumber)(parseInt(endpointId)),
+-                    (0, import_types.ClusterId)(parseInt(clusterId)),
+-                    Array.from(attributes)
+-                  );
+-                }
+-              }
+-            }
+-            if (eventsMinNumber !== void 0) {
+-              this.#outstandingEventsMinNumber = eventsMinNumber;
+-            }
+-          } else {
+-            logger.info(
+-              `Sending update failed 3 times in a row, canceling subscription ${this.idStr} and let controller subscribe again.`
 +            const logSubscriptionUpdateError = this.#sendUpdateErrorCounter >= 3 ? logger.warn.bind(logger) : logger.debug.bind(logger);
 +            logSubscriptionUpdateError(
 +              `Error sending subscription update message (error count=${this.#sendUpdateErrorCounter}):`,
 +              error instanceof import_general.MatterError && error.message || error
-+            );
-           if (this.#sendUpdateErrorCounter <= 2) {
-             if (attributeFilter !== void 0) {
-               for (const [endpointId, clusters] of Object.entries(attributeFilter)) {
-@@ -377,9 +378,9 @@ class ServerSubscription {
-               this.#outstandingEventsMinNumber = eventsMinNumber;
-             }
-           } else {
--            logger.info(
--              `Sending update failed 3 times in a row, canceling subscription ${this.idStr} and let controller subscribe again.`
--            );
+             );
++          if (this.#isRetryableSendError(error)) {
++            this.#restoreOutstandingUpdates(attributeFilter, eventsMinNumber);
++            this.#sendNextUpdateImmediately = true;
++            this.#scheduleRetryBackoff();
++            break;
++          } else if (this.#sendUpdateErrorCounter <= 2) {
++            this.#restoreOutstandingUpdates(attributeFilter, eventsMinNumber);
++          } else {
 +              logger.warn(
 +                `Sending update failed 3 times in a row, canceling subscription ${this.idStr} and let controller subscribe again.`
 +              );
              this.#sendNextUpdateImmediately = false;
-             if (error instanceof import_general.NoResponseTimeoutError || error instanceof import_general.NetworkError || error instanceof import_protocol.SessionClosedError) {
-               var _stack2 = [];
-@@ -679,11 +680,11 @@ class ServerSubscription {
+-            if (error instanceof import_general.NoResponseTimeoutError || error instanceof import_general.NetworkError || error instanceof import_protocol.SessionClosedError) {
+-              var _stack2 = [];
+-              try {
+-                const _messaging = __using(_stack2, updating?.join("canceling"));
+-                this.#isCanceledByPeer = true;
+-                await this.#cancel();
+-                break;
+-              } catch (_2) {
+-                var _error2 = _2, _hasError2 = true;
+-              } finally {
+-                __callDispose(_stack2, _error2, _hasError2);
+-              }
+-            } else {
+-              throw error;
+-            }
++            throw error;
+           }
+         }
+         if (!this.#sendNextUpdateImmediately) {
+@@ -577,6 +615,8 @@ class ServerSubscription {
+     }
+     this.#updateTimer.stop();
+     this.#sendDelayTimer.stop();
++    this.#sendRetryBackoffTimer?.stop();
++    this.#sendRetryBackoffTimer = void 0;
+     this.session.subscriptions.delete(this);
+     logger.debug(this.session.via, "Deleted subscription", import_general.hex.fixed(this.subscriptionId, 8));
+     this.cancelled.emit(this);
+@@ -679,11 +719,12 @@ class ServerSubscription {
        var _stack3 = [];
        try {
          if (import_types.StatusResponseError.is(error, import_types.StatusCode.InvalidSubscription, import_types.StatusCode.Failure)) {
 -          logger.info(`Subscription ${this.idStr} cancelled by peer`);
 +          logger.debug(`Subscription ${this.idStr} cancelled by peer`);
            this.#isCanceledByPeer = true;
++          this.#clearPendingRetryState(true);
          } else {
            import_types.StatusResponseError.accept(error);
 -          logger.info(`Subscription ${this.idStr} update failed:`, error);
@@ -814,10 +951,104 @@ index 795d043467508a7ca061d3651cbecb3c5bcbec64..15bc6647c71925540f0595f2f2a490f5
        "Read",
        Mark.INBOUND,
 diff --git a/dist/esm/node/server/ServerSubscription.js b/dist/esm/node/server/ServerSubscription.js
-index 3da9287e7aa8111af3a07e234f0415131eb06304..c4fa7e8f66d41bb579db8f93d9d84e0affc6748c 100644
+index 3da9287e7aa8111af3a07e234f0415131eb06304..a0e206451b11fb35dffc8af4bb2c24d468bc4865 100644
 --- a/dist/esm/node/server/ServerSubscription.js
 +++ b/dist/esm/node/server/ServerSubscription.js
-@@ -360,10 +360,11 @@ class ServerSubscription {
+@@ -123,6 +123,7 @@ class ServerSubscription {
+   #peerAddress;
+   #sendNextUpdateImmediately = false;
+   #sendUpdateErrorCounter = 0;
++  #sendRetryBackoffTimer;
+   #currentUpdatePromise;
+   constructor(options) {
+     const { id, context, request, subscriptionOptions, useAsMaxInterval, useAsSendInterval } = options;
+@@ -196,6 +197,7 @@ class ServerSubscription {
+   }
+   async handlePeerCancel() {
+     this.#isCanceledByPeer = true;
++    this.#clearPendingRetryState(true);
+     await this.close();
+   }
+   #determineSendingIntervals(subscriptionMinInterval, subscriptionMaxInterval, subscriptionRandomizationWindow) {
+@@ -320,6 +322,14 @@ class ServerSubscription {
+     ).start();
+   }
+   #triggerSendUpdate(onlyWithData = false, session) {
++    if (this.#isClosed || this.#isCanceledByPeer) {
++      return;
++    }
++    if (this.#sendRetryBackoffTimer?.isRunning) {
++      logger.debug("Sending update retry backoff active, coalescing update ...");
++      this.#sendNextUpdateImmediately = true;
++      return;
++    }
+     if (this.#currentUpdatePromise !== void 0) {
+       logger.debug("Sending update already in progress, delaying update ...");
+       this.#sendNextUpdateImmediately = true;
+@@ -327,6 +337,53 @@ class ServerSubscription {
+     }
+     this.#currentUpdatePromise = this.#sendUpdate(onlyWithData, session).catch((error) => logger.warn("Sending subscription update failed:", error)).finally(() => this.#currentUpdatePromise = void 0);
+   }
++  #clearPendingRetryState(dropOutstandingUpdates = false) {
++    this.#sendRetryBackoffTimer?.stop();
++    this.#sendRetryBackoffTimer = void 0;
++    this.#sendNextUpdateImmediately = false;
++    if (dropOutstandingUpdates) {
++      this.#outstandingAttributeUpdates = void 0;
++      this.#outstandingEventsMinNumber = void 0;
++    }
++  }
++  #isRetryableSendError(error) {
++    return error instanceof NoResponseTimeoutError || error instanceof NetworkError || error instanceof SessionClosedError;
++  }
++  #currentRetryBackoffDelay() {
++    if (this.#sendUpdateErrorCounter <= 1) return Seconds(5);
++    if (this.#sendUpdateErrorCounter === 2) return Seconds(10);
++    return Seconds(30);
++  }
++  #scheduleRetryBackoff() {
++    const delay = this.#currentRetryBackoffDelay();
++    this.#sendRetryBackoffTimer?.stop();
++    this.#sendRetryBackoffTimer = Time.getTimer(`Subscription ${this.idStr} retry backoff`, delay, () => {
++      this.#sendRetryBackoffTimer = void 0;
++      if (this.#isClosed || this.#isCanceledByPeer || !this.#sendUpdatesActivated) {
++        this.#clearPendingRetryState(true);
++        return;
++      }
++      this.#sendNextUpdateImmediately = false;
++      this.#triggerSendUpdate(true);
++    }).start();
++    logger.debug(`Delaying subscription ${this.idStr} update retry by ${Millis(delay)}ms`);
++  }
++  #restoreOutstandingUpdates(attributeFilter, eventsMinNumber) {
++    if (attributeFilter !== void 0) {
++      for (const [endpointId, clusters] of Object.entries(attributeFilter)) {
++        for (const [clusterId, attributes] of Object.entries(clusters)) {
++          this.#addOutstandingAttributes(
++            EndpointNumber(parseInt(endpointId)),
++            ClusterId(parseInt(clusterId)),
++            Array.from(attributes)
++          );
++        }
++      }
++    }
++    if (eventsMinNumber !== void 0) {
++      this.#outstandingEventsMinNumber = eventsMinNumber;
++    }
++  }
+   /**
+    * Determine all attributes that have changed since the last update and send them out to the subscriber.
+    */
+@@ -349,6 +406,8 @@ class ServerSubscription {
+             const sending = __using(_stack, updating?.join("sending"));
+             if (await this.#sendUpdateMessage(sending, attributeFilter, eventsMinNumber, onlyWithData, session)) {
+               this.#sendUpdateErrorCounter = 0;
++              this.#sendRetryBackoffTimer?.stop();
++              this.#sendRetryBackoffTimer = void 0;
+             }
+           } catch (_) {
+             var _error = _, _hasError = true;
+@@ -360,45 +419,24 @@ class ServerSubscription {
              return;
            }
            this.#sendUpdateErrorCounter++;
@@ -825,34 +1056,77 @@ index 3da9287e7aa8111af3a07e234f0415131eb06304..c4fa7e8f66d41bb579db8f93d9d84e0a
 -            `Error sending subscription update message (error count=${this.#sendUpdateErrorCounter}):`,
 -            error instanceof MatterError && error.message || error
 -          );
+-          if (this.#sendUpdateErrorCounter <= 2) {
+-            if (attributeFilter !== void 0) {
+-              for (const [endpointId, clusters] of Object.entries(attributeFilter)) {
+-                for (const [clusterId, attributes] of Object.entries(clusters)) {
+-                  this.#addOutstandingAttributes(
+-                    EndpointNumber(parseInt(endpointId)),
+-                    ClusterId(parseInt(clusterId)),
+-                    Array.from(attributes)
+-                  );
+-                }
+-              }
+-            }
+-            if (eventsMinNumber !== void 0) {
+-              this.#outstandingEventsMinNumber = eventsMinNumber;
+-            }
+-          } else {
+-            logger.info(
+-              `Sending update failed 3 times in a row, canceling subscription ${this.idStr} and let controller subscribe again.`
 +            const logSubscriptionUpdateError = this.#sendUpdateErrorCounter >= 3 ? logger.warn.bind(logger) : logger.debug.bind(logger);
 +            logSubscriptionUpdateError(
 +              `Error sending subscription update message (error count=${this.#sendUpdateErrorCounter}):`,
 +              error instanceof MatterError && error.message || error
-+            );
-           if (this.#sendUpdateErrorCounter <= 2) {
-             if (attributeFilter !== void 0) {
-               for (const [endpointId, clusters] of Object.entries(attributeFilter)) {
-@@ -380,9 +381,9 @@ class ServerSubscription {
-               this.#outstandingEventsMinNumber = eventsMinNumber;
-             }
-           } else {
--            logger.info(
--              `Sending update failed 3 times in a row, canceling subscription ${this.idStr} and let controller subscribe again.`
--            );
+             );
++          if (this.#isRetryableSendError(error)) {
++            this.#restoreOutstandingUpdates(attributeFilter, eventsMinNumber);
++            this.#sendNextUpdateImmediately = true;
++            this.#scheduleRetryBackoff();
++            break;
++          } else if (this.#sendUpdateErrorCounter <= 2) {
++            this.#restoreOutstandingUpdates(attributeFilter, eventsMinNumber);
++          } else {
 +              logger.warn(
 +                `Sending update failed 3 times in a row, canceling subscription ${this.idStr} and let controller subscribe again.`
 +              );
              this.#sendNextUpdateImmediately = false;
-             if (error instanceof NoResponseTimeoutError || error instanceof NetworkError || error instanceof SessionClosedError) {
-               var _stack2 = [];
-@@ -682,11 +683,11 @@ class ServerSubscription {
+-            if (error instanceof NoResponseTimeoutError || error instanceof NetworkError || error instanceof SessionClosedError) {
+-              var _stack2 = [];
+-              try {
+-                const _messaging = __using(_stack2, updating?.join("canceling"));
+-                this.#isCanceledByPeer = true;
+-                await this.#cancel();
+-                break;
+-              } catch (_2) {
+-                var _error2 = _2, _hasError2 = true;
+-              } finally {
+-                __callDispose(_stack2, _error2, _hasError2);
+-              }
+-            } else {
+-              throw error;
+-            }
++            throw error;
+           }
+         }
+         if (!this.#sendNextUpdateImmediately) {
+@@ -580,6 +618,8 @@ class ServerSubscription {
+     }
+     this.#updateTimer.stop();
+     this.#sendDelayTimer.stop();
++    this.#sendRetryBackoffTimer?.stop();
++    this.#sendRetryBackoffTimer = void 0;
+     this.session.subscriptions.delete(this);
+     logger.debug(this.session.via, "Deleted subscription", hex.fixed(this.subscriptionId, 8));
+     this.cancelled.emit(this);
+@@ -682,11 +722,12 @@ class ServerSubscription {
        var _stack3 = [];
        try {
          if (StatusResponseError.is(error, StatusCode.InvalidSubscription, StatusCode.Failure)) {
 -          logger.info(`Subscription ${this.idStr} cancelled by peer`);
 +          logger.debug(`Subscription ${this.idStr} cancelled by peer`);
            this.#isCanceledByPeer = true;
++          this.#clearPendingRetryState(true);
          } else {
            StatusResponseError.accept(error);
 -          logger.info(`Subscription ${this.idStr} update failed:`, error);
@@ -866,10 +1140,10 @@ index afd68c38e8109e00aacc90156957cd90dd3a17ee..cad0b098956679533d621207e6f58cd1
 +++ b/src/behavior/system/commissioning/CommissioningServer.ts
 @@ -254,6 +254,7 @@ export class CommissioningServer extends Behavior {
          }
- 
+
          await this.env.get(DeviceCommissioner).allowBasicCommissioning();
 +        logger.info("commissioning window opened after reset/remove");
- 
+
          this.initiateCommissioning();
      }
 diff --git a/src/behaviors/descriptor/DescriptorServer.ts b/src/behaviors/descriptor/DescriptorServer.ts
@@ -905,17 +1179,17 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..2f08014189dc2a70bb513ea1e9de592c
 --- a/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
 +++ b/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
 @@ -406,6 +406,7 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
- 
+
      override async removeFabric({ fabricIndex }: OperationalCredentials.RemoveFabricRequest) {
          assertRemoteActor(this.context);
 +        logger.info(`removeFabric requested fabricIndex=${fabricIndex}`);
- 
+
          const fabric = this.env.get(FabricManager).maybeFor(fabricIndex);
- 
+
 @@ -420,9 +421,15 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
          // we leave the transaction open it will cause deadlock
          await this.context.transaction.rollback();
- 
+
 -        await fabric.leave(this.context.exchange);
 +        try {
 +            await fabric.leave(this.context.exchange);
@@ -923,7 +1197,7 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..2f08014189dc2a70bb513ea1e9de592c
 +            logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
 +        }
          // The state is updated on removal via commissionedFabricChanged event, see constructor
- 
+
 +        logger.info(`removeFabric succeeded statusCode=0 fabricIndex=${fabricIndex}`);
 +
          return {
@@ -935,23 +1209,23 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 +++ b/src/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.ts
 @@ -56,6 +56,8 @@ const OTA_BDX_MAX_BLOCK_SIZE_TCP = 8_192; // 8192 is the max defined by the spec
  const OTA_BDX_MAX_BLOCK_SIZE_NON_TCP = 1_024; // 1024 is the max defined by the spec, we use that for non-TCP channels
- 
+
  const MAX_BUSY_RETRIES = 3; // After 3 BUSY responses in a row, we try another provider
 +let hamhRuntimeBusyRetryCount = 0;
 +let hamhRuntimeBusySuppressed = false;
- 
+
  export interface ProviderLocation extends OtaSoftwareUpdateRequestor.ProviderLocation {}
- 
+
 @@ -156,6 +158,7 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
              this.state.updateState = OtaSoftwareUpdateRequestor.UpdateState.Idle;
              this.state.updateStateProgress = null;
          }
 +        this.state.activeOtaProviders = [];
- 
+
          // Make sure to add the needed device type for this endpoint
          (await this.agent.load(DescriptorServer)).addDeviceTypes("OtaRequestor");
 @@ -194,25 +197,6 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
- 
+
      /** When we come back online after an update, we notify that the update was applied */
      async #online() {
 -        // If we have no active providers, but default ones, we add the default one for our fabric (if any)
@@ -978,7 +1252,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
              await this.#handlePreviousUpdateOnStart(this.state.updateInProgressDetails);
 @@ -360,10 +344,6 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
          }
- 
+
          const provider: ProviderLocation = { fabricIndex, providerNodeId, endpoint };
 -
 -        // Remember this provider as active to use it potentially with precedence
@@ -990,7 +1264,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 @@ -373,8 +353,22 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
              }),
          );
- 
+
 -        const peerAddress = PeerAddress({ nodeId: providerNodeId, fabricIndex });
 -        await (Node.forEndpoint(this.endpoint) as ServerNode).peers.forAddress(peerAddress); // Initialize the client node and store address
 +        if (!this.#isLocalFabric(fabricIndex)) {
@@ -1009,13 +1283,13 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 +            this.#markActiveOtaProviderNoUpdate(provider);
 +            return;
 +        }
- 
+
          if (announcementReason !== OtaSoftwareUpdateRequestor.AnnouncementReason.SimpleAnnouncement) {
              // If Urgent or UpdateAvailable, we schedule an update query earlier as we would have done before
 @@ -387,23 +381,70 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
          }
      }
- 
+
 -    /** Adds or updates an active OTA provider entry for a fabric index */
 -    async #addActiveOtaProvider(provider: ProviderLocation, metadataForNode?: Bytes) {
 -        const { fabricIndex, providerNodeId } = provider;
@@ -1095,11 +1369,11 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 +
 +        this.state.activeOtaProviders = [];
 +        this.internal.selectedProviderLocation = plainProvider;
- 
+
          const peerAddress = PeerAddress({ nodeId: providerNodeId, fabricIndex });
          await (Node.forEndpoint(this.endpoint) as ServerNode).peers.forAddress(peerAddress); // Initialize client node and store address
 @@ -411,16 +452,11 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
- 
+
      /** Removes an OTA provider from the active and default list */
      #removeOtaProvider(provider: ProviderLocation) {
 -        const { fabricIndex, providerNodeId } = provider;
@@ -1111,7 +1385,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 -        }
 +        const { fabricIndex, providerNodeId, endpoint } = provider;
 +        this.state.activeOtaProviders = [];
- 
+
          const defaultProviderIndex = this.state.defaultOtaProviders.findIndex(
 -            p => p.fabricIndex === fabricIndex && p.providerNodeId === providerNodeId,
 +            p => p.fabricIndex === fabricIndex && p.providerNodeId === providerNodeId && p.endpoint === endpoint,
@@ -1119,7 +1393,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
          if (defaultProviderIndex !== -1) {
              this.state.defaultOtaProviders.splice(defaultProviderIndex, 1);
 @@ -429,18 +465,8 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
- 
+
      /**  Marks an OTA provider as active but with no update available (timestamp 0) */
      #markActiveOtaProviderNoUpdate(provider: ProviderLocation) {
 -        const { fabricIndex, providerNodeId } = provider;
@@ -1137,12 +1411,12 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 +        void provider;
 +        this.state.activeOtaProviders = [];
      }
- 
+
      /**
 @@ -467,7 +493,10 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
              this.internal.updateQueryTimer = undefined;
          }
- 
+
 -        if (!this.state.updatePossible || !this.state.activeOtaProviders.length) {
 +        if (
 +            !this.state.updatePossible ||
@@ -1150,7 +1424,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 +        ) {
              return;
          }
- 
+
 @@ -497,21 +526,27 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
              const selected = this.internal.selectedProviderLocation;
              logger.debug(`Choosing pre-selected provider`, Diagnostic.dict(selected));
@@ -1162,7 +1436,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 +            }
              return selected;
          }
- 
+
 -        // We use the most recently seen active provider first, else we fall back to the default providers
 -        if (this.state.activeOtaProviders.length > 0) {
 -            const sorted = this.state.activeOtaProviders.sort(
@@ -1186,7 +1460,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 +            }
              return location;
          }
- 
+
 @@ -521,6 +556,10 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
      /** Helper to connect to an OTA provider, initialize an OTA Provider Cluster Client, and return this endpoint */
      async #connectOtaProviderFor(location: ProviderLocation) {
@@ -1195,9 +1469,9 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 +            this.#logIgnoringNonLocalOtaProvider(location);
 +            throw new MatterError(`Unknown/non-local OTA provider fabricIndex=${fabricIndex}`);
 +        }
- 
+
          const peerAddress = PeerAddress({ nodeId: providerNodeId, fabricIndex });
- 
+
 @@ -611,10 +650,19 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
              case OtaSoftwareUpdateProvider.Status.Busy:
              case OtaSoftwareUpdateProvider.Status.NotAvailable:
@@ -1228,7 +1502,7 @@ index bebf17fd43ca31bf1a614f80b7cc5fb2680f1001..1ba464f1d587b4df6482fdf4caeacf76
 +++ b/src/node/server/InteractionServer.ts
 @@ -71,6 +71,80 @@ import { OnlineServerInteraction } from "./OnlineServerInteraction.js";
  import { ServerSubscription, ServerSubscriptionConfig, ServerSubscriptionContext } from "./ServerSubscription.js";
- 
+
  const logger = Logger.get("InteractionServer");
 +const hamhReadClusterNames = new Map<number, string>([
 +    [0x001d, "Descriptor"],
@@ -1304,25 +1578,128 @@ index bebf17fd43ca31bf1a614f80b7cc5fb2680f1001..1ba464f1d587b4df6482fdf4caeacf76
 +        );
 +    }
 +}
- 
+
  export interface PeerSubscription {
      subscriptionId: number;
 @@ -269,6 +343,8 @@ export class InteractionServer implements ProtocolHandler, InteractionRecipient
              interactionModelRevision,
          } = readRequest;
- 
+
 +        hamhLogReadDiagnostics(this.#node.id, this.#node.protocol, attributeRequests);
 +
          logger.debug(() => [
              "Read",
              Mark.INBOUND,
 diff --git a/src/node/server/ServerSubscription.ts b/src/node/server/ServerSubscription.ts
-index 13953b5a8c9f68e60942e0bebf563eb9ea866d9f..5938f2e7713cb1b95c8cf696e758bd560a98e2a0 100644
+index 13953b5a8c9f68e60942e0bebf563eb9ea866d9f..d956b17a0832806ae6a70a97c08278f6c5a255d7 100644
 --- a/src/node/server/ServerSubscription.ts
 +++ b/src/node/server/ServerSubscription.ts
-@@ -458,7 +458,9 @@ export class ServerSubscription implements Subscription {
+@@ -148,6 +148,7 @@ export class ServerSubscription implements Subscription {
+
+     #sendNextUpdateImmediately = false;
+     #sendUpdateErrorCounter = 0;
++    #sendRetryBackoffTimer?: Timer;
+     #currentUpdatePromise?: Promise<void>;
+
+     constructor(options: {
+@@ -243,6 +244,7 @@ export class ServerSubscription implements Subscription {
+
+     async handlePeerCancel() {
+         this.#isCanceledByPeer = true;
++        this.#clearPendingRetryState(true);
+         await this.close();
+     }
+
+@@ -415,6 +417,14 @@ export class ServerSubscription implements Subscription {
+     }
+
+     #triggerSendUpdate(onlyWithData: boolean = false, session?: Session) {
++        if (this.#isClosed || this.#isCanceledByPeer) {
++            return;
++        }
++        if (this.#sendRetryBackoffTimer?.isRunning) {
++            logger.debug("Sending update retry backoff active, coalescing update ...");
++            this.#sendNextUpdateImmediately = true;
++            return;
++        }
+         if (this.#currentUpdatePromise !== undefined) {
+             logger.debug("Sending update already in progress, delaying update ...");
+             this.#sendNextUpdateImmediately = true;
+@@ -425,6 +435,62 @@ export class ServerSubscription implements Subscription {
+             .finally(() => (this.#currentUpdatePromise = undefined));
+     }
+
++    #clearPendingRetryState(dropOutstandingUpdates = false) {
++        this.#sendRetryBackoffTimer?.stop();
++        this.#sendRetryBackoffTimer = undefined;
++        this.#sendNextUpdateImmediately = false;
++        if (dropOutstandingUpdates) {
++            this.#outstandingAttributeUpdates = undefined;
++            this.#outstandingEventsMinNumber = undefined;
++        }
++    }
++
++    #isRetryableSendError(error: unknown) {
++        return (
++            error instanceof NoResponseTimeoutError ||
++            error instanceof NetworkError ||
++            error instanceof SessionClosedError
++        );
++    }
++
++    #currentRetryBackoffDelay() {
++        if (this.#sendUpdateErrorCounter <= 1) return Seconds(5);
++        if (this.#sendUpdateErrorCounter === 2) return Seconds(10);
++        return Seconds(30);
++    }
++
++    #scheduleRetryBackoff() {
++        const delay = this.#currentRetryBackoffDelay();
++        this.#sendRetryBackoffTimer?.stop();
++        this.#sendRetryBackoffTimer = Time.getTimer(`Subscription ${this.idStr} retry backoff`, delay, () => {
++            this.#sendRetryBackoffTimer = undefined;
++            if (this.#isClosed || this.#isCanceledByPeer || !this.#sendUpdatesActivated) {
++                this.#clearPendingRetryState(true);
++                return;
++            }
++            this.#sendNextUpdateImmediately = false;
++            this.#triggerSendUpdate(true);
++        }).start();
++        logger.debug(`Delaying subscription ${this.idStr} update retry by ${Millis(delay)}ms`);
++    }
++
++    #restoreOutstandingUpdates(attributeFilter?: DirtyState.ForNode, eventsMinNumber?: EventNumber) {
++        if (attributeFilter !== undefined) {
++            for (const [endpointId, clusters] of Object.entries(attributeFilter)) {
++                for (const [clusterId, attributes] of Object.entries(clusters)) {
++                    this.#addOutstandingAttributes(
++                        EndpointNumber(parseInt(endpointId)),
++                        ClusterId(parseInt(clusterId)),
++                        Array.from(attributes),
++                    );
++                }
++            }
++        }
++        if (eventsMinNumber !== undefined) {
++            this.#outstandingEventsMinNumber = eventsMinNumber; // newer number are always higher, so we can just set it
++        }
++    }
++
+     /**
+      * Determine all attributes that have changed since the last update and send them out to the subscriber.
+      */
+@@ -449,6 +515,8 @@ export class ServerSubscription implements Subscription {
+                 using sending = updating?.join("sending");
+                 if (await this.#sendUpdateMessage(sending, attributeFilter, eventsMinNumber, onlyWithData, session)) {
+                     this.#sendUpdateErrorCounter = 0;
++                    this.#sendRetryBackoffTimer?.stop();
++                    this.#sendRetryBackoffTimer = undefined;
                  }
- 
+             } catch (error) {
+                 if (this.#isClosed) {
+@@ -458,45 +526,26 @@ export class ServerSubscription implements Subscription {
+                 }
+
                  this.#sendUpdateErrorCounter++;
 -                logger.info(
 +                const logSubscriptionUpdateError =
@@ -1331,26 +1708,74 @@ index 13953b5a8c9f68e60942e0bebf563eb9ea866d9f..5938f2e7713cb1b95c8cf696e758bd56
                      `Error sending subscription update message (error count=${this.#sendUpdateErrorCounter}):`,
                      (error instanceof MatterError && error.message) || error,
                  );
-@@ -479,7 +481,7 @@ export class ServerSubscription implements Subscription {
-                         this.#outstandingEventsMinNumber = eventsMinNumber; // newer number are always higher, so we can just set it
-                     }
+-                if (this.#sendUpdateErrorCounter <= 2) {
++                if (this.#isRetryableSendError(error)) {
++                    this.#restoreOutstandingUpdates(attributeFilter, eventsMinNumber);
++                    this.#sendNextUpdateImmediately = true;
++                    this.#scheduleRetryBackoff();
++                    break;
++                } else if (this.#sendUpdateErrorCounter <= 2) {
+                     // fill the data back in the queue to resend with next try
+-                    if (attributeFilter !== undefined) {
+-                        for (const [endpointId, clusters] of Object.entries(attributeFilter)) {
+-                            for (const [clusterId, attributes] of Object.entries(clusters)) {
+-                                this.#addOutstandingAttributes(
+-                                    EndpointNumber(parseInt(endpointId)),
+-                                    ClusterId(parseInt(clusterId)),
+-                                    Array.from(attributes),
+-                                );
+-                            }
+-                        }
+-                    }
+-                    if (eventsMinNumber !== undefined) {
+-                        this.#outstandingEventsMinNumber = eventsMinNumber; // newer number are always higher, so we can just set it
+-                    }
++                    this.#restoreOutstandingUpdates(attributeFilter, eventsMinNumber);
                  } else {
 -                    logger.info(
 +                    logger.warn(
                          `Sending update failed 3 times in a row, canceling subscription ${this.idStr} and let controller subscribe again.`,
                      );
                      this.#sendNextUpdateImmediately = false;
-@@ -786,11 +788,11 @@ export class ServerSubscription implements Subscription {
+-                    if (
+-                        error instanceof NoResponseTimeoutError ||
+-                        error instanceof NetworkError ||
+-                        error instanceof SessionClosedError
+-                    ) {
+-                        // Let's consider this subscription as dead and wait for a reconnect.  We handle as if the
+-                        // controller cancelled
+-                        using _messaging = updating?.join("canceling");
+-                        this.#isCanceledByPeer = true;
+-                        await this.#cancel();
+-                        break;
+-                    } else {
+-                        throw error;
+-                    }
++                    throw error;
+                 }
+             }
+
+@@ -680,6 +729,8 @@ export class ServerSubscription implements Subscription {
+
+         this.#updateTimer.stop();
+         this.#sendDelayTimer.stop();
++        this.#sendRetryBackoffTimer?.stop();
++        this.#sendRetryBackoffTimer = undefined;
+
+         this.session.subscriptions.delete(this);
+         logger.debug(this.session.via, "Deleted subscription", hex.fixed(this.subscriptionId, 8));
+@@ -786,11 +837,12 @@ export class ServerSubscription implements Subscription {
              }
          } catch (error) {
              if (StatusResponseError.is(error, StatusCode.InvalidSubscription, StatusCode.Failure)) {
 -                logger.info(`Subscription ${this.idStr} cancelled by peer`);
 +                logger.debug(`Subscription ${this.idStr} cancelled by peer`);
                  this.#isCanceledByPeer = true;
++                this.#clearPendingRetryState(true);
              } else {
                  StatusResponseError.accept(error);
 -                logger.info(`Subscription ${this.idStr} update failed:`, error);
 +                logger.warn(`Subscription ${this.idStr} update failed:`, error);
              }
- 
+
              using _canceling = lifetime?.join("canceling");

@@ -79,6 +79,7 @@ function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
 
 const DEAD_SESSION_TIMEOUT_MS = 0;
 const DEAD_SESSION_CLEANUP_ENABLED = DEAD_SESSION_TIMEOUT_MS > 0;
+const MDNS_REANNOUNCE_THROTTLE_MS = 60_000;
 
 export class Bridge {
   private readonly log: BetterLogger;
@@ -97,6 +98,7 @@ export class Bridge {
   private autoForceSyncTimer: ReturnType<typeof setInterval> | null = null;
   private deadSessionTimer: ReturnType<typeof setTimeout> | null = null;
   private staleSessionTimers = new Map<number, ReturnType<typeof setTimeout>>();
+  private lastMdnsReAnnounceAt = 0;
 
   // Serialize concurrent lifecycle calls so auto-recovery and a manual
   // restartBridge can't race past each other's Starting/Stopping states.
@@ -698,6 +700,14 @@ export class Bridge {
    */
   private triggerMdnsReAnnounce() {
     try {
+      const now = Date.now();
+      if (now - this.lastMdnsReAnnounceAt < MDNS_REANNOUNCE_THROTTLE_MS) {
+        this.log.debug(
+          "Skipped mDNS re-announcement because throttle is active",
+        );
+        return;
+      }
+      this.lastMdnsReAnnounceAt = now;
       const advertiser = this.server.env.get(DeviceAdvertiser);
       advertiser.restartAdvertisement();
       this.log.info("Triggered mDNS re-announcement after session cleanup");

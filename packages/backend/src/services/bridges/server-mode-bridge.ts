@@ -69,6 +69,7 @@ function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
 
 const DEAD_SESSION_TIMEOUT_MS = 0;
 const DEAD_SESSION_CLEANUP_ENABLED = DEAD_SESSION_TIMEOUT_MS > 0;
+const MDNS_REANNOUNCE_THROTTLE_MS = 60_000;
 
 // Rotate sessions so iPhone re-subscribes and the tile unsticks (#287).
 export const DEFAULT_SESSION_MAX_AGE_HOURS = 4;
@@ -110,6 +111,7 @@ export class ServerModeBridge {
   private autoForceSyncTimer: ReturnType<typeof setInterval> | null = null;
   private deadSessionTimer: ReturnType<typeof setTimeout> | null = null;
   private staleSessionTimers = new Map<number, ReturnType<typeof setTimeout>>();
+  private lastMdnsReAnnounceAt = 0;
   private warmStartTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Tracks when each session opened, used for age-based rotation (#287).
@@ -500,6 +502,14 @@ export class ServerModeBridge {
    */
   private triggerMdnsReAnnounce() {
     try {
+      const now = Date.now();
+      if (now - this.lastMdnsReAnnounceAt < MDNS_REANNOUNCE_THROTTLE_MS) {
+        this.log.debug(
+          "Skipped mDNS re-announcement because throttle is active",
+        );
+        return;
+      }
+      this.lastMdnsReAnnounceAt = now;
       const advertiser = this.server.env.get(DeviceAdvertiser);
       advertiser.restartAdvertisement();
       this.log.info("Triggered mDNS re-announcement after session cleanup");
