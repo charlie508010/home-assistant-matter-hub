@@ -14,6 +14,7 @@ import { EntityMappingStorage } from "../../services/storage/entity-mapping-stor
 import { LockCredentialStorage } from "../../services/storage/lock-credential-storage.js";
 import { LoggerService } from "../app/logger.js";
 import type { Options } from "../app/options.js";
+import { migratePluginStorageToActiveRootIfNeeded } from "../app/storage.js";
 import { BridgeEnvironmentFactory } from "./bridge-environment.js";
 import { EnvironmentBase } from "./environment-base.js";
 
@@ -42,8 +43,13 @@ export class AppEnvironment extends EnvironmentBase {
 
   private async init() {
     const logger = this.get(LoggerService);
+    const storageLocation = this.options.webApi.storageLocation;
 
     this.set(LoggerService, logger);
+    migratePluginStorageToActiveRootIfNeeded(
+      logger.get("PluginStorageMigration"),
+      storageLocation,
+    );
     this.set(AppStorage, new AppStorage(await this.load(StorageService)));
     this.set(BridgeStorage, new BridgeStorage(await this.load(AppStorage)));
     this.set(
@@ -81,7 +87,7 @@ export class AppEnvironment extends EnvironmentBase {
 
     this.set(
       BridgeFactory,
-      new BridgeEnvironmentFactory(this, this.options.webApi.storageLocation),
+      new BridgeEnvironmentFactory(this, storageLocation),
     );
     this.set(
       BridgeService,
@@ -99,7 +105,7 @@ export class AppEnvironment extends EnvironmentBase {
         await this.load(EntityMappingStorage),
         await this.load(AppSettingsStorage),
         {
-          storageLocation: this.options.webApi.storageLocation,
+          storageLocation,
           appVersion: this.options.webApi.version,
         },
       ),
