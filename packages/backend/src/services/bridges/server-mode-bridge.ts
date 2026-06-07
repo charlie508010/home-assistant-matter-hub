@@ -1,4 +1,5 @@
 import * as fs from "node:fs";
+import * as path from "node:path";
 import {
   BridgeStatus,
   type UpdateBridgeRequest,
@@ -30,14 +31,21 @@ const AUTO_FORCE_SYNC_INTERVAL_MS = 90_000;
 
 function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
   try {
+    const dataRoot = "/config/data";
+    const activeBackend =
+      process.env.HAMH_STORAGE_BACKEND === "file" ? "file" : "sqlite";
+    const activeRoot = path.join(dataRoot, activeBackend);
+    const sqliteRoot = path.join(dataRoot, "sqlite");
     const peerFiles = [
-      "/config/data/matter-peers.json",
-      "/config/data/sqlite/matter-peers.json",
+      path.join(activeRoot, "matter-peers.json"),
+      path.join(dataRoot, "matter-peers.json"),
+      path.join(sqliteRoot, "matter-peers.json"),
     ];
 
     const mapFiles = [
-      "/config/data/alexa-peer-map.json",
-      "/config/data/sqlite/alexa-peer-map.json",
+      path.join(activeRoot, "alexa-peer-map.json"),
+      path.join(dataRoot, "alexa-peer-map.json"),
+      path.join(sqliteRoot, "alexa-peer-map.json"),
     ];
 
     const peerFile = peerFiles.find((file) => fs.existsSync(file));
