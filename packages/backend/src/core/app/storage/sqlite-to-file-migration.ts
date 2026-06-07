@@ -22,6 +22,16 @@ export function migrateSqliteStorageToFileIfNeeded(
     `SQLite-to-file migration target: ${path.dirname(targetNamespacePath)}`,
   );
 
+  if (!fs.existsSync(sourceNamespacePath)) {
+    log.info("SQLite-to-file migration skipped: source missing");
+    log.info(
+      `SQLite-to-file migrated keys count per namespace ${path.basename(
+        targetNamespacePath,
+      )}: 0`,
+    );
+    return;
+  }
+
   if (!fs.existsSync(sourceDbPath)) {
     log.info("SQLite-to-file migration result: skipped");
     log.info(
