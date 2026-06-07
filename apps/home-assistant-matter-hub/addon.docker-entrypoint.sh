@@ -52,9 +52,16 @@ bashio::log.info "Memory: total=${total_mem_mb:-?}MB, available=${avail_mem_mb:-
 export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=${heap_size}}"
 export APP_VERSION="${APP_VERSION:-$(bashio::addon.version)}"
 storage_backend="$(bashio::config 'storage_backend')"
-storage_backend="${storage_backend:-file}"
-export HAMH_STORAGE_BACKEND="${storage_backend}"
-bashio::log.info "Storage backend: ${HAMH_STORAGE_BACKEND}"
+case "${storage_backend:-sqlite}" in
+  file|sqlite)
+    export HAMH_STORAGE_BACKEND="${storage_backend:-sqlite}"
+    ;;
+  *)
+    export HAMH_STORAGE_BACKEND="sqlite"
+    bashio::log.warning "Invalid storage_backend option '${storage_backend}', defaulting to sqlite"
+    ;;
+esac
+bashio::log.info "HAMH_STORAGE_BACKEND=${HAMH_STORAGE_BACKEND}"
 
 http_auth_enabled="$(bashio::config 'http_auth_enabled')"
 http_auth_username="$(bashio::config 'http_auth_username')"
