@@ -66,6 +66,25 @@ export class SqliteCustomStorage extends Storage {
       `Legacy migration source: ${this.migrationSource?.kind ?? "none"}`,
     );
 
+    if (this.migrationSource?.kind === "file") {
+      this.log.info(
+        `File-to-sqlite migration source: ${path.dirname(
+          this.migrationSource.path,
+        )}`,
+      );
+      this.log.info(
+        `File-to-sqlite migration target: ${path.dirname(this.namespacePath)}`,
+      );
+      const migrated = this.#migrateFromFileStorage(this.migrationSource.path);
+      this.log.info(
+        `File-to-sqlite migrated keys count per namespace ${path.basename(
+          this.namespacePath,
+        )}: ${migrated}`,
+      );
+      this.log.info(`Migration result: ${migrated > 0 ? "done" : "skipped"}`);
+      return;
+    }
+
     if (!existed && this.migrationSource) {
       const migrated = this.#migrateFromFileStorage(this.migrationSource.path);
       this.log.info(`Migration result: done (${migrated} keys)`);
@@ -304,6 +323,9 @@ export class SqliteCustomStorage extends Storage {
           relativePath.split(path.sep).join("."),
         );
         if (!isValidStorageKey(storageKey)) {
+          continue;
+        }
+        if (this.#getRow(storageKey)) {
           continue;
         }
 

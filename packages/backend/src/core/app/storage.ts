@@ -76,22 +76,68 @@ export function migratePluginStorageToActiveRootIfNeeded(
   logger: Pick<Logger, "info" | "warn">,
   activeStorageRoot: string,
 ) {
-  if (path.basename(activeStorageRoot) !== "file") {
+  const activeBackend = path.basename(activeStorageRoot);
+  if (activeBackend !== "file" && activeBackend !== "sqlite") {
     return;
   }
 
   const baseLocation = path.dirname(activeStorageRoot);
-  const sqliteRoot = path.join(baseLocation, "sqlite");
+  const sourceBackend = activeBackend === "file" ? "sqlite" : "file";
+  const sourceRoot = path.join(baseLocation, sourceBackend);
 
   migratePluginDirectoryIfMissing(
     logger,
-    path.join(sqliteRoot, "plugin-packages"),
+    path.join(sourceRoot, "plugin-packages"),
     path.join(activeStorageRoot, "plugin-packages"),
+    sourceBackend,
+    activeBackend,
   );
   migratePluginFileIfMissing(
     logger,
-    path.join(sqliteRoot, "installed-plugins.json"),
+    path.join(sourceRoot, "installed-plugins.json"),
     path.join(activeStorageRoot, "installed-plugins.json"),
+    "installed-plugins.json",
+    sourceBackend,
+    activeBackend,
+    hasInstalledPluginEntries,
+  );
+
+  for (const fileName of [
+    "alexa-cookie.json",
+    "alexa-login-status.json",
+    "alexa-peer-map.json",
+    "alexa-devices.json",
+    "alexa-devices-sanitized.json",
+    "matter-peers.json",
+  ]) {
+    migratePluginFileIfMissing(
+      logger,
+      path.join(sourceRoot, fileName),
+      path.join(activeStorageRoot, fileName),
+      fileName,
+      sourceBackend,
+      activeBackend,
+      hasJsonData,
+    );
+  }
+}
+
+function migrationLabel(sourceBackend: string, targetBackend: string) {
+  return `${sourceBackend} to ${targetBackend}`;
+}
+
+function logMigrationPaths(
+  logger: Pick<Logger, "info">,
+  source: string,
+  target: string,
+  sourceBackend: string,
+  targetBackend: string,
+) {
+  logger.info(
+    `${capitalize(sourceBackend)}-to-${targetBackend} migration source: ${source}`,
+  );
+  logger.info(
+    `${capitalize(sourceBackend)}-to-${targetBackend} migration target: ${target}`,
   );
 }
 
@@ -99,6 +145,8 @@ function migratePluginDirectoryIfMissing(
   logger: Pick<Logger, "info" | "warn">,
   source: string,
   target: string,
+  sourceBackend: string,
+  targetBackend: string,
 ) {
   if (
     !fs.existsSync(source) ||
@@ -108,11 +156,29 @@ function migratePluginDirectoryIfMissing(
     return;
   }
   try {
+    logMigrationPaths(
+      logger,
+      path.dirname(source),
+      path.dirname(target),
+      sourceBackend,
+      targetBackend,
+    );
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.cpSync(source, target, { recursive: true, force: true });
-    logger.info("Migrated plugin packages from sqlite to file");
+    logger.info(
+      `Migrated plugin packages from ${migrationLabel(
+        sourceBackend,
+        targetBackend,
+      )}`,
+    );
   } catch (e) {
-    logger.warn("Failed to migrate plugin packages from sqlite to file:", e);
+    logger.warn(
+      `Failed to migrate plugin packages from ${migrationLabel(
+        sourceBackend,
+        targetBackend,
+      )}:`,
+      e,
+    );
   }
 }
 
@@ -120,20 +186,42 @@ function migratePluginFileIfMissing(
   logger: Pick<Logger, "info" | "warn">,
   source: string,
   target: string,
+  fileName: string,
+  sourceBackend: string,
+  targetBackend: string,
+  hasUsefulData: (filePath: string) => boolean,
 ) {
   if (
     !fs.existsSync(source) ||
-    hasInstalledPluginEntries(target) ||
-    !hasInstalledPluginEntries(source)
+    hasUsefulData(target) ||
+    !hasUsefulData(source)
   ) {
     return;
   }
   try {
+    logMigrationPaths(
+      logger,
+      path.dirname(source),
+      path.dirname(target),
+      sourceBackend,
+      targetBackend,
+    );
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.copyFileSync(source, target);
-    logger.info("Migrated installed plugins from sqlite to file");
+    logger.info(
+      `Migrated ${fileName} from ${migrationLabel(
+        sourceBackend,
+        targetBackend,
+      )}`,
+    );
   } catch (e) {
-    logger.warn("Failed to migrate installed plugins from sqlite to file:", e);
+    logger.warn(
+      `Failed to migrate ${fileName} from ${migrationLabel(
+        sourceBackend,
+        targetBackend,
+      )}:`,
+      e,
+    );
   }
 }
 
@@ -171,6 +259,28 @@ function hasInstalledPluginEntries(filePath: string): boolean {
   } catch {
     return true;
   }
+}
+
+function hasJsonData(filePath: string): boolean {
+  if (!fs.existsSync(filePath)) {
+    return false;
+  }
+  try {
+    const value = JSON.parse(fs.readFileSync(filePath, "utf-8")) as unknown;
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+    if (value && typeof value === "object") {
+      return Object.keys(value).length > 0;
+    }
+    return value != null;
+  } catch {
+    return true;
+  }
+}
+
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function resolveSqliteMigrationSource(baseLocation: string, namespace: string) {

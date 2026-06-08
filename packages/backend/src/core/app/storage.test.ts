@@ -73,7 +73,7 @@ describe("migratePluginStorageToActiveRootIfNeeded", () => {
       "Migrated plugin packages from sqlite to file",
     );
     expect(logger.info).toHaveBeenCalledWith(
-      "Migrated installed plugins from sqlite to file",
+      "Migrated installed-plugins.json from sqlite to file",
     );
   });
 
@@ -147,7 +147,76 @@ describe("migratePluginStorageToActiveRootIfNeeded", () => {
     ).toContain("sqlite-plugin");
   });
 
-  it("does nothing for sqlite backend roots", () => {
+  it("copies plugin and Alexa data from file to sqlite when sqlite targets are missing", () => {
+    const root = createTempRoot();
+    roots.push(root);
+    const filePluginDir = path.join(root, "file", "plugin-packages");
+    fs.mkdirSync(path.join(filePluginDir, "node_modules", "test-plugin"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(filePluginDir, "package.json"),
+      JSON.stringify({ dependencies: { "test-plugin": "1.0.0" } }),
+    );
+    fs.writeFileSync(
+      path.join(filePluginDir, "node_modules", "test-plugin", "index.js"),
+      "export default class TestPlugin {}",
+    );
+    fs.writeFileSync(
+      path.join(root, "file", "installed-plugins.json"),
+      JSON.stringify([{ packageName: "test-plugin" }]),
+    );
+    fs.writeFileSync(
+      path.join(root, "file", "alexa-cookie.json"),
+      JSON.stringify({ cookies: [{ key: "at-main" }] }),
+    );
+    fs.writeFileSync(
+      path.join(root, "file", "alexa-login-status.json"),
+      JSON.stringify({ connected: true }),
+    );
+    fs.writeFileSync(
+      path.join(root, "file", "matter-peers.json"),
+      JSON.stringify({ peer: "data" }),
+    );
+
+    const logger = createLogger();
+    migratePluginStorageToActiveRootIfNeeded(logger, path.join(root, "sqlite"));
+
+    expect(
+      fs.existsSync(
+        path.join(
+          root,
+          "sqlite",
+          "plugin-packages",
+          "node_modules",
+          "test-plugin",
+          "index.js",
+        ),
+      ),
+    ).toBe(true);
+    for (const fileName of [
+      "installed-plugins.json",
+      "alexa-cookie.json",
+      "alexa-login-status.json",
+      "matter-peers.json",
+    ]) {
+      expect(fs.existsSync(path.join(root, "sqlite", fileName))).toBe(true);
+    }
+    expect(logger.info).toHaveBeenCalledWith(
+      `File-to-sqlite migration source: ${path.join(root, "file")}`,
+    );
+    expect(logger.info).toHaveBeenCalledWith(
+      `File-to-sqlite migration target: ${path.join(root, "sqlite")}`,
+    );
+    expect(logger.info).toHaveBeenCalledWith(
+      "Migrated plugin packages from file to sqlite",
+    );
+    expect(logger.info).toHaveBeenCalledWith(
+      "Migrated alexa-cookie.json from file to sqlite",
+    );
+  });
+
+  it("does nothing for sqlite backend roots when file source is missing", () => {
     const root = createTempRoot();
     roots.push(root);
     fs.mkdirSync(path.join(root, "sqlite", "plugin-packages"), {
