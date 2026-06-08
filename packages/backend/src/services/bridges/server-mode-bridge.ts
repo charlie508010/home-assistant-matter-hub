@@ -78,6 +78,7 @@ function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
 const DEAD_SESSION_TIMEOUT_MS = 1_000;
 const DEAD_SESSION_CLEANUP_ENABLED = DEAD_SESSION_TIMEOUT_MS > 0;
 const MDNS_REANNOUNCE_THROTTLE_MS = 60_000;
+const STARTUP_MDNS_REANNOUNCE_DELAYS_MS = [0, 1_500, 5_000];
 
 // Rotate sessions so iPhone re-subscribes and the tile unsticks (#287).
 export const DEFAULT_SESSION_MAX_AGE_HOURS = 4;
@@ -119,6 +120,7 @@ export class ServerModeBridge {
   private autoForceSyncTimer: ReturnType<typeof setInterval> | null = null;
   private deadSessionTimer: ReturnType<typeof setTimeout> | null = null;
   private staleSessionTimers = new Map<number, ReturnType<typeof setTimeout>>();
+  private startupMdnsReAnnounceTimers: ReturnType<typeof setTimeout>[] = [];
   private lastMdnsReAnnounceAt = 0;
   private warmStartTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -239,7 +241,7 @@ export class ServerModeBridge {
       this.wireSessionDiagnostics();
       this.startSessionRotation();
       this.closeDeadSessions();
-      this.triggerMdnsReAnnounce();
+      this.scheduleStartupMdnsReAnnounce();
       this.scheduleWarmStart();
       logMemoryUsage(this.log, "server mode bridge running");
       this.log.info("Server mode bridge started");
@@ -511,9 +513,16 @@ export class ServerModeBridge {
    * realize it should reconnect (#266).
    */
   private triggerMdnsReAnnounce() {
+    return this.triggerMdnsReAnnounceInternal(false);
+  }
+
+  private triggerMdnsReAnnounceInternal(force: boolean) {
     try {
       const now = Date.now();
-      if (now - this.lastMdnsReAnnounceAt < MDNS_REANNOUNCE_THROTTLE_MS) {
+      if (
+        !force &&
+        now - this.lastMdnsReAnnounceAt < MDNS_REANNOUNCE_THROTTLE_MS
+      ) {
         this.log.debug(
           "Skipped mDNS re-announcement because throttle is active",
         );
@@ -522,10 +531,31 @@ export class ServerModeBridge {
       this.lastMdnsReAnnounceAt = now;
       const advertiser = this.server.env.get(DeviceAdvertiser);
       advertiser.restartAdvertisement();
-      this.log.info("Triggered mDNS re-announcement after session cleanup");
+      this.log.info(
+        force
+          ? "Triggered startup mDNS re-announcement"
+          : "Triggered mDNS re-announcement after session cleanup",
+      );
     } catch {
       // DeviceAdvertiser may not be available
     }
+  }
+
+  private scheduleStartupMdnsReAnnounce() {
+    this.clearStartupMdnsReAnnounceTimers();
+    this.startupMdnsReAnnounceTimers = STARTUP_MDNS_REANNOUNCE_DELAYS_MS.map(
+      (delay) =>
+        setTimeout(() => {
+          this.triggerMdnsReAnnounceInternal(true);
+        }, delay),
+    );
+  }
+
+  private clearStartupMdnsReAnnounceTimers() {
+    for (const timer of this.startupMdnsReAnnounceTimers) {
+      clearTimeout(timer);
+    }
+    this.startupMdnsReAnnounceTimers = [];
   }
 
   private unwireSessionDiagnostics() {
@@ -546,6 +576,7 @@ export class ServerModeBridge {
     this.sessionDiagHandler = undefined;
     this.sessionAddedHandler = undefined;
     this.sessionDeletedHandler = undefined;
+    this.clearStartupMdnsReAnnounceTimers();
     if (this.deadSessionTimer) {
       clearTimeout(this.deadSessionTimer);
       this.deadSessionTimer = null;
