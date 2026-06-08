@@ -75,7 +75,7 @@ function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
   }
 }
 
-const DEAD_SESSION_TIMEOUT_MS = 0;
+const DEAD_SESSION_TIMEOUT_MS = 1_000;
 const DEAD_SESSION_CLEANUP_ENABLED = DEAD_SESSION_TIMEOUT_MS > 0;
 const MDNS_REANNOUNCE_THROTTLE_MS = 60_000;
 
@@ -238,6 +238,8 @@ export class ServerModeBridge {
       }
       this.wireSessionDiagnostics();
       this.startSessionRotation();
+      this.closeDeadSessions();
+      this.triggerMdnsReAnnounce();
       this.scheduleWarmStart();
       logMemoryUsage(this.log, "server mode bridge running");
       this.log.info("Server mode bridge started");

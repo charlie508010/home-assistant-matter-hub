@@ -85,7 +85,7 @@ function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
   }
 }
 
-const DEAD_SESSION_TIMEOUT_MS = 0;
+const DEAD_SESSION_TIMEOUT_MS = 1_000;
 const DEAD_SESSION_CLEANUP_ENABLED = DEAD_SESSION_TIMEOUT_MS > 0;
 const MDNS_REANNOUNCE_THROTTLE_MS = 60_000;
 
@@ -437,6 +437,8 @@ export class Bridge {
       }
 
       this.wireSessionDiagnostics();
+      this.closeDeadSessions();
+      this.triggerMdnsReAnnounce();
       logMemoryUsage(this.log, "bridge running");
       diagnosticEventBus.emit("bridge_started", `Bridge started`, {
         bridgeId: this.id,
