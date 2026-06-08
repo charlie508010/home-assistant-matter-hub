@@ -27,6 +27,10 @@ import type {
   BridgeServerStatus,
 } from "./bridge-data-provider.js";
 import type { BridgeEndpointManager } from "./bridge-endpoint-manager.js";
+import {
+  registerStaleMatterSessionRecoveryHandler,
+  type StaleMatterSessionEvent,
+} from "./stale-session-recovery.js";
 
 // Auto Force Sync interval in milliseconds (90 seconds).
 // When autoForceSync is enabled, this pushes changed entity states to
@@ -89,6 +93,7 @@ const DEAD_SESSION_TIMEOUT_MS = 1_000;
 const DEAD_SESSION_CLEANUP_ENABLED = DEAD_SESSION_TIMEOUT_MS > 0;
 const MDNS_REANNOUNCE_THROTTLE_MS = 60_000;
 const STARTUP_MDNS_REANNOUNCE_DELAYS_MS = [0, 1_500, 5_000];
+const STALE_SESSION_REANNOUNCE_THROTTLE_MS = 5_000;
 
 export class Bridge {
   private readonly log: BetterLogger;
@@ -108,6 +113,8 @@ export class Bridge {
   private deadSessionTimer: ReturnType<typeof setTimeout> | null = null;
   private staleSessionTimers = new Map<number, ReturnType<typeof setTimeout>>();
   private startupMdnsReAnnounceTimers: ReturnType<typeof setTimeout>[] = [];
+  private staleSessionReAnnounceLastAt = new Map<string, number>();
+  private unregisterStaleSessionRecovery?: () => void;
   private lastMdnsReAnnounceAt = 0;
 
   // Serialize concurrent lifecycle calls so auto-recovery and a manual
@@ -426,6 +433,8 @@ export class Bridge {
       this.endpointManager.startObserving();
       ensureCommissioningConfig(this.server);
       await this.server.start();
+      this.wireStaleSessionRecovery();
+      this.scheduleStartupMdnsReAnnounce();
       await this.endpointManager.startPlugins();
       this.setStatus({ code: BridgeStatus.Running });
       this.startAutoForceSyncIfEnabled();
@@ -440,7 +449,6 @@ export class Bridge {
 
       this.wireSessionDiagnostics();
       this.closeDeadSessions();
-      this.scheduleStartupMdnsReAnnounce();
       logMemoryUsage(this.log, "bridge running");
       diagnosticEventBus.emit("bridge_started", `Bridge started`, {
         bridgeId: this.id,
@@ -756,6 +764,36 @@ export class Bridge {
     this.startupMdnsReAnnounceTimers = [];
   }
 
+  private wireStaleSessionRecovery() {
+    this.unregisterStaleSessionRecovery?.();
+    this.unregisterStaleSessionRecovery =
+      registerStaleMatterSessionRecoveryHandler((event) => {
+        this.triggerStaleSessionReAnnounce(event);
+      });
+  }
+
+  private triggerStaleSessionReAnnounce(event: StaleMatterSessionEvent) {
+    const key = `${event.sessionId}:${event.sourceNodeId ?? "<unknown>"}`;
+    const now = Date.now();
+    const lastReAnnounceAt = this.staleSessionReAnnounceLastAt.get(key) ?? 0;
+    if (now - lastReAnnounceAt < STALE_SESSION_REANNOUNCE_THROTTLE_MS) {
+      return;
+    }
+
+    this.staleSessionReAnnounceLastAt.set(key, now);
+    if (this.staleSessionReAnnounceLastAt.size > 128) {
+      const oldestKey = this.staleSessionReAnnounceLastAt.keys().next().value;
+      if (oldestKey) {
+        this.staleSessionReAnnounceLastAt.delete(oldestKey);
+      }
+    }
+
+    this.log.info(
+      `Triggered mDNS re-announcement after stale session ${event.sessionId}${event.sourceNodeId ? ` from node ${event.sourceNodeId}` : ""}`,
+    );
+    this.triggerMdnsReAnnounceInternal(true);
+  }
+
   private unwireSessionDiagnostics() {
     try {
       const sessionManager = this.server.env.get(SessionManager);
@@ -774,7 +812,10 @@ export class Bridge {
     this.sessionDiagHandler = undefined;
     this.sessionAddedHandler = undefined;
     this.sessionDeletedHandler = undefined;
+    this.unregisterStaleSessionRecovery?.();
+    this.unregisterStaleSessionRecovery = undefined;
     this.clearStartupMdnsReAnnounceTimers();
+    this.staleSessionReAnnounceLastAt.clear();
     if (this.deadSessionTimer) {
       clearTimeout(this.deadSessionTimer);
       this.deadSessionTimer = null;

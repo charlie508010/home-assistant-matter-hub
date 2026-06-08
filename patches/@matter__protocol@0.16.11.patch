@@ -90,10 +90,10 @@ index d471d7487c0dc7cafed1b8d23a62661ccb99afcd..77e6be8b24c82c13ecc6aa7066a9e8cc
        if (peer.activeDiscovery?.type === 1 /* RetransmissionDiscovery */) {
          peer.activeDiscovery = void 0;
 diff --git a/dist/cjs/protocol/ExchangeManager.js b/dist/cjs/protocol/ExchangeManager.js
-index 9493efdf3f312303f00cf7fb64cfb4370ab60af8..8cc0054b77549eda1aba1ef9a5101345371b5a16 100644
+index 9493efdf3f312303f00cf7fb64cfb4370ab60af8..adcb64d292a2a5b051eba2d9876c0166baf6f963 100644
 --- a/dist/cjs/protocol/ExchangeManager.js
 +++ b/dist/cjs/protocol/ExchangeManager.js
-@@ -85,6 +85,22 @@ var import_MRP = require("./MRP.js");
+@@ -85,6 +85,35 @@ var import_MRP = require("./MRP.js");
   * SPDX-License-Identifier: Apache-2.0
   */
  const logger = import_general.Logger.get("ExchangeManager");
@@ -113,10 +113,23 @@ index 9493efdf3f312303f00cf7fb64cfb4370ab60af8..8cc0054b77549eda1aba1ef9a5101345
 +  }
 +  return true;
 +}
++function notifyStaleUnknownSession(packet) {
++  const handler = globalThis.__HAMH_ON_STALE_MATTER_SESSION__;
++  if (typeof handler !== "function") {
++    return;
++  }
++  try {
++    handler({
++      sessionId: import_Session.Session.idStrOf(packet),
++      sourceNodeId: packet.header.sourceNodeId !== void 0 ? import_general.hex.fixed(packet.header.sourceNodeId, 16) : void 0
++    });
++  } catch {
++  }
++}
  const MAXIMUM_CONCURRENT_OUTGOING_EXCHANGES_PER_SESSION = 30;
  class ExchangeManager {
    #lifetime;
-@@ -213,13 +229,15 @@ class ExchangeManager {
+@@ -213,13 +242,16 @@ class ExchangeManager {
            });
          } else {
            session = this.#sessions.getSession(packet.header.sessionId);
@@ -129,6 +142,7 @@ index 9493efdf3f312303f00cf7fb64cfb4370ab60af8..8cc0054b77549eda1aba1ef9a5101345
 -        }
 +    }
 +    if (session === void 0) {
++      notifyStaleUnknownSession(packet);
 +      if (shouldLogStaleUnknownSession(packet)) {
 +        logger.debug(
 +          `stale session after fabric removal ignored: unknown session ${import_Session.Session.idStrOf(packet)}${packet.header.sourceNodeId !== void 0 ? ` from node ${import_general.hex.fixed(packet.header.sourceNodeId, 16)}` : ""}`
@@ -244,10 +258,10 @@ index 3094eb5f1d6ebb637d3fef232507dec7a60b43a4..9c1900c62cf03c9704606eda9626aabd
        if (peer.activeDiscovery?.type === 1 /* RetransmissionDiscovery */) {
          peer.activeDiscovery = void 0;
 diff --git a/dist/esm/protocol/ExchangeManager.js b/dist/esm/protocol/ExchangeManager.js
-index 8631eb73fb8f28015b2653b92836282b0c37c896..c8051bdf740e4c6d63b1571376543c7922ed3f14 100644
+index 8631eb73fb8f28015b2653b92836282b0c37c896..742a2b7c482bd6dd575facab04f9585a1fe68641 100644
 --- a/dist/esm/protocol/ExchangeManager.js
 +++ b/dist/esm/protocol/ExchangeManager.js
-@@ -76,6 +76,22 @@ import { MessageExchange } from "./MessageExchange.js";
+@@ -76,6 +76,35 @@ import { MessageExchange } from "./MessageExchange.js";
  import { DuplicateMessageError } from "./MessageReceptionState.js";
  import { MRP } from "./MRP.js";
  const logger = Logger.get("ExchangeManager");
@@ -267,10 +281,23 @@ index 8631eb73fb8f28015b2653b92836282b0c37c896..c8051bdf740e4c6d63b1571376543c79
 +  }
 +  return true;
 +}
++function notifyStaleUnknownSession(packet) {
++  const handler = globalThis.__HAMH_ON_STALE_MATTER_SESSION__;
++  if (typeof handler !== "function") {
++    return;
++  }
++  try {
++    handler({
++      sessionId: Session.idStrOf(packet),
++      sourceNodeId: packet.header.sourceNodeId !== void 0 ? hex.fixed(packet.header.sourceNodeId, 16) : void 0
++    });
++  } catch {
++  }
++}
  const MAXIMUM_CONCURRENT_OUTGOING_EXCHANGES_PER_SESSION = 30;
  class ExchangeManager {
    #lifetime;
-@@ -204,13 +220,15 @@ class ExchangeManager {
+@@ -204,13 +233,16 @@ class ExchangeManager {
            });
          } else {
            session = this.#sessions.getSession(packet.header.sessionId);
@@ -283,6 +310,7 @@ index 8631eb73fb8f28015b2653b92836282b0c37c896..c8051bdf740e4c6d63b1571376543c79
 -        }
 +    }
 +    if (session === void 0) {
++      notifyStaleUnknownSession(packet);
 +      if (shouldLogStaleUnknownSession(packet)) {
 +        logger.debug(
 +          `stale session after fabric removal ignored: unknown session ${Session.idStrOf(packet)}${packet.header.sourceNodeId !== void 0 ? ` from node ${hex.fixed(packet.header.sourceNodeId, 16)}` : ""}`
@@ -366,10 +394,10 @@ index daefb362bf99cb7acf0a9cffdc79592b65c9cbee..68f381736988dbc4fe99bcdb26c600f5
              .finally(() => {
                  if (peer.activeDiscovery?.type === NodeDiscoveryType.RetransmissionDiscovery) {
 diff --git a/src/protocol/ExchangeManager.ts b/src/protocol/ExchangeManager.ts
-index 1b366af539c612e57f6709f7e83912dbf0d5fce7..52153ff7e8fc88100b6f3ac1f00e1922d002fe73 100644
+index 1b366af539c612e57f6709f7e83912dbf0d5fce7..4a0c02bc23bcd53e02e0b0fa6a6e7c371a874550 100644
 --- a/src/protocol/ExchangeManager.ts
 +++ b/src/protocol/ExchangeManager.ts
-@@ -39,6 +39,24 @@ import { MRP } from "./MRP.js";
+@@ -39,6 +39,45 @@ import { MRP } from "./MRP.js";
  import { ProtocolHandler } from "./ProtocolHandler.js";
 
  const logger = Logger.get("ExchangeManager");
@@ -391,10 +419,31 @@ index 1b366af539c612e57f6709f7e83912dbf0d5fce7..52153ff7e8fc88100b6f3ac1f00e1922
 +    }
 +    return true;
 +}
++
++function notifyStaleUnknownSession(packet: Message) {
++    const handler = (
++        globalThis as typeof globalThis & {
++            __HAMH_ON_STALE_MATTER_SESSION__?: (event: { sessionId: string; sourceNodeId?: string }) => void;
++        }
++    ).__HAMH_ON_STALE_MATTER_SESSION__;
++    if (typeof handler !== "function") {
++        return;
++    }
++
++    try {
++        handler({
++            sessionId: Session.idStrOf(packet),
++            sourceNodeId:
++                packet.header.sourceNodeId !== undefined ? hex.fixed(packet.header.sourceNodeId, 16) : undefined,
++        });
++    } catch {
++        // Ignore application-level recovery hook failures in packet receive path.
++    }
++}
 
  /**
   * Maximum number of concurrent outgoing exchanges per session.
-@@ -194,13 +212,15 @@ export class ExchangeManager {
+@@ -194,13 +233,16 @@ export class ExchangeManager {
              }
 
              if (session === undefined) {
@@ -405,6 +454,7 @@ index 1b366af539c612e57f6709f7e83912dbf0d5fce7..52153ff7e8fc88100b6f3ac1f00e1922
 -                            : ""
 -                    }`,
 -                );
++                notifyStaleUnknownSession(packet);
 +                if (shouldLogStaleUnknownSession(packet)) {
 +                    logger.debug(
 +                        `stale session after fabric removal ignored: unknown session ${Session.idStrOf(packet)}${
