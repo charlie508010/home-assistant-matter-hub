@@ -8,11 +8,7 @@ import type { Environment } from "@matter/general";
 import type { Endpoint } from "@matter/main";
 import { DescriptorServer } from "@matter/main/behaviors";
 import { CommissioningServer } from "@matter/main/node";
-import {
-  DeviceAdvertiser,
-  FabricManager,
-  SessionManager,
-} from "@matter/main/protocol";
+import { SessionManager } from "@matter/main/protocol";
 import type { BetterLogger, LoggerService } from "../../core/app/logger.js";
 import { BridgeServerNode } from "../../matter/endpoints/bridge-server-node.js";
 import type {
@@ -31,10 +27,6 @@ import type {
   BridgeServerStatus,
 } from "./bridge-data-provider.js";
 import type { BridgeEndpointManager } from "./bridge-endpoint-manager.js";
-import {
-  registerStaleMatterSessionRecoveryHandler,
-  type StaleMatterSessionEvent,
-} from "./stale-session-recovery.js";
 
 // Auto Force Sync interval in milliseconds (90 seconds).
 // When autoForceSync is enabled, this pushes changed entity states to
@@ -93,11 +85,8 @@ function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
   }
 }
 
-const DEAD_SESSION_TIMEOUT_MS = 1_000;
+const DEAD_SESSION_TIMEOUT_MS = 0;
 const DEAD_SESSION_CLEANUP_ENABLED = DEAD_SESSION_TIMEOUT_MS > 0;
-const MDNS_REANNOUNCE_THROTTLE_MS = 60_000;
-const STARTUP_MDNS_REANNOUNCE_DELAYS_MS = [0, 2_000, 5_000];
-const STALE_SESSION_REANNOUNCE_THROTTLE_MS = 10_000;
 const SHUTDOWN_SESSION_CLOSE_TIMEOUT_MS = 2_500;
 
 export class Bridge {
@@ -117,11 +106,6 @@ export class Bridge {
   private autoForceSyncTimer: ReturnType<typeof setInterval> | null = null;
   private deadSessionTimer: ReturnType<typeof setTimeout> | null = null;
   private staleSessionTimers = new Map<number, ReturnType<typeof setTimeout>>();
-  private startupMdnsReAnnounceTimers: ReturnType<typeof setTimeout>[] = [];
-  private staleSessionReAnnounceLastAt = new Map<string, number>();
-  private lastStaleSessionForcedBroadcastAt = 0;
-  private unregisterStaleSessionRecovery?: () => void;
-  private lastMdnsReAnnounceAt = 0;
 
   // Serialize concurrent lifecycle calls so auto-recovery and a manual
   // restartBridge can't race past each other's Starting/Stopping states.
@@ -439,10 +423,8 @@ export class Bridge {
       this.endpointManager.startObserving();
       ensureCommissioningConfig(this.server);
       await this.server.start();
-      this.wireStaleSessionRecovery();
       await this.endpointManager.startPlugins();
       this.setStatus({ code: BridgeStatus.Running });
-      this.scheduleStartupMdnsReAnnounce();
       this.startAutoForceSyncIfEnabled();
 
       // Force sync immediately on startup to push current HA state to controllers
@@ -682,8 +664,7 @@ export class Bridge {
               // Graceful close failed (peer unreachable), force-close locally
               return s.initiateForceClose();
             })
-            .catch(() => {})
-            .finally(() => this.triggerMdnsReAnnounce());
+            .catch(() => {});
           break;
         }
       }
@@ -711,189 +692,11 @@ export class Bridge {
         }
       }
       if (closes.length > 0) {
-        Promise.allSettled(closes).then(() => this.triggerMdnsReAnnounce());
+        void Promise.allSettled(closes);
       }
     } catch {
       // SessionManager may be disposed
     }
-  }
-
-  /**
-   * Force a fresh mDNS operational advertisement after session cleanup.
-   * matter.js DeviceAdvertiser only re-announces when a subscription is
-   * canceled BY THE PEER. When the server cancels after 3 delivery
-   * timeouts, no re-announcement happens and the controller may not
-   * realize it should reconnect (#266).
-   */
-  private triggerMdnsReAnnounce() {
-    return this.triggerMdnsReAnnounceInternal(false);
-  }
-
-  private triggerMdnsReAnnounceInternal(force: boolean, reason?: string) {
-    try {
-      const now = Date.now();
-      if (
-        !force &&
-        now - this.lastMdnsReAnnounceAt < MDNS_REANNOUNCE_THROTTLE_MS
-      ) {
-        this.log.debug(
-          "Skipped mDNS re-announcement because throttle is active",
-        );
-        return;
-      }
-      this.lastMdnsReAnnounceAt = now;
-      const advertiser = this.server.env.get(DeviceAdvertiser);
-      const immediateBroadcasts =
-        force &&
-        typeof (
-          advertiser as DeviceAdvertiser & {
-            broadcastOperationalNow?: () => number;
-          }
-        ).broadcastOperationalNow === "function"
-          ? (
-              advertiser as DeviceAdvertiser & {
-                broadcastOperationalNow: () => number;
-              }
-            ).broadcastOperationalNow()
-          : 0;
-
-      if (!force || immediateBroadcasts === 0) {
-        advertiser.restartAdvertisement();
-      }
-      const logMessage =
-        reason === "startup"
-          ? `Forced startup operational mDNS broadcast (${immediateBroadcasts} advertisement(s))`
-          : force
-            ? `Forced operational mDNS broadcast ${reason ?? "after startup"} (${immediateBroadcasts} advertisement(s))`
-            : "Triggered mDNS re-announcement after session cleanup";
-      this.log.info(logMessage);
-    } catch {
-      // DeviceAdvertiser may not be available
-    }
-  }
-
-  private scheduleStartupMdnsReAnnounce() {
-    this.clearStartupMdnsReAnnounceTimers();
-    this.startupMdnsReAnnounceTimers = STARTUP_MDNS_REANNOUNCE_DELAYS_MS.map(
-      (delay) =>
-        setTimeout(() => {
-          this.triggerMdnsReAnnounceInternal(true, "startup");
-        }, delay),
-    );
-  }
-
-  private clearStartupMdnsReAnnounceTimers() {
-    for (const timer of this.startupMdnsReAnnounceTimers) {
-      clearTimeout(timer);
-    }
-    this.startupMdnsReAnnounceTimers = [];
-  }
-
-  private wireStaleSessionRecovery() {
-    this.unregisterStaleSessionRecovery?.();
-    this.logMatterFabricDiagnostics("startup");
-    this.unregisterStaleSessionRecovery =
-      registerStaleMatterSessionRecoveryHandler((event) => {
-        this.triggerStaleSessionReAnnounce(event);
-      });
-  }
-
-  private logMatterFabricDiagnostics(reason: string) {
-    try {
-      const fabricManager = this.server.env.get(FabricManager);
-      const sessionManager = this.server.env.get(SessionManager);
-      const fabrics = [...fabricManager];
-      if (fabrics.length === 0) {
-        this.log.warn(
-          `Matter fabric diagnostics (${reason}): no fabrics loaded`,
-        );
-        return;
-      }
-
-      this.log.info(
-        `Matter fabric diagnostics (${reason}): ${fabrics
-          .map(
-            (fabric) =>
-              `fabricIndex=${fabric.fabricIndex} fabricId=${fabric.fabricId} operationalNodeId=${fabric.nodeId} rootNodeId=${fabric.rootNodeId} globalId=${fabric.globalId}`,
-          )
-          .join("; ")}`,
-      );
-      const resumptionRecords =
-        typeof (
-          sessionManager as SessionManager & {
-            getResumptionRecordDiagnostics?: () => Array<{
-              nodeId: unknown;
-              peerNodeId: unknown;
-              fabricId: unknown;
-              fabricIndex: unknown;
-              hasMatchingFabric: unknown;
-            }>;
-          }
-        ).getResumptionRecordDiagnostics === "function"
-          ? (
-              sessionManager as SessionManager & {
-                getResumptionRecordDiagnostics: () => Array<{
-                  nodeId: unknown;
-                  peerNodeId: unknown;
-                  fabricId: unknown;
-                  fabricIndex: unknown;
-                  hasMatchingFabric: unknown;
-                }>;
-              }
-            ).getResumptionRecordDiagnostics()
-          : [];
-      this.log.info(
-        `Matter CASE resumption diagnostics (${reason}): count=${resumptionRecords.length}${
-          resumptionRecords.length
-            ? ` ${resumptionRecords
-                .map(
-                  (record) =>
-                    `fabricIndex=${record.fabricIndex} fabricId=${record.fabricId} nodeId=${record.nodeId} peerNodeId=${record.peerNodeId} hasMatchingFabric=${record.hasMatchingFabric}`,
-                )
-                .join("; ")}`
-            : ""
-        }`,
-      );
-    } catch (error) {
-      this.log.debug(
-        `Matter fabric diagnostics (${reason}) unavailable`,
-        error,
-      );
-    }
-  }
-
-  private triggerStaleSessionReAnnounce(event: StaleMatterSessionEvent) {
-    const key = `${event.sessionId}:${event.sourceNodeId ?? "<unknown>"}`;
-    const now = Date.now();
-    if (
-      now - this.lastStaleSessionForcedBroadcastAt <
-      STALE_SESSION_REANNOUNCE_THROTTLE_MS
-    ) {
-      return;
-    }
-
-    const lastReAnnounceAt = this.staleSessionReAnnounceLastAt.get(key) ?? 0;
-    if (now - lastReAnnounceAt < STALE_SESSION_REANNOUNCE_THROTTLE_MS) {
-      return;
-    }
-
-    this.lastStaleSessionForcedBroadcastAt = now;
-    this.staleSessionReAnnounceLastAt.set(key, now);
-    if (this.staleSessionReAnnounceLastAt.size > 128) {
-      const oldestKey = this.staleSessionReAnnounceLastAt.keys().next().value;
-      if (oldestKey) {
-        this.staleSessionReAnnounceLastAt.delete(oldestKey);
-      }
-    }
-
-    this.log.info(
-      `Stale Matter session ignored: oldSessionId=${event.sessionId} messageId=${event.messageId ?? "<unknown>"} sourceNodeId=${event.sourceNodeId ?? "<unknown>"} destNodeId=${event.destNodeId ?? "<unknown>"} sessionType=${event.sessionType ?? "<unknown>"} reason=${event.reason ?? "unknown secure session after restart/storage switch"}`,
-    );
-    this.logMatterFabricDiagnostics(`stale session ${event.sessionId}`);
-    this.triggerMdnsReAnnounceInternal(
-      true,
-      `after stale session ${event.sessionId}${event.sourceNodeId ? ` from node ${event.sourceNodeId}` : ""}`,
-    );
   }
 
   async gracefullyCloseActiveSessionsForShutdown() {
@@ -982,11 +785,6 @@ export class Bridge {
     this.sessionDiagHandler = undefined;
     this.sessionAddedHandler = undefined;
     this.sessionDeletedHandler = undefined;
-    this.unregisterStaleSessionRecovery?.();
-    this.unregisterStaleSessionRecovery = undefined;
-    this.clearStartupMdnsReAnnounceTimers();
-    this.staleSessionReAnnounceLastAt.clear();
-    this.lastStaleSessionForcedBroadcastAt = 0;
     if (this.deadSessionTimer) {
       clearTimeout(this.deadSessionTimer);
       this.deadSessionTimer = null;

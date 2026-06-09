@@ -32,32 +32,6 @@ export function categoryFor(facility: string): string | undefined {
   return MATTER_TRAFFIC_FACILITIES.has(facility) ? "matter-traffic" : undefined;
 }
 
-const STALE_UNKNOWN_SESSION_THROTTLE_MS = 60_000;
-const staleUnknownSessionLastLog = new Map<string, number>();
-
-function shouldDropThrottledMatterLog(facility: string, text: string) {
-  if (
-    facility !== "ExchangeManager" ||
-    !text.includes(
-      "stale session after fabric removal ignored: unknown session",
-    )
-  ) {
-    return false;
-  }
-
-  const match = text.match(
-    /unknown session ([^,\s]+).*?(?:from node ([0-9a-fA-F]+))?/,
-  );
-  const key = match ? `${match[1]}:${match[2] ?? "<unknown>"}` : text;
-  const now = Date.now();
-  const last = staleUnknownSessionLastLog.get(key) ?? 0;
-  if (now - last < STALE_UNKNOWN_SESSION_THROTTLE_MS) {
-    return true;
-  }
-  staleUnknownSessionLastLog.set(key, now);
-  return false;
-}
-
 function logLevelFromString(
   level: LogLevelName | string,
 ): CustomLogLevel | MatterLogLevel {
@@ -138,7 +112,6 @@ export class LoggerService {
       write: (text, message) => {
         const category = categoryFor(message.facility);
         if (!category) return;
-        if (shouldDropThrottledMatterLog(message.facility, text)) return;
         addLogEntry({
           timestamp: message.now.toISOString(),
           level: logLevelToString(message.level).toLowerCase(),
