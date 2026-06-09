@@ -162,12 +162,17 @@ export async function startHandler(
   const gracefulShutdown = async (signal: string) => {
     if (shuttingDown) return;
     shuttingDown = true;
-    console.log(`Received ${signal}, shutting down gracefully...`);
+    console.log(`Graceful shutdown: received ${signal}`);
+    console.log("Graceful shutdown: shutdown hook started");
     try {
+      console.log(
+        "Graceful shutdown: creating auto-backup before bridge stop...",
+      );
       await Promise.race([
         backupService.createAutoBackup(),
         new Promise((resolve) => setTimeout(resolve, 5_000)),
       ]);
+      console.log("Graceful shutdown: auto-backup step complete");
     } catch (e) {
       console.warn("Auto-backup during shutdown failed:", e);
     }
@@ -184,6 +189,7 @@ export async function startHandler(
       console.warn("Graceful shutdown: bridge stop failed:", e);
     }
     try {
+      console.log("Graceful shutdown: disposing AppContainer...");
       // Dispose the whole IoC container so WebApi (releases the HTTP port),
       // HomeAssistantClient (closes the WS), and every storage service tear
       // down in reverse creation order before the process exits.
@@ -191,13 +197,23 @@ export async function startHandler(
         appEnvironment.dispose(),
         new Promise((resolve) => setTimeout(resolve, 15_000)),
       ]);
+      console.log("Graceful shutdown: AppContainer dispose complete");
     } catch (e) {
       console.warn("Error during graceful shutdown:", e);
     }
+    console.log("Graceful shutdown: process exiting");
     process.exit(0);
   };
+  console.log("Graceful shutdown: SIGTERM/SIGINT handlers registered");
   process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
   process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+  process.on("exit", (code) => {
+    if (!shuttingDown) {
+      console.warn(
+        `Graceful shutdown: process exit without shutdown hook code=${code}`,
+      );
+    }
+  });
 
   const initBridges = bridgeService.startAll();
   const initApi = webApi.start();
