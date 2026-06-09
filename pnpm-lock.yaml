@@ -25,7 +25,7 @@ patchedDependencies:
     hash: c1503d2431e7a48683e8a62fdf04f382f366238c203d1e23ba31c42f79bc51f4
     path: patches/@matter__node@0.16.11.patch
   '@matter/protocol@0.16.11':
-    hash: 3ee98b2cf411bac039895447f44e3691b82086626b5a834b31698cbacb223c02
+    hash: 8ed01184cd716d623de3735cdccac9bb78b1004a75a46efc170527da24810e9b
     path: patches/@matter__protocol@0.16.11.patch
 
 importers:
@@ -5821,7 +5821,7 @@ snapshots:
       '@matter/general': 0.16.11
       '@matter/model': 0.16.11
       '@matter/node': 0.16.11(patch_hash=c1503d2431e7a48683e8a62fdf04f382f366238c203d1e23ba31c42f79bc51f4)
-      '@matter/protocol': 0.16.11(patch_hash=3ee98b2cf411bac039895447f44e3691b82086626b5a834b31698cbacb223c02)
+      '@matter/protocol': 0.16.11(patch_hash=8ed01184cd716d623de3735cdccac9bb78b1004a75a46efc170527da24810e9b)
       '@matter/types': 0.16.11
     optionalDependencies:
       '@matter/nodejs': 0.16.11
@@ -5834,17 +5834,17 @@ snapshots:
     dependencies:
       '@matter/general': 0.16.11
       '@matter/model': 0.16.11
-      '@matter/protocol': 0.16.11(patch_hash=3ee98b2cf411bac039895447f44e3691b82086626b5a834b31698cbacb223c02)
+      '@matter/protocol': 0.16.11(patch_hash=8ed01184cd716d623de3735cdccac9bb78b1004a75a46efc170527da24810e9b)
       '@matter/types': 0.16.11
 
   '@matter/nodejs@0.16.11':
     dependencies:
       '@matter/general': 0.16.11
       '@matter/node': 0.16.11(patch_hash=c1503d2431e7a48683e8a62fdf04f382f366238c203d1e23ba31c42f79bc51f4)
-      '@matter/protocol': 0.16.11(patch_hash=3ee98b2cf411bac039895447f44e3691b82086626b5a834b31698cbacb223c02)
+      '@matter/protocol': 0.16.11(patch_hash=8ed01184cd716d623de3735cdccac9bb78b1004a75a46efc170527da24810e9b)
       '@matter/types': 0.16.11
 
-  '@matter/protocol@0.16.11(patch_hash=3ee98b2cf411bac039895447f44e3691b82086626b5a834b31698cbacb223c02)':
+  '@matter/protocol@0.16.11(patch_hash=8ed01184cd716d623de3735cdccac9bb78b1004a75a46efc170527da24810e9b)':
     dependencies:
       '@matter/general': 0.16.11
       '@matter/model': 0.16.11
