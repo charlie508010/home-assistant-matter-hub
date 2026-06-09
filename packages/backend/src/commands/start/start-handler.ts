@@ -166,6 +166,18 @@ export async function startHandler(
     console.log("Graceful shutdown: shutdown hook started");
     try {
       console.log(
+        "Graceful shutdown: closing active CASE sessions before auto-backup...",
+      );
+      await Promise.race([
+        bridgeService.closeActiveSessionsBeforeShutdown(),
+        new Promise((resolve) => setTimeout(resolve, 5_000)),
+      ]);
+      console.log("Graceful shutdown: pre-backup session close step complete");
+    } catch (e) {
+      console.warn("Graceful shutdown: pre-backup session close failed:", e);
+    }
+    try {
+      console.log(
         "Graceful shutdown: creating auto-backup before bridge stop...",
       );
       await Promise.race([

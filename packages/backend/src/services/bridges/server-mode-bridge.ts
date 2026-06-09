@@ -698,7 +698,7 @@ export class ServerModeBridge {
     );
   }
 
-  private async gracefullyCloseActiveSessionsForShutdown() {
+  async gracefullyCloseActiveSessionsForShutdown() {
     try {
       this.log.info("Graceful shutdown: closing active CASE sessions");
       const sessionManager = this.server.env.get(SessionManager);
@@ -759,7 +759,10 @@ export class ServerModeBridge {
         );
       }
     } catch (error) {
-      this.log.warn("Graceful shutdown: SessionManager unavailable", error);
+      this.log.warn(
+        "Graceful shutdown: SessionManager unavailable before bridge stop",
+        error,
+      );
     }
   }
 

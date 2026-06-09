@@ -159,6 +159,38 @@ export class BridgeService extends Service {
     );
   }
 
+  async closeActiveSessionsBeforeShutdown() {
+    this.log.info(
+      `Graceful shutdown: checking BridgeEnvironment availability bridges=${this.bridges.length}`,
+    );
+    if (this.bridges.length === 0) {
+      this.log.warn(
+        "Graceful shutdown: SessionManager unavailable before bridge stop",
+      );
+      return;
+    }
+
+    await Promise.all(
+      this.bridges.map(async (bridge) => {
+        this.log.info(
+          `Graceful shutdown: BridgeEnvironment available bridge id=${bridge.id} name=${bridge.data.name}`,
+        );
+        const closeSessions = (
+          bridge as Bridge & {
+            gracefullyCloseActiveSessionsForShutdown?: () => Promise<void>;
+          }
+        ).gracefullyCloseActiveSessionsForShutdown;
+        if (typeof closeSessions !== "function") {
+          this.log.warn(
+            "Graceful shutdown: SessionManager unavailable before bridge stop",
+          );
+          return;
+        }
+        await closeSessions.call(bridge);
+      }),
+    );
+  }
+
   async restartAll() {
     // Stop in parallel (no ordering requirement), then start sequentially
     // by priority so low-priority bridges always come up first.
