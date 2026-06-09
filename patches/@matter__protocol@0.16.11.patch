@@ -130,10 +130,10 @@ index eba2665e872fe89e13ef175fd30d1732c530ecc5..0c0d361981b54595b99e0878cd33718b
      this.#isClosing = true;
      this.#observers.close();
 diff --git a/dist/cjs/protocol/ExchangeManager.js b/dist/cjs/protocol/ExchangeManager.js
-index 9493efdf3f312303f00cf7fb64cfb4370ab60af8..adcb64d292a2a5b051eba2d9876c0166baf6f963 100644
+index 9493efdf3f312303f00cf7fb64cfb4370ab60af8..22b52238b46303f87351c9766c87691257149794 100644
 --- a/dist/cjs/protocol/ExchangeManager.js
 +++ b/dist/cjs/protocol/ExchangeManager.js
-@@ -85,6 +85,35 @@ var import_MRP = require("./MRP.js");
+@@ -85,6 +85,39 @@ var import_MRP = require("./MRP.js");
   * SPDX-License-Identifier: Apache-2.0
   */
  const logger = import_general.Logger.get("ExchangeManager");
@@ -161,7 +161,11 @@ index 9493efdf3f312303f00cf7fb64cfb4370ab60af8..adcb64d292a2a5b051eba2d9876c0166
 +  try {
 +    handler({
 +      sessionId: import_Session.Session.idStrOf(packet),
-+      sourceNodeId: packet.header.sourceNodeId !== void 0 ? import_general.hex.fixed(packet.header.sourceNodeId, 16) : void 0
++      messageId: import_general.hex.fixed(packet.header.messageId, 8),
++      sessionType: import_MessageCodec.SessionType[packet.header.sessionType] ?? String(packet.header.sessionType),
++      sourceNodeId: packet.header.sourceNodeId !== void 0 ? import_general.hex.fixed(packet.header.sourceNodeId, 16) : void 0,
++      destNodeId: packet.header.destNodeId !== void 0 ? import_general.hex.fixed(packet.header.destNodeId, 16) : void 0,
++      reason: "unknown secure session id before payload decrypt"
 +    });
 +  } catch {
 +  }
@@ -169,7 +173,7 @@ index 9493efdf3f312303f00cf7fb64cfb4370ab60af8..adcb64d292a2a5b051eba2d9876c0166
  const MAXIMUM_CONCURRENT_OUTGOING_EXCHANGES_PER_SESSION = 30;
  class ExchangeManager {
    #lifetime;
-@@ -213,13 +242,16 @@ class ExchangeManager {
+@@ -213,13 +246,16 @@ class ExchangeManager {
            });
          } else {
            session = this.#sessions.getSession(packet.header.sessionId);
@@ -338,10 +342,10 @@ index 5e8d250dbfcf96bd70027e97c9fb4a74ec43cb4d..ede69fd1cf8777960349e7b786a89d4b
      this.#isClosing = true;
      this.#observers.close();
 diff --git a/dist/esm/protocol/ExchangeManager.js b/dist/esm/protocol/ExchangeManager.js
-index 8631eb73fb8f28015b2653b92836282b0c37c896..742a2b7c482bd6dd575facab04f9585a1fe68641 100644
+index 8631eb73fb8f28015b2653b92836282b0c37c896..92d85c949a9c8bd18cd87d0065b1704d56b0bc55 100644
 --- a/dist/esm/protocol/ExchangeManager.js
 +++ b/dist/esm/protocol/ExchangeManager.js
-@@ -76,6 +76,35 @@ import { MessageExchange } from "./MessageExchange.js";
+@@ -76,6 +76,39 @@ import { MessageExchange } from "./MessageExchange.js";
  import { DuplicateMessageError } from "./MessageReceptionState.js";
  import { MRP } from "./MRP.js";
  const logger = Logger.get("ExchangeManager");
@@ -369,7 +373,11 @@ index 8631eb73fb8f28015b2653b92836282b0c37c896..742a2b7c482bd6dd575facab04f9585a
 +  try {
 +    handler({
 +      sessionId: Session.idStrOf(packet),
-+      sourceNodeId: packet.header.sourceNodeId !== void 0 ? hex.fixed(packet.header.sourceNodeId, 16) : void 0
++      messageId: hex.fixed(packet.header.messageId, 8),
++      sessionType: SessionType[packet.header.sessionType] ?? String(packet.header.sessionType),
++      sourceNodeId: packet.header.sourceNodeId !== void 0 ? hex.fixed(packet.header.sourceNodeId, 16) : void 0,
++      destNodeId: packet.header.destNodeId !== void 0 ? hex.fixed(packet.header.destNodeId, 16) : void 0,
++      reason: "unknown secure session id before payload decrypt"
 +    });
 +  } catch {
 +  }
@@ -377,7 +385,7 @@ index 8631eb73fb8f28015b2653b92836282b0c37c896..742a2b7c482bd6dd575facab04f9585a
  const MAXIMUM_CONCURRENT_OUTGOING_EXCHANGES_PER_SESSION = 30;
  class ExchangeManager {
    #lifetime;
-@@ -204,13 +233,16 @@ class ExchangeManager {
+@@ -204,13 +237,16 @@ class ExchangeManager {
            });
          } else {
            session = this.#sessions.getSession(packet.header.sessionId);
@@ -515,10 +523,10 @@ index 41963d741672344dd7314fb212c9264e1c06d23d..4d9db02772e377e30d85edf86f640138
          this.#isClosing = true;
          this.#observers.close();
 diff --git a/src/protocol/ExchangeManager.ts b/src/protocol/ExchangeManager.ts
-index 1b366af539c612e57f6709f7e83912dbf0d5fce7..4a0c02bc23bcd53e02e0b0fa6a6e7c371a874550 100644
+index 1b366af539c612e57f6709f7e83912dbf0d5fce7..ead461c4a2cc9ebcf9d87fae3b0a7bc6ebaff756 100644
 --- a/src/protocol/ExchangeManager.ts
 +++ b/src/protocol/ExchangeManager.ts
-@@ -39,6 +39,45 @@ import { MRP } from "./MRP.js";
+@@ -39,6 +39,56 @@ import { MRP } from "./MRP.js";
  import { ProtocolHandler } from "./ProtocolHandler.js";
 
  const logger = Logger.get("ExchangeManager");
@@ -544,7 +552,14 @@ index 1b366af539c612e57f6709f7e83912dbf0d5fce7..4a0c02bc23bcd53e02e0b0fa6a6e7c37
 +function notifyStaleUnknownSession(packet: Message) {
 +    const handler = (
 +        globalThis as typeof globalThis & {
-+            __HAMH_ON_STALE_MATTER_SESSION__?: (event: { sessionId: string; sourceNodeId?: string }) => void;
++            __HAMH_ON_STALE_MATTER_SESSION__?: (event: {
++                sessionId: string;
++                messageId?: string;
++                sessionType?: string;
++                sourceNodeId?: string;
++                destNodeId?: string;
++                reason?: string;
++            }) => void;
 +        }
 +    ).__HAMH_ON_STALE_MATTER_SESSION__;
 +    if (typeof handler !== "function") {
@@ -554,8 +569,12 @@ index 1b366af539c612e57f6709f7e83912dbf0d5fce7..4a0c02bc23bcd53e02e0b0fa6a6e7c37
 +    try {
 +        handler({
 +            sessionId: Session.idStrOf(packet),
++            messageId: hex.fixed(packet.header.messageId, 8),
++            sessionType: SessionType[packet.header.sessionType] ?? String(packet.header.sessionType),
 +            sourceNodeId:
 +                packet.header.sourceNodeId !== undefined ? hex.fixed(packet.header.sourceNodeId, 16) : undefined,
++            destNodeId: packet.header.destNodeId !== undefined ? hex.fixed(packet.header.destNodeId, 16) : undefined,
++            reason: "unknown secure session id before payload decrypt",
 +        });
 +    } catch {
 +        // Ignore application-level recovery hook failures in packet receive path.
@@ -564,7 +583,7 @@ index 1b366af539c612e57f6709f7e83912dbf0d5fce7..4a0c02bc23bcd53e02e0b0fa6a6e7c37
 
  /**
   * Maximum number of concurrent outgoing exchanges per session.
-@@ -194,13 +233,16 @@ export class ExchangeManager {
+@@ -194,13 +244,16 @@ export class ExchangeManager {
              }
 
              if (session === undefined) {

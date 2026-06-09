@@ -8,7 +8,11 @@ import type { Environment } from "@matter/general";
 import type { Endpoint } from "@matter/main";
 import { DescriptorServer } from "@matter/main/behaviors";
 import { CommissioningServer } from "@matter/main/node";
-import { DeviceAdvertiser, SessionManager } from "@matter/main/protocol";
+import {
+  DeviceAdvertiser,
+  FabricManager,
+  SessionManager,
+} from "@matter/main/protocol";
 import type { BetterLogger, LoggerService } from "../../core/app/logger.js";
 import { BridgeServerNode } from "../../matter/endpoints/bridge-server-node.js";
 import type {
@@ -783,10 +787,38 @@ export class Bridge {
 
   private wireStaleSessionRecovery() {
     this.unregisterStaleSessionRecovery?.();
+    this.logMatterFabricDiagnostics("startup");
     this.unregisterStaleSessionRecovery =
       registerStaleMatterSessionRecoveryHandler((event) => {
         this.triggerStaleSessionReAnnounce(event);
       });
+  }
+
+  private logMatterFabricDiagnostics(reason: string) {
+    try {
+      const fabricManager = this.server.env.get(FabricManager);
+      const fabrics = [...fabricManager];
+      if (fabrics.length === 0) {
+        this.log.warn(
+          `Matter fabric diagnostics (${reason}): no fabrics loaded`,
+        );
+        return;
+      }
+
+      this.log.info(
+        `Matter fabric diagnostics (${reason}): ${fabrics
+          .map(
+            (fabric) =>
+              `fabricIndex=${fabric.fabricIndex} fabricId=${fabric.fabricId} operationalNodeId=${fabric.nodeId} rootNodeId=${fabric.rootNodeId} globalId=${fabric.globalId}`,
+          )
+          .join("; ")}`,
+      );
+    } catch (error) {
+      this.log.debug(
+        `Matter fabric diagnostics (${reason}) unavailable`,
+        error,
+      );
+    }
   }
 
   private triggerStaleSessionReAnnounce(event: StaleMatterSessionEvent) {
@@ -813,6 +845,10 @@ export class Bridge {
       }
     }
 
+    this.log.info(
+      `Stale Matter session ignored: oldSessionId=${event.sessionId} messageId=${event.messageId ?? "<unknown>"} sourceNodeId=${event.sourceNodeId ?? "<unknown>"} destNodeId=${event.destNodeId ?? "<unknown>"} sessionType=${event.sessionType ?? "<unknown>"} reason=${event.reason ?? "unknown secure session after restart/storage switch"}`,
+    );
+    this.logMatterFabricDiagnostics(`stale session ${event.sessionId}`);
     this.triggerMdnsReAnnounceInternal(
       true,
       `after stale session ${event.sessionId}${event.sourceNodeId ? ` from node ${event.sourceNodeId}` : ""}`,

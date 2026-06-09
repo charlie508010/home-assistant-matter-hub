@@ -1,6 +1,10 @@
 export interface StaleMatterSessionEvent {
   readonly sessionId: string;
+  readonly messageId?: string;
+  readonly sessionType?: string;
   readonly sourceNodeId?: string;
+  readonly destNodeId?: string;
+  readonly reason?: string;
 }
 
 export type StaleMatterSessionRecoveryHandler = (
