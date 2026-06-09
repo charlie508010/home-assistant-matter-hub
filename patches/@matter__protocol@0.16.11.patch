@@ -89,6 +89,34 @@ index d471d7487c0dc7cafed1b8d23a62661ccb99afcd..77e6be8b24c82c13ecc6aa7066a9e8cc
      }).finally(() => {
        if (peer.activeDiscovery?.type === 1 /* RetransmissionDiscovery */) {
          peer.activeDiscovery = void 0;
+diff --git a/dist/cjs/protocol/DeviceAdvertiser.js b/dist/cjs/protocol/DeviceAdvertiser.js
+index eba2665e872fe89e13ef175fd30d1732c530ecc5..0c0d361981b54595b99e0878cd33718b7e99cc4b 100644
+--- a/dist/cjs/protocol/DeviceAdvertiser.js
++++ b/dist/cjs/protocol/DeviceAdvertiser.js
+@@ -200,6 +200,23 @@ class DeviceAdvertiser {
+     this.#startCommissioningAdvertisement();
+     this.#startOperationalAdvertisement();
+   }
++  /**
++   * Broadcast existing operational advertisements immediately.
++   *
++   * restartAdvertisement() only starts missing advertisements. Existing
++   * advertisements keep their current schedule, so recovery paths that need a
++   * packet on the wire now must call this method.
++   */
++  broadcastOperationalNow() {
++    const advertisements = this.#advertisements((ad) => ad.isOperational());
++    for (const advertisement of advertisements) {
++      logger.debug("Immediate operational re-announce", advertisement.service);
++      advertisement.broadcast().catch((error) => {
++        logger.warn("Failed to send immediate operational re-announce", error);
++      });
++    }
++    return advertisements.length;
++  }
+   async close() {
+     this.#isClosing = true;
+     this.#observers.close();
 diff --git a/dist/cjs/protocol/ExchangeManager.js b/dist/cjs/protocol/ExchangeManager.js
 index 9493efdf3f312303f00cf7fb64cfb4370ab60af8..adcb64d292a2a5b051eba2d9876c0166baf6f963 100644
 --- a/dist/cjs/protocol/ExchangeManager.js
@@ -257,6 +285,34 @@ index 3094eb5f1d6ebb637d3fef232507dec7a60b43a4..9c1900c62cf03c9704606eda9626aabd
      }).finally(() => {
        if (peer.activeDiscovery?.type === 1 /* RetransmissionDiscovery */) {
          peer.activeDiscovery = void 0;
+diff --git a/dist/esm/protocol/DeviceAdvertiser.js b/dist/esm/protocol/DeviceAdvertiser.js
+index 5e8d250dbfcf96bd70027e97c9fb4a74ec43cb4d..ede69fd1cf8777960349e7b786a89d4b28923a2a 100644
+--- a/dist/esm/protocol/DeviceAdvertiser.js
++++ b/dist/esm/protocol/DeviceAdvertiser.js
+@@ -177,6 +177,23 @@ class DeviceAdvertiser {
+     this.#startCommissioningAdvertisement();
+     this.#startOperationalAdvertisement();
+   }
++  /**
++   * Broadcast existing operational advertisements immediately.
++   *
++   * restartAdvertisement() only starts missing advertisements. Existing
++   * advertisements keep their current schedule, so recovery paths that need a
++   * packet on the wire now must call this method.
++   */
++  broadcastOperationalNow() {
++    const advertisements = this.#advertisements((ad) => ad.isOperational());
++    for (const advertisement of advertisements) {
++      logger.debug("Immediate operational re-announce", advertisement.service);
++      advertisement.broadcast().catch((error) => {
++        logger.warn("Failed to send immediate operational re-announce", error);
++      });
++    }
++    return advertisements.length;
++  }
+   async close() {
+     this.#isClosing = true;
+     this.#observers.close();
 diff --git a/dist/esm/protocol/ExchangeManager.js b/dist/esm/protocol/ExchangeManager.js
 index 8631eb73fb8f28015b2653b92836282b0c37c896..742a2b7c482bd6dd575facab04f9585a1fe68641 100644
 --- a/dist/esm/protocol/ExchangeManager.js
@@ -393,6 +449,35 @@ index daefb362bf99cb7acf0a9cffdc79592b65c9cbee..68f381736988dbc4fe99bcdb26c600f5
              })
              .finally(() => {
                  if (peer.activeDiscovery?.type === NodeDiscoveryType.RetransmissionDiscovery) {
+diff --git a/src/protocol/DeviceAdvertiser.ts b/src/protocol/DeviceAdvertiser.ts
+index 41963d741672344dd7314fb212c9264e1c06d23d..4d9db02772e377e30d85edf86f640138512dce85 100644
+--- a/src/protocol/DeviceAdvertiser.ts
++++ b/src/protocol/DeviceAdvertiser.ts
+@@ -249,6 +249,24 @@ export class DeviceAdvertiser {
+         this.#startOperationalAdvertisement();
+     }
+
++    /**
++     * Broadcast existing operational advertisements immediately.
++     *
++     * restartAdvertisement() only starts missing advertisements. Existing
++     * advertisements keep their current schedule, so recovery paths that need a
++     * packet on the wire now must call this method.
++     */
++    broadcastOperationalNow() {
++        const advertisements = this.#advertisements(ad => ad.isOperational());
++        for (const advertisement of advertisements) {
++            logger.debug("Immediate operational re-announce", advertisement.service);
++            advertisement.broadcast().catch(error => {
++                logger.warn("Failed to send immediate operational re-announce", error);
++            });
++        }
++        return advertisements.length;
++    }
++
+     async close() {
+         this.#isClosing = true;
+         this.#observers.close();
 diff --git a/src/protocol/ExchangeManager.ts b/src/protocol/ExchangeManager.ts
 index 1b366af539c612e57f6709f7e83912dbf0d5fce7..4a0c02bc23bcd53e02e0b0fa6a6e7c371a874550 100644
 --- a/src/protocol/ExchangeManager.ts

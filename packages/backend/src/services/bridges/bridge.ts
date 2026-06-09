@@ -736,10 +736,26 @@ export class Bridge {
       }
       this.lastMdnsReAnnounceAt = now;
       const advertiser = this.server.env.get(DeviceAdvertiser);
-      advertiser.restartAdvertisement();
+      const immediateBroadcasts =
+        force &&
+        typeof (
+          advertiser as DeviceAdvertiser & {
+            broadcastOperationalNow?: () => number;
+          }
+        ).broadcastOperationalNow === "function"
+          ? (
+              advertiser as DeviceAdvertiser & {
+                broadcastOperationalNow: () => number;
+              }
+            ).broadcastOperationalNow()
+          : 0;
+
+      if (!force || immediateBroadcasts === 0) {
+        advertiser.restartAdvertisement();
+      }
       this.log.info(
         force
-          ? "Triggered startup mDNS re-announcement"
+          ? `Triggered immediate mDNS operational broadcast (${immediateBroadcasts} advertisement(s))`
           : "Triggered mDNS re-announcement after session cleanup",
       );
     } catch {
