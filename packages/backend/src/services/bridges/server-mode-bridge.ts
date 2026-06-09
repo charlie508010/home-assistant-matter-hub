@@ -88,6 +88,7 @@ const DEAD_SESSION_CLEANUP_ENABLED = DEAD_SESSION_TIMEOUT_MS > 0;
 const MDNS_REANNOUNCE_THROTTLE_MS = 60_000;
 const STARTUP_MDNS_REANNOUNCE_DELAYS_MS = [0, 2_000, 5_000];
 const STALE_SESSION_REANNOUNCE_THROTTLE_MS = 10_000;
+const SHUTDOWN_SESSION_CLOSE_TIMEOUT_MS = 2_500;
 
 // Rotate sessions so iPhone re-subscribes and the tile unsticks (#287).
 export const DEFAULT_SESSION_MAX_AGE_HOURS = 4;
@@ -277,6 +278,7 @@ export class ServerModeBridge {
     this.unwireSessionDiagnostics();
     this.cancelWarmStart();
     this.stopAutoForceSync();
+    await this.gracefullyCloseActiveSessionsForShutdown();
     this.endpointManager.stopObserving();
     try {
       await this.server.cancel();
@@ -694,6 +696,63 @@ export class ServerModeBridge {
       true,
       `after stale session ${event.sessionId}${event.sourceNodeId ? ` from node ${event.sourceNodeId}` : ""}`,
     );
+  }
+
+  private async gracefullyCloseActiveSessionsForShutdown() {
+    try {
+      const sessionManager = this.server.env.get(SessionManager);
+      const sessions = [...sessionManager.sessions].filter((s) => !s.isClosing);
+
+      if (sessions.length === 0) {
+        return;
+      }
+
+      this.log.info(
+        `Gracefully closing ${sessions.length} Matter CASE session(s) before shutdown`,
+      );
+
+      const closes = sessions.map(async (s) => {
+        const subscriptions = s.subscriptions.size;
+        this.log.debug(
+          `Closing Matter CASE session ${s.id} (peer ${s.peerNodeId}${getAlexaPeerLogSuffix(s.peerNodeId)}, subscriptions=${subscriptions}) before shutdown`,
+        );
+        try {
+          await s.initiateClose(async () => {
+            const closedSubscriptions = await s.closeSubscriptions(true);
+            if (closedSubscriptions > 0) {
+              this.log.debug(
+                `Closed ${closedSubscriptions} subscription(s) for session ${s.id} before shutdown`,
+              );
+            }
+          });
+        } catch (error) {
+          this.log.debug(
+            `Graceful shutdown close failed for session ${s.id}, force-closing locally`,
+            error,
+          );
+          await s.initiateForceClose().catch(() => {});
+        }
+      });
+
+      const result = await Promise.race([
+        Promise.allSettled(closes),
+        new Promise<"timeout">((resolve) =>
+          setTimeout(resolve, SHUTDOWN_SESSION_CLOSE_TIMEOUT_MS, "timeout"),
+        ),
+      ]);
+
+      if (result === "timeout") {
+        this.log.warn(
+          `Timed out after ${SHUTDOWN_SESSION_CLOSE_TIMEOUT_MS}ms while closing Matter CASE sessions before shutdown`,
+        );
+      } else {
+        this.log.info(
+          `Graceful shutdown Matter session close completed (${sessions.length} session(s))`,
+        );
+      }
+    } catch {
+      // SessionManager may not be available if startup failed early.
+    }
   }
 
   private unwireSessionDiagnostics() {
