@@ -130,7 +130,7 @@ index eba2665e872fe89e13ef175fd30d1732c530ecc5..0c0d361981b54595b99e0878cd33718b
      this.#isClosing = true;
      this.#observers.close();
 diff --git a/dist/cjs/protocol/ExchangeManager.js b/dist/cjs/protocol/ExchangeManager.js
-index 9493efdf3f312303f00cf7fb64cfb4370ab60af8..22b52238b46303f87351c9766c87691257149794 100644
+index 9493efdf3f312303f00cf7fb64cfb4370ab60af8..0b5bfe502a0f38a86e7629ca2d44b0f3c750635c 100644
 --- a/dist/cjs/protocol/ExchangeManager.js
 +++ b/dist/cjs/protocol/ExchangeManager.js
 @@ -85,6 +85,39 @@ var import_MRP = require("./MRP.js");
@@ -165,7 +165,7 @@ index 9493efdf3f312303f00cf7fb64cfb4370ab60af8..22b52238b46303f87351c9766c876912
 +      sessionType: import_MessageCodec.SessionType[packet.header.sessionType] ?? String(packet.header.sessionType),
 +      sourceNodeId: packet.header.sourceNodeId !== void 0 ? import_general.hex.fixed(packet.header.sourceNodeId, 16) : void 0,
 +      destNodeId: packet.header.destNodeId !== void 0 ? import_general.hex.fixed(packet.header.destNodeId, 16) : void 0,
-+      reason: "unknown secure session id before payload decrypt"
++      reason: "unknown secure session id before payload decrypt; cannot send Matter StatusReport/Close because the old session key is unavailable"
 +    });
 +  } catch {
 +  }
@@ -189,7 +189,7 @@ index 9493efdf3f312303f00cf7fb64cfb4370ab60af8..22b52238b46303f87351c9766c876912
 +      notifyStaleUnknownSession(packet);
 +      if (shouldLogStaleUnknownSession(packet)) {
 +        logger.debug(
-+          `stale session after fabric removal ignored: unknown session ${import_Session.Session.idStrOf(packet)}${packet.header.sourceNodeId !== void 0 ? ` from node ${import_general.hex.fixed(packet.header.sourceNodeId, 16)}` : ""}`
++          `stale session after fabric removal ignored: unknown session ${import_Session.Session.idStrOf(packet)}${packet.header.sourceNodeId !== void 0 ? ` from node ${import_general.hex.fixed(packet.header.sourceNodeId, 16)}` : ""}; no Matter StatusReport/Close sent because the old secure session key is unavailable before payload decrypt`
 +        );
 +      }
 +      return;
@@ -363,7 +363,7 @@ index 5e8d250dbfcf96bd70027e97c9fb4a74ec43cb4d..ede69fd1cf8777960349e7b786a89d4b
      this.#isClosing = true;
      this.#observers.close();
 diff --git a/dist/esm/protocol/ExchangeManager.js b/dist/esm/protocol/ExchangeManager.js
-index 8631eb73fb8f28015b2653b92836282b0c37c896..92d85c949a9c8bd18cd87d0065b1704d56b0bc55 100644
+index 8631eb73fb8f28015b2653b92836282b0c37c896..356a7b89ab1e113c1408c8b6e1871ccd14403bb4 100644
 --- a/dist/esm/protocol/ExchangeManager.js
 +++ b/dist/esm/protocol/ExchangeManager.js
 @@ -76,6 +76,39 @@ import { MessageExchange } from "./MessageExchange.js";
@@ -398,7 +398,7 @@ index 8631eb73fb8f28015b2653b92836282b0c37c896..92d85c949a9c8bd18cd87d0065b1704d
 +      sessionType: SessionType[packet.header.sessionType] ?? String(packet.header.sessionType),
 +      sourceNodeId: packet.header.sourceNodeId !== void 0 ? hex.fixed(packet.header.sourceNodeId, 16) : void 0,
 +      destNodeId: packet.header.destNodeId !== void 0 ? hex.fixed(packet.header.destNodeId, 16) : void 0,
-+      reason: "unknown secure session id before payload decrypt"
++      reason: "unknown secure session id before payload decrypt; cannot send Matter StatusReport/Close because the old session key is unavailable"
 +    });
 +  } catch {
 +  }
@@ -422,7 +422,7 @@ index 8631eb73fb8f28015b2653b92836282b0c37c896..92d85c949a9c8bd18cd87d0065b1704d
 +      notifyStaleUnknownSession(packet);
 +      if (shouldLogStaleUnknownSession(packet)) {
 +        logger.debug(
-+          `stale session after fabric removal ignored: unknown session ${Session.idStrOf(packet)}${packet.header.sourceNodeId !== void 0 ? ` from node ${hex.fixed(packet.header.sourceNodeId, 16)}` : ""}`
++          `stale session after fabric removal ignored: unknown session ${Session.idStrOf(packet)}${packet.header.sourceNodeId !== void 0 ? ` from node ${hex.fixed(packet.header.sourceNodeId, 16)}` : ""}; no Matter StatusReport/Close sent because the old secure session key is unavailable before payload decrypt`
 +        );
 +      }
 +      return;
@@ -565,7 +565,7 @@ index 41963d741672344dd7314fb212c9264e1c06d23d..4d9db02772e377e30d85edf86f640138
          this.#isClosing = true;
          this.#observers.close();
 diff --git a/src/protocol/ExchangeManager.ts b/src/protocol/ExchangeManager.ts
-index 1b366af539c612e57f6709f7e83912dbf0d5fce7..ead461c4a2cc9ebcf9d87fae3b0a7bc6ebaff756 100644
+index 1b366af539c612e57f6709f7e83912dbf0d5fce7..8a4a544dd7e284b57bab028fb4b501f3f9bdd9c9 100644
 --- a/src/protocol/ExchangeManager.ts
 +++ b/src/protocol/ExchangeManager.ts
 @@ -39,6 +39,56 @@ import { MRP } from "./MRP.js";
@@ -616,7 +616,7 @@ index 1b366af539c612e57f6709f7e83912dbf0d5fce7..ead461c4a2cc9ebcf9d87fae3b0a7bc6
 +            sourceNodeId:
 +                packet.header.sourceNodeId !== undefined ? hex.fixed(packet.header.sourceNodeId, 16) : undefined,
 +            destNodeId: packet.header.destNodeId !== undefined ? hex.fixed(packet.header.destNodeId, 16) : undefined,
-+            reason: "unknown secure session id before payload decrypt",
++            reason: "unknown secure session id before payload decrypt; cannot send Matter StatusReport/Close because the old session key is unavailable",
 +        });
 +    } catch {
 +        // Ignore application-level recovery hook failures in packet receive path.
@@ -643,7 +643,7 @@ index 1b366af539c612e57f6709f7e83912dbf0d5fce7..ead461c4a2cc9ebcf9d87fae3b0a7bc6
 +                            packet.header.sourceNodeId !== undefined
 +                                ? ` from node ${hex.fixed(packet.header.sourceNodeId, 16)}`
 +                                : ""
-+                        }`,
++                        }; no Matter StatusReport/Close sent because the old secure session key is unavailable before payload decrypt`,
 +                    );
 +                }
                  return;
