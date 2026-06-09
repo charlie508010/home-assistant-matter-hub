@@ -599,6 +599,7 @@ export class ServerModeBridge {
   private logMatterFabricDiagnostics(reason: string) {
     try {
       const fabricManager = this.server.env.get(FabricManager);
+      const sessionManager = this.server.env.get(SessionManager);
       const fabrics = [...fabricManager];
       if (fabrics.length === 0) {
         this.log.warn(
@@ -614,6 +615,42 @@ export class ServerModeBridge {
               `fabricIndex=${fabric.fabricIndex} fabricId=${fabric.fabricId} operationalNodeId=${fabric.nodeId} rootNodeId=${fabric.rootNodeId} globalId=${fabric.globalId}`,
           )
           .join("; ")}`,
+      );
+      const resumptionRecords =
+        typeof (
+          sessionManager as SessionManager & {
+            getResumptionRecordDiagnostics?: () => Array<{
+              nodeId: unknown;
+              peerNodeId: unknown;
+              fabricId: unknown;
+              fabricIndex: unknown;
+              hasMatchingFabric: unknown;
+            }>;
+          }
+        ).getResumptionRecordDiagnostics === "function"
+          ? (
+              sessionManager as SessionManager & {
+                getResumptionRecordDiagnostics: () => Array<{
+                  nodeId: unknown;
+                  peerNodeId: unknown;
+                  fabricId: unknown;
+                  fabricIndex: unknown;
+                  hasMatchingFabric: unknown;
+                }>;
+              }
+            ).getResumptionRecordDiagnostics()
+          : [];
+      this.log.info(
+        `Matter CASE resumption diagnostics (${reason}): count=${resumptionRecords.length}${
+          resumptionRecords.length
+            ? ` ${resumptionRecords
+                .map(
+                  (record) =>
+                    `fabricIndex=${record.fabricIndex} fabricId=${record.fabricId} nodeId=${record.nodeId} peerNodeId=${record.peerNodeId} hasMatchingFabric=${record.hasMatchingFabric}`,
+                )
+                .join("; ")}`
+            : ""
+        }`,
       );
     } catch (error) {
       this.log.debug(

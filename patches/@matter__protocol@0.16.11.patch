@@ -197,6 +197,27 @@ index 9493efdf3f312303f00cf7fb64cfb4370ab60af8..22b52238b46303f87351c9766c876912
          message = session.decode(packet, aad);
          try {
            session.updateMessageCounter(messageId);
+diff --git a/dist/cjs/session/SessionManager.js b/dist/cjs/session/SessionManager.js
+index f574cadaa8cf4e1bc3a36253d9e8b06a014a862f..bf36f6ed2b89f43128bfe18936e6954c325ddc66 100644
+--- a/dist/cjs/session/SessionManager.js
++++ b/dist/cjs/session/SessionManager.js
+@@ -421,6 +421,16 @@ class SessionManager {
+       return this.#asExposedResumptionRecord(record);
+     }
+   }
++  getResumptionRecordDiagnostics() {
++    this.#construction.assert();
++    return [...this.#resumptionRecords].map(([address, record]) => ({
++      nodeId: address.nodeId,
++      peerNodeId: record.peerNodeId,
++      fabricId: record.fabricId,
++      fabricIndex: record.fabricIndex,
++      hasMatchingFabric: this.#maybeFabricForId(record.fabricId, record.fabricIndex) !== void 0
++    }));
++  }
+   async saveResumptionRecord(resumptionRecord) {
+     await this.#construction;
+     const { fabric, ...rest } = resumptionRecord;
 diff --git a/dist/cjs/session/case/CaseServer.js b/dist/cjs/session/case/CaseServer.js
 index 6f7ab08b67e7d23fea33b337a413672ec83a1465..e276947e9c7b7ea5ebced658ba874aba1b8f6c14 100644
 --- a/dist/cjs/session/case/CaseServer.js
@@ -409,6 +430,27 @@ index 8631eb73fb8f28015b2653b92836282b0c37c896..92d85c949a9c8bd18cd87d0065b1704d
          message = session.decode(packet, aad);
          try {
            session.updateMessageCounter(messageId);
+diff --git a/dist/esm/session/SessionManager.js b/dist/esm/session/SessionManager.js
+index acb3fa14a5da780f92eff6531628b70ada51e2e4..40268296435a8c40c70992f0e75e40036d5109dd 100644
+--- a/dist/esm/session/SessionManager.js
++++ b/dist/esm/session/SessionManager.js
+@@ -414,6 +414,16 @@ class SessionManager {
+       return this.#asExposedResumptionRecord(record);
+     }
+   }
++  getResumptionRecordDiagnostics() {
++    this.#construction.assert();
++    return [...this.#resumptionRecords].map(([address, record]) => ({
++      nodeId: address.nodeId,
++      peerNodeId: record.peerNodeId,
++      fabricId: record.fabricId,
++      fabricIndex: record.fabricIndex,
++      hasMatchingFabric: this.#maybeFabricForId(record.fabricId, record.fabricIndex) !== void 0
++    }));
++  }
+   async saveResumptionRecord(resumptionRecord) {
+     await this.#construction;
+     const { fabric, ...rest } = resumptionRecord;
 diff --git a/dist/esm/session/case/CaseServer.js b/dist/esm/session/case/CaseServer.js
 index 3d840b6a8bdda7164f4b9ae0d7123d3c5faae4eb..ba833c173351771210c4f457cc7d1878daacdddb 100644
 --- a/dist/esm/session/case/CaseServer.js
@@ -607,6 +649,28 @@ index 1b366af539c612e57f6709f7e83912dbf0d5fce7..ead461c4a2cc9ebcf9d87fae3b0a7bc6
                  return;
              }
 
+diff --git a/src/session/SessionManager.ts b/src/session/SessionManager.ts
+index cf56f989204817ce7922e1e31b2708d10963f059..30788c20692e546a7c214b3a1c16af66cb9cd7ef 100644
+--- a/src/session/SessionManager.ts
++++ b/src/session/SessionManager.ts
+@@ -583,6 +583,17 @@ export class SessionManager {
+         }
+     }
+
++    getResumptionRecordDiagnostics() {
++        this.#construction.assert();
++        return [...this.#resumptionRecords].map(([address, record]) => ({
++            nodeId: address.nodeId,
++            peerNodeId: record.peerNodeId,
++            fabricId: record.fabricId,
++            fabricIndex: record.fabricIndex,
++            hasMatchingFabric: this.#maybeFabricForId(record.fabricId, record.fabricIndex) !== undefined,
++        }));
++    }
++
+     async saveResumptionRecord(resumptionRecord: ResumptionRecord) {
+         await this.#construction;
+         const { fabric, ...rest } = resumptionRecord;
 diff --git a/src/session/case/CaseServer.ts b/src/session/case/CaseServer.ts
 index ce1177a4bac2ecdaaf9e618d72cb047af4ff8719..77600f8c81e3673d5c5814355f039292bbb7bd8b 100644
 --- a/src/session/case/CaseServer.ts
