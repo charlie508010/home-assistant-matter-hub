@@ -93,7 +93,7 @@ const DEAD_SESSION_TIMEOUT_MS = 1_000;
 const DEAD_SESSION_CLEANUP_ENABLED = DEAD_SESSION_TIMEOUT_MS > 0;
 const MDNS_REANNOUNCE_THROTTLE_MS = 60_000;
 const STARTUP_MDNS_REANNOUNCE_DELAYS_MS = [0, 1_500, 5_000];
-const STALE_SESSION_REANNOUNCE_THROTTLE_MS = 5_000;
+const STALE_SESSION_REANNOUNCE_THROTTLE_MS = 10_000;
 
 export class Bridge {
   private readonly log: BetterLogger;
@@ -114,6 +114,7 @@ export class Bridge {
   private staleSessionTimers = new Map<number, ReturnType<typeof setTimeout>>();
   private startupMdnsReAnnounceTimers: ReturnType<typeof setTimeout>[] = [];
   private staleSessionReAnnounceLastAt = new Map<string, number>();
+  private lastStaleSessionForcedBroadcastAt = 0;
   private unregisterStaleSessionRecovery?: () => void;
   private lastMdnsReAnnounceAt = 0;
 
@@ -722,7 +723,7 @@ export class Bridge {
     return this.triggerMdnsReAnnounceInternal(false);
   }
 
-  private triggerMdnsReAnnounceInternal(force: boolean) {
+  private triggerMdnsReAnnounceInternal(force: boolean, reason?: string) {
     try {
       const now = Date.now();
       if (
@@ -755,7 +756,7 @@ export class Bridge {
       }
       this.log.info(
         force
-          ? `Triggered immediate mDNS operational broadcast (${immediateBroadcasts} advertisement(s))`
+          ? `Forced operational mDNS broadcast ${reason ?? "after startup"} (${immediateBroadcasts} advertisement(s))`
           : "Triggered mDNS re-announcement after session cleanup",
       );
     } catch {
@@ -768,7 +769,7 @@ export class Bridge {
     this.startupMdnsReAnnounceTimers = STARTUP_MDNS_REANNOUNCE_DELAYS_MS.map(
       (delay) =>
         setTimeout(() => {
-          this.triggerMdnsReAnnounceInternal(true);
+          this.triggerMdnsReAnnounceInternal(true, "after startup");
         }, delay),
     );
   }
@@ -791,11 +792,19 @@ export class Bridge {
   private triggerStaleSessionReAnnounce(event: StaleMatterSessionEvent) {
     const key = `${event.sessionId}:${event.sourceNodeId ?? "<unknown>"}`;
     const now = Date.now();
+    if (
+      now - this.lastStaleSessionForcedBroadcastAt <
+      STALE_SESSION_REANNOUNCE_THROTTLE_MS
+    ) {
+      return;
+    }
+
     const lastReAnnounceAt = this.staleSessionReAnnounceLastAt.get(key) ?? 0;
     if (now - lastReAnnounceAt < STALE_SESSION_REANNOUNCE_THROTTLE_MS) {
       return;
     }
 
+    this.lastStaleSessionForcedBroadcastAt = now;
     this.staleSessionReAnnounceLastAt.set(key, now);
     if (this.staleSessionReAnnounceLastAt.size > 128) {
       const oldestKey = this.staleSessionReAnnounceLastAt.keys().next().value;
@@ -804,10 +813,10 @@ export class Bridge {
       }
     }
 
-    this.log.info(
-      `Triggered mDNS re-announcement after stale session ${event.sessionId}${event.sourceNodeId ? ` from node ${event.sourceNodeId}` : ""}`,
+    this.triggerMdnsReAnnounceInternal(
+      true,
+      `after stale session ${event.sessionId}${event.sourceNodeId ? ` from node ${event.sourceNodeId}` : ""}`,
     );
-    this.triggerMdnsReAnnounceInternal(true);
   }
 
   private unwireSessionDiagnostics() {
@@ -832,6 +841,7 @@ export class Bridge {
     this.unregisterStaleSessionRecovery = undefined;
     this.clearStartupMdnsReAnnounceTimers();
     this.staleSessionReAnnounceLastAt.clear();
+    this.lastStaleSessionForcedBroadcastAt = 0;
     if (this.deadSessionTimer) {
       clearTimeout(this.deadSessionTimer);
       this.deadSessionTimer = null;

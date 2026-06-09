@@ -1,3 +1,15 @@
+diff --git a/dist/cjs/advertisement/mdns/MdnsAdvertisement.js b/dist/cjs/advertisement/mdns/MdnsAdvertisement.js
+index 6227f95ad00a6236564a735cec58b9f4a91268fe..45ddb1426ca7c23a0a646ce587e891a735365f8d 100644
+--- a/dist/cjs/advertisement/mdns/MdnsAdvertisement.js
++++ b/dist/cjs/advertisement/mdns/MdnsAdvertisement.js
+@@ -74,6 +74,7 @@ class MdnsAdvertisement extends import_Advertisement.Advertisement {
+     if (this.#broadcastPromise !== void 0) {
+       return this.#broadcastPromise;
+     }
++    logger.debug("Broadcast", this.dict({ number: "forced", next: "immediate" }));
+     this.#broadcastPromise = this.#broadcast().then(() => {
+       this.#broadcastPromise = void 0;
+     });
 diff --git a/dist/cjs/certificate/kinds/OperationalBase.js b/dist/cjs/certificate/kinds/OperationalBase.js
 index 76e49221732642f933a1a776af45137c67dab5e2..f9e43bb3bd0d73d5f83c45b70b6ec2f04cab8717 100644
 --- a/dist/cjs/certificate/kinds/OperationalBase.js
@@ -194,6 +206,18 @@ index 6f7ab08b67e7d23fea33b337a413672ec83a1465..e276947e9c7b7ea5ebced658ba874aba
          await messenger.sendError(import_types.SecureChannelStatusCode.NoSharedTrustRoots);
        } else if (!(error instanceof import_SecureChannelMessenger.ChannelStatusResponseError)) {
          logger.error("Error establishing CASE session", error);
+diff --git a/dist/esm/advertisement/mdns/MdnsAdvertisement.js b/dist/esm/advertisement/mdns/MdnsAdvertisement.js
+index f78fdef9f825e164df6d02c3f701047d1b02f7e7..2ac594e6fac78d17d3d2511dbe314f3ae5709a49 100644
+--- a/dist/esm/advertisement/mdns/MdnsAdvertisement.js
++++ b/dist/esm/advertisement/mdns/MdnsAdvertisement.js
+@@ -60,6 +60,7 @@ class MdnsAdvertisement extends Advertisement {
+     if (this.#broadcastPromise !== void 0) {
+       return this.#broadcastPromise;
+     }
++    logger.debug("Broadcast", this.dict({ number: "forced", next: "immediate" }));
+     this.#broadcastPromise = this.#broadcast().then(() => {
+       this.#broadcastPromise = void 0;
+     });
 diff --git a/dist/esm/certificate/kinds/OperationalBase.js b/dist/esm/certificate/kinds/OperationalBase.js
 index 59ee05a68e2e26fc19d68587d1476031ac6d46b0..541cee8e40605f312a27f49e9ba5e2311eb61ec9 100644
 --- a/dist/esm/certificate/kinds/OperationalBase.js
@@ -390,6 +414,18 @@ index 3d840b6a8bdda7164f4b9ae0d7123d3c5faae4eb..ba833c173351771210c4f457cc7d1878
          await messenger.sendError(SecureChannelStatusCode.NoSharedTrustRoots);
        } else if (!(error instanceof ChannelStatusResponseError)) {
          logger.error("Error establishing CASE session", error);
+diff --git a/src/advertisement/mdns/MdnsAdvertisement.ts b/src/advertisement/mdns/MdnsAdvertisement.ts
+index 4000e3e9ec34c6819b9431fd356ea1db118519b2..337fe94fee88aa8515a9a07fa00b583580fdfb61 100644
+--- a/src/advertisement/mdns/MdnsAdvertisement.ts
++++ b/src/advertisement/mdns/MdnsAdvertisement.ts
+@@ -85,6 +85,7 @@ export abstract class MdnsAdvertisement<T extends ServiceDescription = ServiceDe
+             return this.#broadcastPromise;
+         }
+
++        logger.debug("Broadcast", this.dict({ number: "forced", next: "immediate" }));
+         this.#broadcastPromise = this.#broadcast().then(() => {
+             this.#broadcastPromise = undefined;
+         });
 diff --git a/src/fabric/Fabric.ts b/src/fabric/Fabric.ts
 index 1bdfed0651b0f78f03ce0194c58fe3a8c0e02227..da4887c5d016ee66cc6f708a6bb7614f82d4d391 100644
 --- a/src/fabric/Fabric.ts
