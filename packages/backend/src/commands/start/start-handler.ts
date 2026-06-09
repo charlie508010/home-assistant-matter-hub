@@ -172,6 +172,18 @@ export async function startHandler(
       console.warn("Auto-backup during shutdown failed:", e);
     }
     try {
+      console.log(
+        "Graceful shutdown: stopping bridges before AppContainer dispose...",
+      );
+      await Promise.race([
+        bridgeService.stopAll(),
+        new Promise((resolve) => setTimeout(resolve, 10_000)),
+      ]);
+      console.log("Graceful shutdown: bridge stop complete");
+    } catch (e) {
+      console.warn("Graceful shutdown: bridge stop failed:", e);
+    }
+    try {
       // Dispose the whole IoC container so WebApi (releases the HTTP port),
       // HomeAssistantClient (closes the WS), and every storage service tear
       // down in reverse creation order before the process exits.
