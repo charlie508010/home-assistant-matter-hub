@@ -96,7 +96,7 @@ function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
 const DEAD_SESSION_TIMEOUT_MS = 1_000;
 const DEAD_SESSION_CLEANUP_ENABLED = DEAD_SESSION_TIMEOUT_MS > 0;
 const MDNS_REANNOUNCE_THROTTLE_MS = 60_000;
-const STARTUP_MDNS_REANNOUNCE_DELAYS_MS = [0, 1_500, 5_000];
+const STARTUP_MDNS_REANNOUNCE_DELAYS_MS = [0, 2_000, 5_000];
 const STALE_SESSION_REANNOUNCE_THROTTLE_MS = 10_000;
 
 export class Bridge {
@@ -439,9 +439,9 @@ export class Bridge {
       ensureCommissioningConfig(this.server);
       await this.server.start();
       this.wireStaleSessionRecovery();
-      this.scheduleStartupMdnsReAnnounce();
       await this.endpointManager.startPlugins();
       this.setStatus({ code: BridgeStatus.Running });
+      this.scheduleStartupMdnsReAnnounce();
       this.startAutoForceSyncIfEnabled();
 
       // Force sync immediately on startup to push current HA state to controllers
@@ -758,11 +758,13 @@ export class Bridge {
       if (!force || immediateBroadcasts === 0) {
         advertiser.restartAdvertisement();
       }
-      this.log.info(
-        force
-          ? `Forced operational mDNS broadcast ${reason ?? "after startup"} (${immediateBroadcasts} advertisement(s))`
-          : "Triggered mDNS re-announcement after session cleanup",
-      );
+      const logMessage =
+        reason === "startup"
+          ? `Forced startup operational mDNS broadcast (${immediateBroadcasts} advertisement(s))`
+          : force
+            ? `Forced operational mDNS broadcast ${reason ?? "after startup"} (${immediateBroadcasts} advertisement(s))`
+            : "Triggered mDNS re-announcement after session cleanup";
+      this.log.info(logMessage);
     } catch {
       // DeviceAdvertiser may not be available
     }
@@ -773,7 +775,7 @@ export class Bridge {
     this.startupMdnsReAnnounceTimers = STARTUP_MDNS_REANNOUNCE_DELAYS_MS.map(
       (delay) =>
         setTimeout(() => {
-          this.triggerMdnsReAnnounceInternal(true, "after startup");
+          this.triggerMdnsReAnnounceInternal(true, "startup");
         }, delay),
     );
   }
