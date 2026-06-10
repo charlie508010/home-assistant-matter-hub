@@ -374,9 +374,10 @@ export default class TestPlugin {
         registered.push(device);
       };
 
-      await pm.loadExternal(pluginDir, {});
+      const loaded = await pm.loadExternal(pluginDir, {});
       await pm.startAll();
 
+      expect(loaded).toBe(true);
       expect(registered).toHaveLength(1);
       expect(registered[0].id).toBe("ext-dev-1");
       expect(pm.getMetadata()[0].source).toBe(pluginDir);
@@ -400,9 +401,11 @@ export default class TestPlugin {
 
       const pm = new PluginManager("bridge-1", storageDir);
 
-      await pm.loadExternal(pluginDir, {});
-      await pm.loadExternal(pluginDir, {});
+      const firstLoad = await pm.loadExternal(pluginDir, {});
+      const secondLoad = await pm.loadExternal(pluginDir, {});
 
+      expect(firstLoad).toBe(true);
+      expect(secondLoad).toBe(false);
       expect(pm.getMetadata()).toHaveLength(1);
       expect(pm.getMetadata()[0].name).toBe("temp-plugin");
     });

@@ -123,7 +123,7 @@ export class PluginManager {
   async loadExternal(
     packagePath: string,
     config: Record<string, unknown>,
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       // Validate manifest before executing any plugin code
       const pkgJsonPath = path.join(packagePath, "package.json");
@@ -159,7 +159,7 @@ export class PluginManager {
         logger.debug(
           `External plugin "${manifest.name}" is already registered, skipping load from ${packagePath}`,
         );
-        return;
+        return false;
       }
 
       const module = await this.runner.run(
@@ -192,6 +192,7 @@ export class PluginManager {
       };
 
       await this.register(plugin, metadata);
+      return true;
     } catch (e) {
       logger.error(`Failed to load external plugin from ${packagePath}:`, e);
       throw e;

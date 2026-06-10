@@ -236,10 +236,19 @@ export class BridgeEndpointManager extends Service {
       if (!entry.autoLoad) continue;
       const packagePath = this.pluginInstaller.getPluginPath(entry.packageName);
       try {
-        await this.pluginManager.loadExternal(packagePath, entry.config);
-        this.log.info(
-          `Loaded external plugin: ${entry.packageName} from ${packagePath}`,
+        const loaded = await this.pluginManager.loadExternal(
+          packagePath,
+          entry.config,
         );
+        if (loaded) {
+          this.log.info(
+            `Loaded external plugin: ${entry.packageName} from ${packagePath}`,
+          );
+        } else {
+          this.log.debug(
+            `External plugin already loaded: ${entry.packageName} from ${packagePath}`,
+          );
+        }
       } catch (e) {
         this.log.warn(
           `Failed to load external plugin "${entry.packageName}":`,
