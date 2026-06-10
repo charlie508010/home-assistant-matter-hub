@@ -51,10 +51,18 @@ index a6786485017dd7789ee6a8fc4f0d9033dcdb2ae2..7cabdcf15325b8e045d97080ad1e672d
        }
      }
 diff --git a/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js b/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
-index e1655864865d84eae9f50c0c0eb79662ae3f189d..272ed7bbfeb36116069233e6c633dafb77dcf8c7 100644
+index e1655864865d84eae9f50c0c0eb79662ae3f189d..abc57e7bec3c3a2a49297f5d1478b83a2aba98dc 100644
 --- a/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
 +++ b/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
-@@ -297,6 +297,7 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
+@@ -37,6 +37,7 @@ var import_VendorIdVerification = require("./VendorIdVerification.js");
+  * SPDX-License-Identifier: Apache-2.0
+  */
+ const logger = import_general.Logger.get("OperationalCredentials");
++const hamhLastFabricRemovalCleanup = /* @__PURE__ */ new WeakMap();
+ import_operational_credentials.OperationalCredentials.Cluster.commands = {
+   ...import_operational_credentials.OperationalCredentials.Cluster.commands,
+   attestationRequest: (0, import_types.Command)(
+@@ -297,6 +298,7 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
    }
    async removeFabric({ fabricIndex }) {
      (0, import_protocol.assertRemoteActor)(this.context);
@@ -62,19 +70,33 @@ index e1655864865d84eae9f50c0c0eb79662ae3f189d..272ed7bbfeb36116069233e6c633dafb
      const fabric = this.env.get(import_protocol.FabricManager).maybeFor(fabricIndex);
      if (fabric === void 0) {
        return {
-@@ -305,7 +306,16 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
+@@ -305,7 +307,30 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
        };
      }
      await this.context.transaction.rollback();
 -    await fabric.leave(this.context.exchange);
-+    if (this.env.get(import_protocol.FabricManager).fabrics.length === 1) {
++    const fabricManager = this.env.get(import_protocol.FabricManager);
++    if (fabricManager.fabrics.length === 1) {
++      const activeCleanup = hamhLastFabricRemovalCleanup.get(fabricManager);
++      if (activeCleanup !== void 0) {
++        logger.info(`last fabric removal already in progress fabricIndex=${fabricIndex}`);
++        return {
++          statusCode: import_operational_credentials.OperationalCredentials.NodeOperationalCertStatus.Ok,
++          fabricIndex
++        };
++      }
 +      logger.info(`delaying last fabric removal cleanup by 5s fabricIndex=${fabricIndex}`);
-+      await new Promise((resolve) => setTimeout(resolve, 5e3));
-+    }
-+    try {
-+      await fabric.leave(this.context.exchange);
-+    } catch (error) {
-+      logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
++      const cleanup = new Promise((resolve) => setTimeout(resolve, 5e3)).then(() => fabric.leave(this.context.exchange)).catch((error) => {
++        logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
++      }).finally(() => hamhLastFabricRemovalCleanup.delete(fabricManager));
++      hamhLastFabricRemovalCleanup.set(fabricManager, cleanup);
++      await cleanup;
++    } else {
++      try {
++        await fabric.leave(this.context.exchange);
++      } catch (error) {
++        logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
++      }
 +    }
 +    logger.info(`removeFabric succeeded statusCode=0 fabricIndex=${fabricIndex}`);
      return {
@@ -635,10 +657,18 @@ index 9c40593ff872cce8d40edcd4f01d0399a9461721..ee99c02915f9d648b1d75e45eead1c1a
        }
      }
 diff --git a/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js b/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
-index 18752f0ca2c856445add4ecabea28fdb0818e825..8c292ccbaa64178d799ce4ca5a7d90514c423df9 100644
+index 18752f0ca2c856445add4ecabea28fdb0818e825..98604ad6dab46814c1945fa8d09b8458fe7b5233 100644
 --- a/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
 +++ b/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
-@@ -308,6 +308,7 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
+@@ -48,6 +48,7 @@ import {
+ import { OperationalCredentialsBehavior } from "./OperationalCredentialsBehavior.js";
+ import { VendorIdVerification } from "./VendorIdVerification.js";
+ const logger = Logger.get("OperationalCredentials");
++const hamhLastFabricRemovalCleanup = /* @__PURE__ */ new WeakMap();
+ OperationalCredentials.Cluster.commands = {
+   ...OperationalCredentials.Cluster.commands,
+   attestationRequest: Command(
+@@ -308,6 +309,7 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
    }
    async removeFabric({ fabricIndex }) {
      assertRemoteActor(this.context);
@@ -646,19 +676,33 @@ index 18752f0ca2c856445add4ecabea28fdb0818e825..8c292ccbaa64178d799ce4ca5a7d9051
      const fabric = this.env.get(FabricManager).maybeFor(fabricIndex);
      if (fabric === void 0) {
        return {
-@@ -316,7 +317,16 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
+@@ -316,7 +318,30 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
        };
      }
      await this.context.transaction.rollback();
 -    await fabric.leave(this.context.exchange);
-+    if (this.env.get(FabricManager).fabrics.length === 1) {
++    const fabricManager = this.env.get(FabricManager);
++    if (fabricManager.fabrics.length === 1) {
++      const activeCleanup = hamhLastFabricRemovalCleanup.get(fabricManager);
++      if (activeCleanup !== void 0) {
++        logger.info(`last fabric removal already in progress fabricIndex=${fabricIndex}`);
++        return {
++          statusCode: OperationalCredentials.NodeOperationalCertStatus.Ok,
++          fabricIndex
++        };
++      }
 +      logger.info(`delaying last fabric removal cleanup by 5s fabricIndex=${fabricIndex}`);
-+      await new Promise((resolve) => setTimeout(resolve, 5e3));
-+    }
-+    try {
-+      await fabric.leave(this.context.exchange);
-+    } catch (error) {
-+      logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
++      const cleanup = new Promise((resolve) => setTimeout(resolve, 5e3)).then(() => fabric.leave(this.context.exchange)).catch((error) => {
++        logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
++      }).finally(() => hamhLastFabricRemovalCleanup.delete(fabricManager));
++      hamhLastFabricRemovalCleanup.set(fabricManager, cleanup);
++      await cleanup;
++    } else {
++      try {
++        await fabric.leave(this.context.exchange);
++      } catch (error) {
++        logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
++      }
 +    }
 +    logger.info(`removeFabric succeeded statusCode=0 fabricIndex=${fabricIndex}`);
      return {
@@ -1221,10 +1265,18 @@ index 33cf1714755fc69b0a14cff468bc65a90f9aa9af..71c95dc567520a1db72769125f5e6704
              }
          }
 diff --git a/src/behaviors/operational-credentials/OperationalCredentialsServer.ts b/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
-index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..6b48e08d43a218acce9cf3166ec98d127999181b 100644
+index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..caf633842c14ccc4c0fa735c351e72009e68ac85 100644
 --- a/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
 +++ b/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
-@@ -406,6 +406,7 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
+@@ -55,6 +55,7 @@ import { OperationalCredentialsBehavior } from "./OperationalCredentialsBehavior
+ import { VendorIdVerification } from "./VendorIdVerification.js";
+ 
+ const logger = Logger.get("OperationalCredentials");
++const hamhLastFabricRemovalCleanup = new WeakMap<FabricManager, Promise<void>>();
+ 
+ /**
+  * Monkey patching Tlv Structure of attestationRequest and csrRequest commands to prevent data validation of the nonce
+@@ -406,6 +407,7 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
  
      override async removeFabric({ fabricIndex }: OperationalCredentials.RemoveFabricRequest) {
          assertRemoteActor(this.context);
@@ -1232,20 +1284,37 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..6b48e08d43a218acce9cf3166ec98d12
  
          const fabric = this.env.get(FabricManager).maybeFor(fabricIndex);
  
-@@ -420,9 +421,20 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
+@@ -420,9 +422,37 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
          // we leave the transaction open it will cause deadlock
          await this.context.transaction.rollback();
  
 -        await fabric.leave(this.context.exchange);
-+        if (this.env.get(FabricManager).fabrics.length === 1) {
-+            logger.info(`delaying last fabric removal cleanup by 5s fabricIndex=${fabricIndex}`);
-+            await new Promise(resolve => setTimeout(resolve, 5_000));
-+        }
++        const fabricManager = this.env.get(FabricManager);
++        if (fabricManager.fabrics.length === 1) {
++            const activeCleanup = hamhLastFabricRemovalCleanup.get(fabricManager);
++            if (activeCleanup !== undefined) {
++                logger.info(`last fabric removal already in progress fabricIndex=${fabricIndex}`);
++                return {
++                    statusCode: OperationalCredentials.NodeOperationalCertStatus.Ok,
++                    fabricIndex,
++                };
++            }
 +
-+        try {
-+            await fabric.leave(this.context.exchange);
-+        } catch (error) {
-+            logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
++            logger.info(`delaying last fabric removal cleanup by 5s fabricIndex=${fabricIndex}`);
++            const cleanup = new Promise(resolve => setTimeout(resolve, 5_000))
++                .then(() => fabric.leave(this.context.exchange))
++                .catch(error => {
++                    logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
++                })
++                .finally(() => hamhLastFabricRemovalCleanup.delete(fabricManager));
++            hamhLastFabricRemovalCleanup.set(fabricManager, cleanup);
++            await cleanup;
++        } else {
++            try {
++                await fabric.leave(this.context.exchange);
++            } catch (error) {
++                logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
++            }
 +        }
          // The state is updated on removal via commissionedFabricChanged event, see constructor
  
