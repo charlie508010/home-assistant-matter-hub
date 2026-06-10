@@ -7,6 +7,7 @@ testing with Alexa as a Matter controller:
 
 - backend-specific storage roots for `file` and `sqlite`
 - plugin package/data paths following the active storage backend
+- uploaded plugin package metadata shown from the real package name/version
 - add-on option forwarding for `HAMH_STORAGE_BACKEND`
 - session close during graceful shutdown before backup/dispose
 - removal of the earlier stale-session/mDNS recovery cleanup experiment
@@ -53,6 +54,21 @@ When `HAMH_STORAGE_BACKEND=sqlite`:
 
 The same applies to Alexa plugin data such as cookies, login status, peer maps,
 and voice-history files.
+
+### Uploaded plugin metadata
+
+Uploaded `.tgz` plugins are registered by the package name and version inside
+the archive, not by the temporary upload filename.
+
+This avoids stale UI entries such as:
+
+```text
+.upload-1781070432372.tgz
+vunknown
+```
+
+Existing stale upload entries are cleaned up from the plugin registry when the
+real installed npm package is present.
 
 ### Storage migration behavior
 
@@ -112,6 +128,7 @@ Runtime checks used during add-on testing:
 - switch `sqlite -> file`
 - switch `file -> sqlite`
 - external plugin remains installed after restart
+- uploaded plugin shows its real package name and version after restart
 - Alexa plugin keeps login data after backend switch
 - graceful shutdown logs session close before backup
 - Alexa reconnects with CASE resumption after restart

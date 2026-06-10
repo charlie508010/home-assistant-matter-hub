@@ -21,6 +21,9 @@ curl -X POST http://localhost:8482/api/plugins/upload \
   --data-binary @hamh-plugin-example-1.0.0.tgz
 ```
 
+The installed package is identified from the `package.json` inside the archive.
+The temporary upload filename is not used as the plugin package name.
+
 ### From a local folder (development)
 
 Link a local plugin directory:
@@ -255,6 +258,7 @@ The bridge continues running even if a plugin fails. See `examples/hamh-plugin-b
 | Device not appearing in controller | Verify `deviceType` is in the supported list above |
 | Attribute updates ignored | Ensure `clusterId` matches a behavior key (e.g., `onOff`, not `OnOff`) |
 | Plugin crashes on start | Check that `onStart` doesn't throw, wrap risky code in try/catch |
+| Uploaded plugin shows `vunknown` | Restart after updating; HAMH repairs stale temporary upload entries from the installed package metadata |
 
 ## API Reference
 

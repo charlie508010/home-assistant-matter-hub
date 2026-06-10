@@ -305,6 +305,10 @@ Install a plugin from npm.
 
 Install a plugin from an uploaded `.tgz` file. Send the raw binary as the request body with `Content-Type: application/octet-stream`.
 
+HAMH reads the package name and version from the `package.json` inside the
+archive. The temporary upload filename is not stored as the installed package
+name.
+
 ### POST /api/plugins/install-local
 
 Link a local plugin directory.

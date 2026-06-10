@@ -167,6 +167,7 @@ Implemented Plugin UI capabilities:
 - confirm/delete flow for destructive actions
 - reset/enable/disable controls
 - restart prompt after plugin install/upload/local-link
+- uploaded `.tgz` packages displayed by package metadata, not upload filename
 - Supervisor restart call after confirmation
 - mobile responsive layout
 
@@ -185,6 +186,11 @@ For plugin-provided tables, the plugin controls:
 
 This keeps plugin-specific views out of the HAMH frontend while still allowing a
 plugin to expose useful status and actions.
+
+Uploaded plugin packages are resolved from the `package.json` inside the `.tgz`.
+The temporary `.upload-...tgz` filename should not be persisted as the installed
+package name. If an older registry entry used that temporary name, the registry
+is repaired from the installed npm package list.
 
 ## Storage / Backup
 
