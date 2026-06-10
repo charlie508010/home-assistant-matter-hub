@@ -1,8 +1,20 @@
 diff --git a/dist/cjs/behavior/system/commissioning/CommissioningServer.js b/dist/cjs/behavior/system/commissioning/CommissioningServer.js
-index 7223fcaa25378958a20893bd1af9ecd9bd13d184..0033842c72833d44f2c25bffb340eea79dd0de5c 100644
+index 7223fcaa25378958a20893bd1af9ecd9bd13d184..f7b1f31ec476c4576c72e1600e7da3276de4532e 100644
 --- a/dist/cjs/behavior/system/commissioning/CommissioningServer.js
 +++ b/dist/cjs/behavior/system/commissioning/CommissioningServer.js
-@@ -177,6 +177,7 @@ class CommissioningServer extends import_Behavior.Behavior {
+@@ -118,7 +118,10 @@ class CommissioningServer extends import_Behavior.Behavior {
+     }
+   }
+   #triggerFactoryReset() {
+-    this.env.runtime.add(this.endpoint.erase().catch((e) => import_general.MutexClosedError.accept(e)));
++    logger.info("delaying factory reset after last fabric removal by 5s");
++    this.env.runtime.add(
++      new Promise((resolve) => setTimeout(resolve, 5e3)).then(() => this.endpoint.erase()).catch((e) => import_general.MutexClosedError.accept(e))
++    );
+   }
+   #monitorFailsafe(failsafe) {
+     if (this.internal.unregisterFailsafeListener) {
+@@ -177,6 +180,7 @@ class CommissioningServer extends import_Behavior.Behavior {
        );
      }
      await this.env.get(import_protocol.DeviceCommissioner).allowBasicCommissioning();
@@ -567,10 +579,22 @@ index 9c1aa6236867a1e021828704dcd3150ab99b2240..317ac4a345c0c10a95ce8a253f8a77a2
          const _canceling = __using(_stack3, lifetime?.join("canceling"));
          await this.#cancel();
 diff --git a/dist/esm/behavior/system/commissioning/CommissioningServer.js b/dist/esm/behavior/system/commissioning/CommissioningServer.js
-index 8c49c246e1c8225d1668f1540724554f0c6134cf..0f2e0443678d247822918f4c2bf509e02d5f102b 100644
+index 8c49c246e1c8225d1668f1540724554f0c6134cf..6d524843bdc9c824913d1fbbfe46b823d879b8e7 100644
 --- a/dist/esm/behavior/system/commissioning/CommissioningServer.js
 +++ b/dist/esm/behavior/system/commissioning/CommissioningServer.js
-@@ -181,6 +181,7 @@ class CommissioningServer extends Behavior {
+@@ -122,7 +122,10 @@ class CommissioningServer extends Behavior {
+     }
+   }
+   #triggerFactoryReset() {
+-    this.env.runtime.add(this.endpoint.erase().catch((e) => MutexClosedError.accept(e)));
++    logger.info("delaying factory reset after last fabric removal by 5s");
++    this.env.runtime.add(
++      new Promise((resolve) => setTimeout(resolve, 5e3)).then(() => this.endpoint.erase()).catch((e) => MutexClosedError.accept(e))
++    );
+   }
+   #monitorFailsafe(failsafe) {
+     if (this.internal.unregisterFailsafeListener) {
+@@ -181,6 +184,7 @@ class CommissioningServer extends Behavior {
        );
      }
      await this.env.get(DeviceCommissioner).allowBasicCommissioning();
@@ -1135,15 +1159,29 @@ index 3da9287e7aa8111af3a07e234f0415131eb06304..a0e206451b11fb35dffc8af4bb2c24d4
          const _canceling = __using(_stack3, lifetime?.join("canceling"));
          await this.#cancel();
 diff --git a/src/behavior/system/commissioning/CommissioningServer.ts b/src/behavior/system/commissioning/CommissioningServer.ts
-index afd68c38e8109e00aacc90156957cd90dd3a17ee..cad0b098956679533d621207e6f58cd1148383e6 100644
+index afd68c38e8109e00aacc90156957cd90dd3a17ee..db58ac1f00bb6fb29f01aebd13dda923d6e0b2d9 100644
 --- a/src/behavior/system/commissioning/CommissioningServer.ts
 +++ b/src/behavior/system/commissioning/CommissioningServer.ts
-@@ -254,6 +254,7 @@ export class CommissioningServer extends Behavior {
+@@ -172,7 +172,12 @@ export class CommissioningServer extends Behavior {
+     }
+ 
+     #triggerFactoryReset() {
+-        this.env.runtime.add((this.endpoint as ServerNode).erase().catch(e => MutexClosedError.accept(e)));
++        logger.info("delaying factory reset after last fabric removal by 5s");
++        this.env.runtime.add(
++            new Promise(resolve => setTimeout(resolve, 5_000))
++                .then(() => (this.endpoint as ServerNode).erase())
++                .catch(e => MutexClosedError.accept(e)),
++        );
+     }
+ 
+     #monitorFailsafe(failsafe: FailsafeContext) {
+@@ -254,6 +259,7 @@ export class CommissioningServer extends Behavior {
          }
-
+ 
          await this.env.get(DeviceCommissioner).allowBasicCommissioning();
 +        logger.info("commissioning window opened after reset/remove");
-
+ 
          this.initiateCommissioning();
      }
 diff --git a/src/behaviors/descriptor/DescriptorServer.ts b/src/behaviors/descriptor/DescriptorServer.ts
@@ -1179,17 +1217,17 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..2f08014189dc2a70bb513ea1e9de592c
 --- a/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
 +++ b/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
 @@ -406,6 +406,7 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
-
+ 
      override async removeFabric({ fabricIndex }: OperationalCredentials.RemoveFabricRequest) {
          assertRemoteActor(this.context);
 +        logger.info(`removeFabric requested fabricIndex=${fabricIndex}`);
-
+ 
          const fabric = this.env.get(FabricManager).maybeFor(fabricIndex);
-
+ 
 @@ -420,9 +421,15 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
          // we leave the transaction open it will cause deadlock
          await this.context.transaction.rollback();
-
+ 
 -        await fabric.leave(this.context.exchange);
 +        try {
 +            await fabric.leave(this.context.exchange);
@@ -1197,7 +1235,7 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..2f08014189dc2a70bb513ea1e9de592c
 +            logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
 +        }
          // The state is updated on removal via commissionedFabricChanged event, see constructor
-
+ 
 +        logger.info(`removeFabric succeeded statusCode=0 fabricIndex=${fabricIndex}`);
 +
          return {
@@ -1209,23 +1247,23 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 +++ b/src/behaviors/ota-software-update-requestor/OtaSoftwareUpdateRequestorServer.ts
 @@ -56,6 +56,8 @@ const OTA_BDX_MAX_BLOCK_SIZE_TCP = 8_192; // 8192 is the max defined by the spec
  const OTA_BDX_MAX_BLOCK_SIZE_NON_TCP = 1_024; // 1024 is the max defined by the spec, we use that for non-TCP channels
-
+ 
  const MAX_BUSY_RETRIES = 3; // After 3 BUSY responses in a row, we try another provider
 +let hamhRuntimeBusyRetryCount = 0;
 +let hamhRuntimeBusySuppressed = false;
-
+ 
  export interface ProviderLocation extends OtaSoftwareUpdateRequestor.ProviderLocation {}
-
+ 
 @@ -156,6 +158,7 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
              this.state.updateState = OtaSoftwareUpdateRequestor.UpdateState.Idle;
              this.state.updateStateProgress = null;
          }
 +        this.state.activeOtaProviders = [];
-
+ 
          // Make sure to add the needed device type for this endpoint
          (await this.agent.load(DescriptorServer)).addDeviceTypes("OtaRequestor");
 @@ -194,25 +197,6 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
-
+ 
      /** When we come back online after an update, we notify that the update was applied */
      async #online() {
 -        // If we have no active providers, but default ones, we add the default one for our fabric (if any)
@@ -1252,7 +1290,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
              await this.#handlePreviousUpdateOnStart(this.state.updateInProgressDetails);
 @@ -360,10 +344,6 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
          }
-
+ 
          const provider: ProviderLocation = { fabricIndex, providerNodeId, endpoint };
 -
 -        // Remember this provider as active to use it potentially with precedence
@@ -1264,7 +1302,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 @@ -373,8 +353,22 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
              }),
          );
-
+ 
 -        const peerAddress = PeerAddress({ nodeId: providerNodeId, fabricIndex });
 -        await (Node.forEndpoint(this.endpoint) as ServerNode).peers.forAddress(peerAddress); // Initialize the client node and store address
 +        if (!this.#isLocalFabric(fabricIndex)) {
@@ -1283,13 +1321,13 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 +            this.#markActiveOtaProviderNoUpdate(provider);
 +            return;
 +        }
-
+ 
          if (announcementReason !== OtaSoftwareUpdateRequestor.AnnouncementReason.SimpleAnnouncement) {
              // If Urgent or UpdateAvailable, we schedule an update query earlier as we would have done before
 @@ -387,23 +381,70 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
          }
      }
-
+ 
 -    /** Adds or updates an active OTA provider entry for a fabric index */
 -    async #addActiveOtaProvider(provider: ProviderLocation, metadataForNode?: Bytes) {
 -        const { fabricIndex, providerNodeId } = provider;
@@ -1369,11 +1407,11 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 +
 +        this.state.activeOtaProviders = [];
 +        this.internal.selectedProviderLocation = plainProvider;
-
+ 
          const peerAddress = PeerAddress({ nodeId: providerNodeId, fabricIndex });
          await (Node.forEndpoint(this.endpoint) as ServerNode).peers.forAddress(peerAddress); // Initialize client node and store address
 @@ -411,16 +452,11 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
-
+ 
      /** Removes an OTA provider from the active and default list */
      #removeOtaProvider(provider: ProviderLocation) {
 -        const { fabricIndex, providerNodeId } = provider;
@@ -1385,7 +1423,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 -        }
 +        const { fabricIndex, providerNodeId, endpoint } = provider;
 +        this.state.activeOtaProviders = [];
-
+ 
          const defaultProviderIndex = this.state.defaultOtaProviders.findIndex(
 -            p => p.fabricIndex === fabricIndex && p.providerNodeId === providerNodeId,
 +            p => p.fabricIndex === fabricIndex && p.providerNodeId === providerNodeId && p.endpoint === endpoint,
@@ -1393,7 +1431,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
          if (defaultProviderIndex !== -1) {
              this.state.defaultOtaProviders.splice(defaultProviderIndex, 1);
 @@ -429,18 +465,8 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
-
+ 
      /**  Marks an OTA provider as active but with no update available (timestamp 0) */
      #markActiveOtaProviderNoUpdate(provider: ProviderLocation) {
 -        const { fabricIndex, providerNodeId } = provider;
@@ -1411,12 +1449,12 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 +        void provider;
 +        this.state.activeOtaProviders = [];
      }
-
+ 
      /**
 @@ -467,7 +493,10 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
              this.internal.updateQueryTimer = undefined;
          }
-
+ 
 -        if (!this.state.updatePossible || !this.state.activeOtaProviders.length) {
 +        if (
 +            !this.state.updatePossible ||
@@ -1424,7 +1462,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 +        ) {
              return;
          }
-
+ 
 @@ -497,21 +526,27 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
              const selected = this.internal.selectedProviderLocation;
              logger.debug(`Choosing pre-selected provider`, Diagnostic.dict(selected));
@@ -1436,7 +1474,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 +            }
              return selected;
          }
-
+ 
 -        // We use the most recently seen active provider first, else we fall back to the default providers
 -        if (this.state.activeOtaProviders.length > 0) {
 -            const sorted = this.state.activeOtaProviders.sort(
@@ -1460,7 +1498,7 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 +            }
              return location;
          }
-
+ 
 @@ -521,6 +556,10 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
      /** Helper to connect to an OTA provider, initialize an OTA Provider Cluster Client, and return this endpoint */
      async #connectOtaProviderFor(location: ProviderLocation) {
@@ -1469,9 +1507,9 @@ index 1792f4f4732a10f624353adc09b40bfca3b271bb..065b1c7084a095f1354781259c92b75b
 +            this.#logIgnoringNonLocalOtaProvider(location);
 +            throw new MatterError(`Unknown/non-local OTA provider fabricIndex=${fabricIndex}`);
 +        }
-
+ 
          const peerAddress = PeerAddress({ nodeId: providerNodeId, fabricIndex });
-
+ 
 @@ -611,10 +650,19 @@ export class OtaSoftwareUpdateRequestorServer extends OtaSoftwareUpdateRequestor
              case OtaSoftwareUpdateProvider.Status.Busy:
              case OtaSoftwareUpdateProvider.Status.NotAvailable:
@@ -1502,7 +1540,7 @@ index bebf17fd43ca31bf1a614f80b7cc5fb2680f1001..1ba464f1d587b4df6482fdf4caeacf76
 +++ b/src/node/server/InteractionServer.ts
 @@ -71,6 +71,80 @@ import { OnlineServerInteraction } from "./OnlineServerInteraction.js";
  import { ServerSubscription, ServerSubscriptionConfig, ServerSubscriptionContext } from "./ServerSubscription.js";
-
+ 
  const logger = Logger.get("InteractionServer");
 +const hamhReadClusterNames = new Map<number, string>([
 +    [0x001d, "Descriptor"],
@@ -1578,13 +1616,13 @@ index bebf17fd43ca31bf1a614f80b7cc5fb2680f1001..1ba464f1d587b4df6482fdf4caeacf76
 +        );
 +    }
 +}
-
+ 
  export interface PeerSubscription {
      subscriptionId: number;
 @@ -269,6 +343,8 @@ export class InteractionServer implements ProtocolHandler, InteractionRecipient
              interactionModelRevision,
          } = readRequest;
-
+ 
 +        hamhLogReadDiagnostics(this.#node.id, this.#node.protocol, attributeRequests);
 +
          logger.debug(() => [
@@ -1595,24 +1633,24 @@ index 13953b5a8c9f68e60942e0bebf563eb9ea866d9f..d956b17a0832806ae6a70a97c08278f6
 --- a/src/node/server/ServerSubscription.ts
 +++ b/src/node/server/ServerSubscription.ts
 @@ -148,6 +148,7 @@ export class ServerSubscription implements Subscription {
-
+ 
      #sendNextUpdateImmediately = false;
      #sendUpdateErrorCounter = 0;
 +    #sendRetryBackoffTimer?: Timer;
      #currentUpdatePromise?: Promise<void>;
-
+ 
      constructor(options: {
 @@ -243,6 +244,7 @@ export class ServerSubscription implements Subscription {
-
+ 
      async handlePeerCancel() {
          this.#isCanceledByPeer = true;
 +        this.#clearPendingRetryState(true);
          await this.close();
      }
-
+ 
 @@ -415,6 +417,14 @@ export class ServerSubscription implements Subscription {
      }
-
+ 
      #triggerSendUpdate(onlyWithData: boolean = false, session?: Session) {
 +        if (this.#isClosed || this.#isCanceledByPeer) {
 +            return;
@@ -1628,7 +1666,7 @@ index 13953b5a8c9f68e60942e0bebf563eb9ea866d9f..d956b17a0832806ae6a70a97c08278f6
 @@ -425,6 +435,62 @@ export class ServerSubscription implements Subscription {
              .finally(() => (this.#currentUpdatePromise = undefined));
      }
-
+ 
 +    #clearPendingRetryState(dropOutstandingUpdates = false) {
 +        this.#sendRetryBackoffTimer?.stop();
 +        this.#sendRetryBackoffTimer = undefined;
@@ -1699,7 +1737,7 @@ index 13953b5a8c9f68e60942e0bebf563eb9ea866d9f..d956b17a0832806ae6a70a97c08278f6
                  if (this.#isClosed) {
 @@ -458,45 +526,26 @@ export class ServerSubscription implements Subscription {
                  }
-
+ 
                  this.#sendUpdateErrorCounter++;
 -                logger.info(
 +                const logSubscriptionUpdateError =
@@ -1754,14 +1792,14 @@ index 13953b5a8c9f68e60942e0bebf563eb9ea866d9f..d956b17a0832806ae6a70a97c08278f6
 +                    throw error;
                  }
              }
-
+ 
 @@ -680,6 +729,8 @@ export class ServerSubscription implements Subscription {
-
+ 
          this.#updateTimer.stop();
          this.#sendDelayTimer.stop();
 +        this.#sendRetryBackoffTimer?.stop();
 +        this.#sendRetryBackoffTimer = undefined;
-
+ 
          this.session.subscriptions.delete(this);
          logger.debug(this.session.via, "Deleted subscription", hex.fixed(this.subscriptionId, 8));
 @@ -786,11 +837,12 @@ export class ServerSubscription implements Subscription {
@@ -1777,5 +1815,5 @@ index 13953b5a8c9f68e60942e0bebf563eb9ea866d9f..d956b17a0832806ae6a70a97c08278f6
 -                logger.info(`Subscription ${this.idStr} update failed:`, error);
 +                logger.warn(`Subscription ${this.idStr} update failed:`, error);
              }
-
+ 
              using _canceling = lifetime?.join("canceling");
