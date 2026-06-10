@@ -132,6 +132,8 @@ const PairingCard = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
   };
+  const fabrics = bridge.commissioning.fabrics ?? [];
+  const hasConnectedFabrics = fabrics.length > 0;
 
   return (
     <>
@@ -151,7 +153,7 @@ const PairingCard = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
             gap={2}
           >
             <Box position="relative">
-              {bridge.commissioning.isCommissioned && (
+              {hasConnectedFabrics && (
                 <Box
                   position="absolute"
                   top="50%"
@@ -173,7 +175,7 @@ const PairingCard = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
                   background: "white",
                   padding: 1,
                   borderRadius: 1,
-                  opacity: bridge.commissioning.isCommissioned ? 0.5 : 1,
+                  opacity: hasConnectedFabrics ? 0.5 : 1,
                 }}
               >
                 <QRCodeSVG
@@ -208,22 +210,28 @@ const PairingCard = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
               </Box>
             </Stack>
 
-            {bridge.commissioning.isCommissioned && (
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={
-                  opening ? <CircularProgress size={16} /> : <QrCode2Icon />
-                }
-                onClick={handleOpenCommissioningWindow}
-                disabled={opening}
-                fullWidth
-              >
-                {opening
-                  ? t("bridge.openingWindow")
-                  : t("bridge.addController")}
-              </Button>
+            {!hasConnectedFabrics && (
+              <Typography variant="body2" color="text.secondary">
+                {t("bridge.noControllersConnected")}
+              </Typography>
             )}
+
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={
+                opening ? <CircularProgress size={16} /> : <QrCode2Icon />
+              }
+              onClick={handleOpenCommissioningWindow}
+              disabled={opening}
+              fullWidth
+            >
+              {opening
+                ? t("bridge.openingWindow")
+                : hasConnectedFabrics
+                  ? t("bridge.addController")
+                  : t("bridge.pairController")}
+            </Button>
           </Box>
         </CardContent>
       </Card>
@@ -462,6 +470,7 @@ const PairingDialog = ({
   if (!bridge.commissioning) {
     return null;
   }
+  const hasConnectedFabrics = bridge.commissioning.fabrics.length > 0;
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -472,7 +481,9 @@ const PairingDialog = ({
       <DialogTitle>
         <Box display="flex" alignItems="center" gap={1}>
           <QrCode2Icon />
-          {t("bridge.addController")}
+          {hasConnectedFabrics
+            ? t("bridge.addController")
+            : t("bridge.pairController")}
         </Box>
       </DialogTitle>
       <DialogContent>

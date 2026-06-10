@@ -184,6 +184,8 @@
     "bridgeInfo": "Bridge-Info",
     "commissioned": "Gekoppelt",
     "addController": "Weiteren Controller hinzufügen",
+    "pairController": "Controller koppeln",
+    "noControllersConnected": "Noch kein Controller verbunden",
     "openingCommissioning": "Kopplungsfenster wird geöffnet...",
     "fabricTooltip": "Ein Fabric stellt eine Verbindung zu einem Matter-Controller dar (z.B. Apple Home, Google Home, Alexa). Jeder Controller erstellt beim Koppeln ein Fabric.",
     "forceSync": "Synchronisation erzwingen",

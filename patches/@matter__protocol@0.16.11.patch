@@ -47,6 +47,22 @@ index d471d7487c0dc7cafed1b8d23a62661ccb99afcd..77e6be8b24c82c13ecc6aa7066a9e8cc
      }).finally(() => {
        if (peer.activeDiscovery?.type === 1 /* RetransmissionDiscovery */) {
          peer.activeDiscovery = void 0;
+diff --git a/dist/cjs/session/case/CaseServer.js b/dist/cjs/session/case/CaseServer.js
+index 6f7ab08b67e7d23fea33b337a413672ec83a1465..0f26d3e57ae9fee1bac28a037f2a34c722ebfae4 100644
+--- a/dist/cjs/session/case/CaseServer.js
++++ b/dist/cjs/session/case/CaseServer.js
+@@ -51,7 +51,10 @@ class CaseServer {
+       await this.#handleSigma1(messenger);
+     } catch (error) {
+       if (error instanceof import_FabricManager.FabricNotFoundError) {
+-        logger.error("Error establishing CASE session:", import_general.Diagnostic.errorMessage(error));
++        logger.debug(
++          "Ignoring CASE request for unknown fabric, likely stale controller state after bridge removal:",
++          import_general.Diagnostic.errorMessage(error)
++        );
+         await messenger.sendError(import_types.SecureChannelStatusCode.NoSharedTrustRoots);
+       } else if (!(error instanceof import_SecureChannelMessenger.ChannelStatusResponseError)) {
+         logger.error("Error establishing CASE session", error);
 diff --git a/dist/esm/certificate/kinds/OperationalBase.js b/dist/esm/certificate/kinds/OperationalBase.js
 index 59ee05a68e2e26fc19d68587d1476031ac6d46b0..541cee8e40605f312a27f49e9ba5e2311eb61ec9 100644
 --- a/dist/esm/certificate/kinds/OperationalBase.js
@@ -96,6 +112,22 @@ index 3094eb5f1d6ebb637d3fef232507dec7a60b43a4..9c1900c62cf03c9704606eda9626aabd
      }).finally(() => {
        if (peer.activeDiscovery?.type === 1 /* RetransmissionDiscovery */) {
          peer.activeDiscovery = void 0;
+diff --git a/dist/esm/session/case/CaseServer.js b/dist/esm/session/case/CaseServer.js
+index 3d840b6a8bdda7164f4b9ae0d7123d3c5faae4eb..a33cc1986b4d3435f7e8802f894a2e497d2c80dd 100644
+--- a/dist/esm/session/case/CaseServer.js
++++ b/dist/esm/session/case/CaseServer.js
+@@ -48,7 +48,10 @@ class CaseServer {
+       await this.#handleSigma1(messenger);
+     } catch (error) {
+       if (error instanceof FabricNotFoundError) {
+-        logger.error("Error establishing CASE session:", Diagnostic.errorMessage(error));
++        logger.debug(
++          "Ignoring CASE request for unknown fabric, likely stale controller state after bridge removal:",
++          Diagnostic.errorMessage(error)
++        );
+         await messenger.sendError(SecureChannelStatusCode.NoSharedTrustRoots);
+       } else if (!(error instanceof ChannelStatusResponseError)) {
+         logger.error("Error establishing CASE session", error);
 diff --git a/src/peer/PeerSet.ts b/src/peer/PeerSet.ts
 index daefb362bf99cb7acf0a9cffdc79592b65c9cbee..68f381736988dbc4fe99bcdb26c600f521aac8a4 100644
 --- a/src/peer/PeerSet.ts
@@ -113,3 +145,19 @@ index daefb362bf99cb7acf0a9cffdc79592b65c9cbee..68f381736988dbc4fe99bcdb26c600f5
              })
              .finally(() => {
                  if (peer.activeDiscovery?.type === NodeDiscoveryType.RetransmissionDiscovery) {
+diff --git a/src/session/case/CaseServer.ts b/src/session/case/CaseServer.ts
+index ce1177a4bac2ecdaaf9e618d72cb047af4ff8719..bb3cd61c95d8fc17767166eac8c39034f1847b9b 100644
+--- a/src/session/case/CaseServer.ts
++++ b/src/session/case/CaseServer.ts
+@@ -61,7 +61,10 @@ export class CaseServer implements ProtocolHandler {
+             await this.#handleSigma1(messenger);
+         } catch (error) {
+             if (error instanceof FabricNotFoundError) {
+-                logger.error("Error establishing CASE session:", Diagnostic.errorMessage(error));
++                logger.debug(
++                    "Ignoring CASE request for unknown fabric, likely stale controller state after bridge removal:",
++                    Diagnostic.errorMessage(error),
++                );
+                 await messenger.sendError(SecureChannelStatusCode.NoSharedTrustRoots);
+             }
+             // If we received a ChannelStatusResponseError we do not need to send one back, so just cancel pairing
