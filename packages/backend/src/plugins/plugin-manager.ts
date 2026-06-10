@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { Logger } from "@matter/general";
 import { getSupportedPluginDeviceTypes } from "./plugin-device-factory.js";
+import { diagnosticEventBus } from "../services/diagnostics/diagnostic-event-bus.js";
 import type { PluginRegistry } from "./plugin-registry.js";
 import { FilePluginStorage } from "./plugin-storage.js";
 import {
@@ -274,6 +275,9 @@ export class PluginManager {
           `Registered domain mapping: ${mapping.domain} → ${mapping.matterDeviceType}`,
         );
       },
+
+      subscribeDiagnosticEvents: (listener) =>
+        diagnosticEventBus.subscribe(listener),
     };
 
     this.instances.set(plugin.name, {

@@ -1,4 +1,5 @@
 import type { Logger } from "@matter/general";
+import type { DiagnosticEvent } from "@home-assistant-matter-hub/common";
 
 /**
  * Configuration schema for plugin settings UI.
@@ -107,6 +108,16 @@ export interface PluginContext {
   log: Logger;
   /** ID of the bridge this plugin is attached to */
   bridgeId: string;
+
+  /**
+   * Subscribe to diagnostic events emitted by HAMH.
+   *
+   * The returned function unsubscribes the listener. Plugins should call it
+   * during shutdown when they keep long-lived subscriptions.
+   */
+  subscribeDiagnosticEvents?(
+    listener: (event: DiagnosticEvent) => void,
+  ): () => void;
 }
 
 /**
