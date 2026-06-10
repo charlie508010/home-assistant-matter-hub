@@ -85,7 +85,7 @@ export function migratePluginStorageToActiveRootIfNeeded(
   const sourceBackend = activeBackend === "file" ? "sqlite" : "file";
   const sourceRoot = path.join(baseLocation, sourceBackend);
 
-  migratePluginDirectoryIfMissing(
+  syncPluginPackagesIfNeeded(
     logger,
     path.join(sourceRoot, "plugin-packages"),
     path.join(activeStorageRoot, "plugin-packages"),
@@ -141,18 +141,17 @@ function logMigrationPaths(
   );
 }
 
-function migratePluginDirectoryIfMissing(
+function syncPluginPackagesIfNeeded(
   logger: Pick<Logger, "info" | "warn">,
   source: string,
   target: string,
   sourceBackend: string,
   targetBackend: string,
 ) {
-  if (
-    !fs.existsSync(source) ||
-    hasPluginPackageData(target) ||
-    !hasPluginPackageData(source)
-  ) {
+  if (!fs.existsSync(source) || !hasPluginPackageData(source)) {
+    return;
+  }
+  if (hasPluginPackageData(target) && pluginPackagesMatch(source, target)) {
     return;
   }
   try {
@@ -164,9 +163,12 @@ function migratePluginDirectoryIfMissing(
       targetBackend,
     );
     fs.mkdirSync(path.dirname(target), { recursive: true });
+    if (fs.existsSync(target)) {
+      fs.rmSync(target, { recursive: true, force: true });
+    }
     fs.cpSync(source, target, { recursive: true, force: true });
     logger.info(
-      `Migrated plugin packages from ${migrationLabel(
+      `Synchronized plugin packages from ${migrationLabel(
         sourceBackend,
         targetBackend,
       )}`,
@@ -247,6 +249,32 @@ function hasPluginPackageData(location: string): boolean {
   return fs
     .readdirSync(nodeModules)
     .some((entry) => entry !== ".package-lock.json");
+}
+
+function pluginPackagesMatch(source: string, target: string): boolean {
+  return (
+    JSON.stringify(readPluginPackageDependencies(source)) ===
+    JSON.stringify(readPluginPackageDependencies(target))
+  );
+}
+
+function readPluginPackageDependencies(location: string): Record<string, string> {
+  const packageJson = path.join(location, "package.json");
+  if (!fs.existsSync(packageJson)) {
+    return {};
+  }
+  try {
+    const pkg = JSON.parse(fs.readFileSync(packageJson, "utf-8")) as {
+      dependencies?: Record<string, unknown>;
+    };
+    return Object.fromEntries(
+      Object.entries(pkg.dependencies ?? {}).sort(([left], [right]) =>
+        left.localeCompare(right),
+      ),
+    ) as Record<string, string>;
+  } catch {
+    return {};
+  }
 }
 
 function hasInstalledPluginEntries(filePath: string): boolean {

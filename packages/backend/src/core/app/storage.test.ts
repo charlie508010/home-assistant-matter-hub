@@ -70,14 +70,14 @@ describe("migratePluginStorageToActiveRootIfNeeded", () => {
       true,
     );
     expect(logger.info).toHaveBeenCalledWith(
-      "Migrated plugin packages from sqlite to file",
+      "Synchronized plugin packages from sqlite to file",
     );
     expect(logger.info).toHaveBeenCalledWith(
       "Migrated installed-plugins.json from sqlite to file",
     );
   });
 
-  it("does not overwrite existing file backend plugin data", () => {
+  it("does not overwrite existing file backend plugin registry data", () => {
     const root = createTempRoot();
     roots.push(root);
     fs.mkdirSync(path.join(root, "sqlite", "plugin-packages"), {
@@ -105,6 +105,48 @@ describe("migratePluginStorageToActiveRootIfNeeded", () => {
       ),
     ).toContain("file-plugin");
     expect(logger.info).not.toHaveBeenCalled();
+  });
+
+  it("updates target plugin packages when the source backend has a newer dependency version", () => {
+    const root = createTempRoot();
+    roots.push(root);
+    fs.mkdirSync(path.join(root, "sqlite", "plugin-packages"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(root, "sqlite", "plugin-packages", "package.json"),
+      JSON.stringify({
+        dependencies: {
+          "hamh-plugin-native-alexa-peer-resolver":
+            "file:hamh-plugin-native-alexa-peer-resolver-0.1.32.tgz",
+        },
+      }),
+    );
+    fs.mkdirSync(path.join(root, "file", "plugin-packages"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(root, "file", "plugin-packages", "package.json"),
+      JSON.stringify({
+        dependencies: {
+          "hamh-plugin-native-alexa-peer-resolver":
+            "file:hamh-plugin-native-alexa-peer-resolver-0.1.31.tgz",
+        },
+      }),
+    );
+
+    const logger = createLogger();
+    migratePluginStorageToActiveRootIfNeeded(logger, path.join(root, "file"));
+
+    expect(
+      fs.readFileSync(
+        path.join(root, "file", "plugin-packages", "package.json"),
+        "utf-8",
+      ),
+    ).toContain("0.1.32");
+    expect(logger.info).toHaveBeenCalledWith(
+      "Synchronized plugin packages from sqlite to file",
+    );
   });
 
   it("fills empty file backend plugin data from sqlite", () => {
@@ -209,7 +251,7 @@ describe("migratePluginStorageToActiveRootIfNeeded", () => {
       `File-to-sqlite migration target: ${path.join(root, "sqlite")}`,
     );
     expect(logger.info).toHaveBeenCalledWith(
-      "Migrated plugin packages from file to sqlite",
+      "Synchronized plugin packages from file to sqlite",
     );
     expect(logger.info).toHaveBeenCalledWith(
       "Migrated alexa-cookie.json from file to sqlite",
