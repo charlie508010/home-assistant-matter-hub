@@ -510,9 +510,7 @@ export class ServerModeBridge {
     return parsed;
   }
 
-  // Gracefully close sessions older than maxSessionAgeMs so controllers
-  // re-establish CASE and re-subscribe. Stale (0-sub) sessions are handled
-  // by the existing dead-session path, so only rotate ones with subscriptions.
+  // Gracefully close old active sessions so controllers re-establish CASE and re-subscribe.
   private rotateAgedSessions() {
     if (this.maxSessionAgeMs === 0) return;
     try {

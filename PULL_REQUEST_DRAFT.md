@@ -1,119 +1,141 @@
-# Improve storage resilience, Alexa/Matter compatibility, and management UI
+# Storage backend switching and graceful shutdown cleanup
 
 ## Summary
 
-This PR collects a set of compatibility and operational improvements that were tested against Alexa as a Matter controller and Home Assistant add-on deployments.
+This branch tightens a few areas that showed up during Home Assistant add-on
+testing with Alexa as a Matter controller:
 
-The main goals are:
+- backend-specific storage roots for `file` and `sqlite`
+- plugin package/data paths following the active storage backend
+- add-on option forwarding for `HAMH_STORAGE_BACKEND`
+- session close during graceful shutdown before backup/dispose
+- removal of the earlier stale-session/mDNS recovery cleanup experiment
 
-- make Matter storage more robust by adding an optional SQLite backend
-- keep the existing file backend as the default
-- improve Alexa/Matter bridge discovery stability
-- reduce noisy normal-controller logs
-- improve add-on configuration, backup handling, plugin UI, and German/English localization
-
-The changes are intentionally conservative around Matter behavior: the existing file storage backend remains the default, SQLite is opt-in, and Matter endpoint compatibility changes are focused on descriptor consistency and controller interoperability.
+The goal is to keep storage switching predictable and let Matter sessions shut
+down cleanly without adding controller-specific recovery behavior.
 
 ## What changed
 
-### Optional SQLite storage backend
+### Storage backend selection
 
-Adds an optional SQLite key/value storage backend selected via:
+The add-on `storage_backend` option is passed through as:
 
 ```text
 HAMH_STORAGE_BACKEND=file|sqlite
 ```
 
-Default remains:
+Default remains `sqlite` for the add-on option unless explicitly changed.
 
-```text
-file
-```
-
-Storage roots are separated:
+Active storage roots are kept separate:
 
 ```text
 /config/data/file
 /config/data/sqlite
 ```
 
-Migration behavior:
+### Backend-specific plugin paths
 
-- file -> SQLite migration runs only when SQLite is selected and no SQLite DB exists yet
-- legacy `/config/data` is read only as fallback migration source
-- old files are not deleted
-- SQLite -> file migration can restore compatible file-store data when switching back to the file backend
+Plugin packages and plugin state now follow the active storage root.
 
-### Backup and restore awareness
+When `HAMH_STORAGE_BACKEND=file`:
 
-Full backups now include metadata about the active storage backend and restore into the matching backend folder without deleting unrelated data.
+```text
+/config/data/file/plugin-packages
+/config/data/file/installed-plugins.json
+```
 
-Backup metadata includes:
+When `HAMH_STORAGE_BACKEND=sqlite`:
 
-- backup type
-- storage backend
-- active storage root
-- identity inclusion state
+```text
+/config/data/sqlite/plugin-packages
+/config/data/sqlite/installed-plugins.json
+```
 
-### Alexa/Matter compatibility improvements
+The same applies to Alexa plugin data such as cookies, login status, peer maps,
+and voice-history files.
 
-The root endpoint is stabilized for Alexa controller probing and discovery:
+### Storage migration behavior
 
-- Root EP0 exposes OTA Requestor and ICDManagement compatibility where configured
-- ICDManagement FeatureMap returns 0 for compatibility
-- Descriptor endpointUniqueId is stable and readable
-- Endpoint IDs and endpointUniqueId handling are stable across restarts
-- stale/invalid OTA provider announcements for unknown fabrics are ignored safely
-- active OTA providers are deduplicated by fabricIndex/providerNodeId/endpoint
-- repeated OTA Busy responses are bounded and do not continue an endless 600000-ms loop
+Switching between `file` and `sqlite` keeps plugin data and Matter state
+available where possible. Existing target data is not overwritten when it is
+already valid.
 
-### Logging cleanup
+The file backend no longer creates `/config/data/sqlite` just to check for a
+migration source. If the source is missing, migration is skipped cleanly.
 
-Normal controller behavior is less noisy:
+### Graceful shutdown
 
-- subscription cancelled by peer is debug-level
-- stale session cleanup is quieter
-- expected shutdown/discovery races are downgraded where applicable
-- controller read diagnostics still include endpoint/entity context for error cases
+Shutdown now closes active CASE sessions before backup and app disposal.
 
-### Add-on and UI improvements
+Expected shutdown order:
 
-- `storage_backend` add-on option maps to `HAMH_STORAGE_BACKEND`
-- HTTP auth settings are moved out of the regular HAMH UI into app/add-on configuration
-- network diagnostics are available from the settings/configuration area
-- backup UI shows active storage backend/status
-- plugin page supports richer plugin-provided status/actions and responsive mobile layout
-- bridge configuration page localization is improved
-- feature flags are grouped by topic
-- filter presets and filter reference UI were added
-- frontend chunks are split to reduce the main bundle size
+```text
+1. close active CASE sessions
+2. create shutdown backup
+3. stop bridges
+4. dispose application resources
+```
+
+This avoids leaving controllers with still-open sessions during an add-on
+restart.
+
+### Removed stale-session cleanup experiment
+
+The previous aggressive stale-session cleanup and forced mDNS reannounce logic
+was removed from the bridge code.
+
+Kept:
+
+- normal session opened/closed logging
+- subscription diagnostics
+- graceful session close during shutdown
+
+Removed:
+
+- dead-session timers
+- per-session stale tracking
+- stale-session close helpers
+- forced mDNS reannounce from stale cleanup
 
 ## Testing
 
-Locally verified:
+Local checks:
 
 ```text
-pnpm lint
-pnpm --filter @home-assistant-matter-hub/backend build
+pnpm -C packages/backend build
 ```
 
-Runtime observations from add-on testing:
+Runtime checks used during add-on testing:
 
-- no UnsupportedAttribute(134) for Descriptor endpointUniqueId
-- no UnsupportedEndpoint(127) during Alexa scans
-- no UnsupportedCluster(195) for Root EP0 OTA/ICD probes in the tested setup
-- Root EP0 effective serverList contains the expected active compatibility clusters
-- Alexa OTA Busy no longer loops indefinitely after the runtime retry limit
-- normal Alexa session/subscription churn is logged at debug level
+- `HAMH_STORAGE_BACKEND=file`
+- `HAMH_STORAGE_BACKEND=sqlite`
+- switch `sqlite -> file`
+- switch `file -> sqlite`
+- external plugin remains installed after restart
+- Alexa plugin keeps login data after backend switch
+- graceful shutdown logs session close before backup
+- Alexa reconnects with CASE resumption after restart
 
-## Notes for reviewers
+Expected logs after the cleanup:
 
-This is a large integration branch. If preferred, it can be split into smaller PRs:
+```text
+Resumed session
+Session opened
+Subscribe successful
+Invoke
+Turning ON/OFF
+Graceful shutdown: session close complete closed=X failed=0
+```
 
-1. SQLite storage backend and migrations
-2. Backup/storage backend awareness
-3. Alexa/Matter endpoint and OTA compatibility
-4. UI/localization/filter preset improvements
-5. Logging cleanup and diagnostics
+The old cleanup experiment should no longer log:
 
-The file backend remains the default, so existing installations should not move to SQLite unless explicitly configured.
+```text
+Closing stale session
+Triggered mDNS re-announcement after session cleanup
+forced mDNS broadcast
+```
+
+## Notes
+
+No Matter endpoint structure, EP0/EP1 descriptor layout, or plugin UI behavior is
+changed by the stale-session cleanup removal.
