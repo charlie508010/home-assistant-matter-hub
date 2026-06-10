@@ -51,7 +51,7 @@ index a6786485017dd7789ee6a8fc4f0d9033dcdb2ae2..7cabdcf15325b8e045d97080ad1e672d
        }
      }
 diff --git a/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js b/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
-index e1655864865d84eae9f50c0c0eb79662ae3f189d..b15cc35f947acaa9c2d833cff2ab1da57798f586 100644
+index e1655864865d84eae9f50c0c0eb79662ae3f189d..272ed7bbfeb36116069233e6c633dafb77dcf8c7 100644
 --- a/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
 +++ b/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
 @@ -297,6 +297,7 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
@@ -62,11 +62,15 @@ index e1655864865d84eae9f50c0c0eb79662ae3f189d..b15cc35f947acaa9c2d833cff2ab1da5
      const fabric = this.env.get(import_protocol.FabricManager).maybeFor(fabricIndex);
      if (fabric === void 0) {
        return {
-@@ -305,7 +306,12 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
+@@ -305,7 +306,16 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
        };
      }
      await this.context.transaction.rollback();
 -    await fabric.leave(this.context.exchange);
++    if (this.env.get(import_protocol.FabricManager).fabrics.length === 1) {
++      logger.info(`delaying last fabric removal cleanup by 5s fabricIndex=${fabricIndex}`);
++      await new Promise((resolve) => setTimeout(resolve, 5e3));
++    }
 +    try {
 +      await fabric.leave(this.context.exchange);
 +    } catch (error) {
@@ -631,7 +635,7 @@ index 9c40593ff872cce8d40edcd4f01d0399a9461721..ee99c02915f9d648b1d75e45eead1c1a
        }
      }
 diff --git a/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js b/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
-index 18752f0ca2c856445add4ecabea28fdb0818e825..1a3f751000d02bf06d5ddd16b12734c23640d84f 100644
+index 18752f0ca2c856445add4ecabea28fdb0818e825..8c292ccbaa64178d799ce4ca5a7d90514c423df9 100644
 --- a/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
 +++ b/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
 @@ -308,6 +308,7 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
@@ -642,11 +646,15 @@ index 18752f0ca2c856445add4ecabea28fdb0818e825..1a3f751000d02bf06d5ddd16b12734c2
      const fabric = this.env.get(FabricManager).maybeFor(fabricIndex);
      if (fabric === void 0) {
        return {
-@@ -316,7 +317,12 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
+@@ -316,7 +317,16 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
        };
      }
      await this.context.transaction.rollback();
 -    await fabric.leave(this.context.exchange);
++    if (this.env.get(FabricManager).fabrics.length === 1) {
++      logger.info(`delaying last fabric removal cleanup by 5s fabricIndex=${fabricIndex}`);
++      await new Promise((resolve) => setTimeout(resolve, 5e3));
++    }
 +    try {
 +      await fabric.leave(this.context.exchange);
 +    } catch (error) {
@@ -1213,7 +1221,7 @@ index 33cf1714755fc69b0a14cff468bc65a90f9aa9af..71c95dc567520a1db72769125f5e6704
              }
          }
 diff --git a/src/behaviors/operational-credentials/OperationalCredentialsServer.ts b/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
-index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..2f08014189dc2a70bb513ea1e9de592c963631e8 100644
+index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..6b48e08d43a218acce9cf3166ec98d127999181b 100644
 --- a/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
 +++ b/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
 @@ -406,6 +406,7 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
@@ -1224,11 +1232,16 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..2f08014189dc2a70bb513ea1e9de592c
  
          const fabric = this.env.get(FabricManager).maybeFor(fabricIndex);
  
-@@ -420,9 +421,15 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
+@@ -420,9 +421,20 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
          // we leave the transaction open it will cause deadlock
          await this.context.transaction.rollback();
  
 -        await fabric.leave(this.context.exchange);
++        if (this.env.get(FabricManager).fabrics.length === 1) {
++            logger.info(`delaying last fabric removal cleanup by 5s fabricIndex=${fabricIndex}`);
++            await new Promise(resolve => setTimeout(resolve, 5_000));
++        }
++
 +        try {
 +            await fabric.leave(this.context.exchange);
 +        } catch (error) {
