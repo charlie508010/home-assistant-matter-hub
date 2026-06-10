@@ -34,11 +34,6 @@ import type { BridgeEndpointManager } from "./bridge-endpoint-manager.js";
 // via empty DataReports every ~sendInterval.
 const AUTO_FORCE_SYNC_INTERVAL_MS = 90_000;
 
-// When all subscriptions are lost but sessions remain active, wait this
-// long before force-closing the dead sessions. This breaks the deadlock
-// where the controller holds a stale CASE session and never re-subscribes
-// because it doesn't know the server canceled its subscriptions (#266).
-
 function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
   try {
     const dataRoot = "/config/data";
@@ -85,8 +80,6 @@ function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
   }
 }
 
-const DEAD_SESSION_TIMEOUT_MS = 0;
-const DEAD_SESSION_CLEANUP_ENABLED = DEAD_SESSION_TIMEOUT_MS > 0;
 const SHUTDOWN_SESSION_CLOSE_TIMEOUT_MS = 2_500;
 
 export class Bridge {
@@ -104,8 +97,6 @@ export class Bridge {
   public onStatusChange?: () => void;
 
   private autoForceSyncTimer: ReturnType<typeof setInterval> | null = null;
-  private deadSessionTimer: ReturnType<typeof setTimeout> | null = null;
-  private staleSessionTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
   // Serialize concurrent lifecycle calls so auto-recovery and a manual
   // restartBridge can't race past each other's Starting/Stopping states.
@@ -436,7 +427,6 @@ export class Bridge {
       }
 
       this.wireSessionDiagnostics();
-      this.closeDeadSessions();
       logMemoryUsage(this.log, "bridge running");
       diagnosticEventBus.emit("bridge_started", `Bridge started`, {
         bridgeId: this.id,
@@ -542,47 +532,6 @@ export class Bridge {
           this.log.debug(
             `All subscriptions lost, ${sessions.length} session(s) still active, waiting for controller to re-subscribe`,
           );
-          if (!DEAD_SESSION_CLEANUP_ENABLED) {
-            return;
-          }
-          if (!this.deadSessionTimer) {
-            this.deadSessionTimer = setTimeout(() => {
-              this.deadSessionTimer = null;
-              this.closeDeadSessions();
-            }, DEAD_SESSION_TIMEOUT_MS);
-            this.log.debug(
-              `Scheduled dead session cleanup in ${DEAD_SESSION_TIMEOUT_MS / 1000}s`,
-            );
-          }
-        } else if (totalSubs > 0 && this.deadSessionTimer) {
-          clearTimeout(this.deadSessionTimer);
-          this.deadSessionTimer = null;
-          this.log.debug(
-            "Subscriptions recovered, canceled dead session cleanup",
-          );
-        }
-
-        // Per-session stale tracking: schedule cleanup for individual
-        // sessions that lose all subscriptions even when the bridge
-        // as a whole still has active subscriptions from other peers.
-        if (
-          DEAD_SESSION_CLEANUP_ENABLED &&
-          session.subscriptions.size === 0 &&
-          !this.staleSessionTimers.has(session.id)
-        ) {
-          this.staleSessionTimers.set(
-            session.id,
-            setTimeout(() => {
-              this.staleSessionTimers.delete(session.id);
-              this.closeStaleSession(session.id);
-            }, DEAD_SESSION_TIMEOUT_MS),
-          );
-        } else if (
-          session.subscriptions.size > 0 &&
-          this.staleSessionTimers.has(session.id)
-        ) {
-          clearTimeout(this.staleSessionTimers.get(session.id)!);
-          this.staleSessionTimers.delete(session.id);
         }
       };
       sessionManager.subscriptionsChanged.on(this.sessionDiagHandler);
@@ -590,7 +539,6 @@ export class Bridge {
       this.sessionAddedHandler = (newSession: {
         id: number;
         peerNodeId: unknown;
-        fabric?: { fabricIndex: unknown };
       }) => {
         this.log.info(
           `Session opened: id=${newSession.id} peer=${newSession.peerNodeId}${getAlexaPeerLogSuffix(newSession.peerNodeId)}`,
@@ -604,24 +552,6 @@ export class Bridge {
             details: { sessionId: newSession.id },
           },
         );
-        // Clean up stale sessions from the same peer that have lost all
-        // subscriptions. matter.js 0.16.10 CaseServer does not close
-        // previous sessions when establishing a new CASE session, causing
-        // unbounded session accumulation over time (#105).
-        for (const s of [...sessionManager.sessions]) {
-          if (
-            s !== newSession &&
-            !s.isClosing &&
-            s.peerNodeId === newSession.peerNodeId &&
-            s.fabric?.fabricIndex === newSession.fabric?.fabricIndex &&
-            s.subscriptions.size === 0
-          ) {
-            this.log.debug(
-              `Closing stale session ${s.id} (peer ${s.peerNodeId}${getAlexaPeerLogSuffix(s.peerNodeId)}, 0 subs), replaced by session ${newSession.id}`,
-            );
-            s.initiateForceClose().catch(() => {});
-          }
-        }
       };
       this.sessionDeletedHandler = (session: {
         id: number;
@@ -648,54 +578,6 @@ export class Bridge {
       sessionManager.sessions.deleted.on(this.sessionDeletedHandler);
     } catch {
       // SessionManager not yet available
-    }
-  }
-
-  private closeStaleSession(sessionId: number) {
-    try {
-      const sessionManager = this.server.env.get(SessionManager);
-      for (const s of [...sessionManager.sessions]) {
-        if (s.id === sessionId && !s.isClosing && s.subscriptions.size === 0) {
-          this.log.debug(
-            `Closing stale session ${s.id} (peer ${s.peerNodeId}${getAlexaPeerLogSuffix(s.peerNodeId)}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
-          );
-          s.initiateClose()
-            .catch(() => {
-              // Graceful close failed (peer unreachable), force-close locally
-              return s.initiateForceClose();
-            })
-            .catch(() => {});
-          break;
-        }
-      }
-    } catch {
-      // SessionManager may be disposed
-    }
-  }
-
-  private closeDeadSessions() {
-    try {
-      const sessionManager = this.server.env.get(SessionManager);
-      const sessions = [...sessionManager.sessions];
-      const closes: Promise<void>[] = [];
-      for (const s of sessions) {
-        if (!s.isClosing && s.subscriptions.size === 0) {
-          this.log.debug(
-            `Closing dead session ${s.id} (peer ${s.peerNodeId}${getAlexaPeerLogSuffix(s.peerNodeId)}, no subscriptions for ${DEAD_SESSION_TIMEOUT_MS / 1000}s)`,
-          );
-          closes.push(
-            s.initiateClose().catch(() => {
-              // Graceful close failed (peer unreachable), force-close locally
-              return s.initiateForceClose();
-            }),
-          );
-        }
-      }
-      if (closes.length > 0) {
-        void Promise.allSettled(closes);
-      }
-    } catch {
-      // SessionManager may be disposed
     }
   }
 
@@ -774,14 +656,6 @@ export class Bridge {
     this.sessionDiagHandler = undefined;
     this.sessionAddedHandler = undefined;
     this.sessionDeletedHandler = undefined;
-    if (this.deadSessionTimer) {
-      clearTimeout(this.deadSessionTimer);
-      this.deadSessionTimer = null;
-    }
-    for (const timer of this.staleSessionTimers.values()) {
-      clearTimeout(timer);
-    }
-    this.staleSessionTimers.clear();
   }
 
   private stopAutoForceSync() {
