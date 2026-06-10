@@ -133,29 +133,17 @@ export class BridgeService extends Service {
   }
 
   async stopAll() {
-    this.log.info("Graceful shutdown: closing active CASE sessions");
-    this.log.info(
-      `Graceful shutdown: stopping ${this.bridges.length} bridge(s)`,
-    );
     // Stop all bridges in parallel, stops are independent and a multi-bridge
     // shutdown should not wait for each one serially.
-    let failed = 0;
     await Promise.all(
       this.bridges.map(async (bridge) => {
         try {
-          this.log.info(
-            `Graceful shutdown: stopping bridge id=${bridge.id} name=${bridge.data.name}`,
-          );
           await bridge.stop();
           this.onBridgeChanged?.(bridge.id);
         } catch (e) {
-          failed++;
           this.log.error(`Failed to stop bridge ${bridge.id}:`, e);
         }
       }),
-    );
-    this.log.info(
-      `Graceful shutdown: bridge stopAll complete stopped=${this.bridges.length - failed} failed=${failed}`,
     );
   }
 
