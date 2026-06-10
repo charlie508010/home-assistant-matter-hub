@@ -25,6 +25,7 @@ export function pluginApi(
   const router = express.Router();
   const installer = new PluginInstaller(storageLocation);
   const registry = new PluginRegistry(storageLocation);
+  repairUploadedPluginRegistry(registry, installer);
 
   /**
    * GET /api/plugins
@@ -390,4 +391,28 @@ export function pluginApi(
   });
 
   return router;
+}
+
+function repairUploadedPluginRegistry(
+  registry: PluginRegistry,
+  installer: PluginInstaller,
+) {
+  let repaired = false;
+  for (const entry of registry.getAll()) {
+    if (/^\.upload-\d+\.tgz$/.test(entry.packageName)) {
+      registry.remove(entry.packageName);
+      repaired = true;
+    }
+  }
+
+  for (const plugin of installer.listInstalled()) {
+    if (!registry.get(plugin.name)) {
+      registry.add(plugin.name, {});
+      repaired = true;
+    }
+  }
+
+  if (repaired) {
+    console.info("Repaired uploaded plugin registry entries");
+  }
 }

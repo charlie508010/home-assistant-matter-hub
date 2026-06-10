@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { gunzipSync } from "node:zlib";
 import { Logger } from "@matter/general";
 
 const logger = Logger.get("PluginInstaller");
@@ -8,6 +9,11 @@ const logger = Logger.get("PluginInstaller");
 // Validate package name to prevent command injection
 const VALID_PACKAGE_RE =
   /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*(@[^@\s]+)?$/;
+
+interface PackageManifest {
+  name?: string;
+  version?: string;
+}
 
 export interface InstallResult {
   success: boolean;
@@ -170,6 +176,7 @@ export class PluginInstaller {
   async installFromTgz(tgzBuffer: Buffer): Promise<InstallResult> {
     const tgzPath = path.join(this.pluginDir, `.upload-${Date.now()}.tgz`);
     try {
+      const uploadedPackage = readPackageManifestFromTgz(tgzBuffer);
       fs.writeFileSync(tgzPath, tgzBuffer);
 
       // Snapshot deps before install to detect what was added
@@ -177,6 +184,16 @@ export class PluginInstaller {
 
       const result = await this.installFromNpm(tgzPath);
       if (!result.success) return result;
+
+      if (uploadedPackage?.name) {
+        return {
+          success: true,
+          packageName: uploadedPackage.name,
+          version:
+            this.getInstalledVersion(uploadedPackage.name) ??
+            uploadedPackage.version,
+        };
+      }
 
       // Find the newly added package by diffing deps
       const depsAfter = this.readDeps();
@@ -316,4 +333,42 @@ export class PluginInstaller {
     }
     return null;
   }
+}
+
+function readPackageManifestFromTgz(buffer: Buffer): PackageManifest | null {
+  try {
+    const tar = gunzipSync(buffer);
+    let offset = 0;
+
+    while (offset + 512 <= tar.length) {
+      const header = tar.subarray(offset, offset + 512);
+      if (header.every((byte) => byte === 0)) break;
+
+      const name = readTarString(header, 0, 100);
+      const prefix = readTarString(header, 345, 155);
+      const fileName = prefix ? `${prefix}/${name}` : name;
+      const size = Number.parseInt(readTarString(header, 124, 12).trim(), 8);
+      offset += 512;
+
+      if (!Number.isFinite(size) || size < 0) return null;
+
+      if (fileName === "package/package.json") {
+        return JSON.parse(
+          tar.subarray(offset, offset + size).toString("utf-8"),
+        ) as PackageManifest;
+      }
+
+      offset += Math.ceil(size / 512) * 512;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function readTarString(buffer: Buffer, start: number, length: number): string {
+  const value = buffer.subarray(start, start + length);
+  const end = value.indexOf(0);
+  return value.subarray(0, end === -1 ? undefined : end).toString("utf-8");
 }
