@@ -75,6 +75,18 @@ export class SqliteCustomStorage extends Storage {
       this.log.info(
         `File-to-sqlite migration target: ${path.dirname(this.namespacePath)}`,
       );
+      if (existed) {
+        this.log.info(
+          "File-to-sqlite migration skipped: target already has data",
+        );
+        this.log.info(
+          `File-to-sqlite migrated keys count per namespace ${path.basename(
+            this.namespacePath,
+          )}: 0`,
+        );
+        this.log.info("Migration result: skipped");
+        return;
+      }
       const migrated = this.#migrateFromFileStorage(this.migrationSource.path);
       this.log.info(
         `File-to-sqlite migrated keys count per namespace ${path.basename(

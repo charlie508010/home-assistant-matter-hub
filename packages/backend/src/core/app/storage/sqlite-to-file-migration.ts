@@ -42,8 +42,18 @@ export function migrateSqliteStorageToFileIfNeeded(
     return;
   }
 
-  fs.mkdirSync(targetNamespacePath, { recursive: true });
   const existingKeys = collectFileStorageKeys(targetNamespacePath);
+  if (existingKeys.size > 0) {
+    log.info("SQLite-to-file migration skipped: target already has data");
+    log.info(
+      `SQLite-to-file migrated keys count per namespace ${path.basename(
+        targetNamespacePath,
+      )}: 0`,
+    );
+    return;
+  }
+
+  fs.mkdirSync(targetNamespacePath, { recursive: true });
   const db = new DatabaseSync(sourceDbPath, { readOnly: true });
 
   try {

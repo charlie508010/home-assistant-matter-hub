@@ -312,6 +312,11 @@ function capitalize(value: string) {
 }
 
 function resolveSqliteMigrationSource(baseLocation: string, namespace: string) {
+  const sqliteTarget = path.join(baseLocation, "sqlite", namespace);
+  if (hasStorageFiles(sqliteTarget)) {
+    return undefined;
+  }
+
   const fileBackendSource = path.join(baseLocation, "file", namespace);
   if (hasStorageFiles(fileBackendSource)) {
     return { kind: "file" as const, path: fileBackendSource };

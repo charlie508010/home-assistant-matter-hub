@@ -24,7 +24,7 @@ describe("SqliteCustomStorage file migration", () => {
     vi.restoreAllMocks();
   });
 
-  it("migrates missing file storage keys into existing sqlite storage without overwriting", () => {
+  it("does not migrate file storage keys into an existing sqlite storage", () => {
     const root = createTempRoot();
     roots.push(root);
     const sourcePath = path.join(root, "file", "App");
@@ -49,7 +49,7 @@ describe("SqliteCustomStorage file migration", () => {
     });
     storage.initialize();
 
-    expect(storage.get(["root"], "foo")).toBe("from-file");
+    expect(storage.get(["root"], "foo")).toBeUndefined();
     expect(storage.get(["root"], "keep")).toBe("from-sqlite");
     expect(logger.info).toHaveBeenCalledWith(
       `File-to-sqlite migration source: ${path.join(root, "file")}`,
@@ -57,6 +57,28 @@ describe("SqliteCustomStorage file migration", () => {
     expect(logger.info).toHaveBeenCalledWith(
       `File-to-sqlite migration target: ${path.join(root, "sqlite")}`,
     );
+    expect(logger.info).toHaveBeenCalledWith(
+      "File-to-sqlite migration skipped: target already has data",
+    );
+    storage.close();
+  });
+
+  it("migrates file storage keys when sqlite storage is empty", () => {
+    const root = createTempRoot();
+    roots.push(root);
+    const sourcePath = path.join(root, "file", "App");
+    const targetPath = path.join(root, "sqlite", "App");
+    fs.mkdirSync(sourcePath, { recursive: true });
+    fs.writeFileSync(path.join(sourcePath, "root.foo"), '"from-file"');
+
+    const logger = createLogger();
+    const storage = new SqliteCustomStorage(logger as never, targetPath, {
+      kind: "file",
+      path: sourcePath,
+    });
+    storage.initialize();
+
+    expect(storage.get(["root"], "foo")).toBe("from-file");
     expect(logger.info).toHaveBeenCalledWith(
       "File-to-sqlite migrated keys count per namespace App: 1",
     );
