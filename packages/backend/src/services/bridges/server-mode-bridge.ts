@@ -503,26 +503,21 @@ export class ServerModeBridge {
 
   async gracefullyCloseActiveSessionsForShutdown() {
     try {
-      this.log.info("Graceful shutdown: closing active CASE sessions");
       const sessionManager = this.server.env.get(SessionManager);
       const sessions = [...sessionManager.sessions].filter((s) => !s.isClosing);
-      const subscriptions = sessions.reduce(
-        (sum, session) => sum + session.subscriptions.size,
-        0,
-      );
-
-      this.log.info(
-        `Graceful shutdown: active sessions=${sessions.length} subscriptions=${subscriptions}`,
-      );
 
       if (sessions.length === 0) {
         return;
       }
 
+      this.log.info(
+        `Gracefully closing ${sessions.length} Matter CASE session(s) before shutdown`,
+      );
+
       const closes = sessions.map(async (s) => {
-        const sessionSubscriptions = s.subscriptions.size;
-        this.log.info(
-          `Graceful shutdown: closing session id=${s.id} peer=${s.peerNodeId} name=${getAlexaPeerLogSuffix(s.peerNodeId) || "<unknown>"} subscriptions=${sessionSubscriptions}`,
+        const subscriptions = s.subscriptions.size;
+        this.log.debug(
+          `Closing Matter CASE session ${s.id} (peer ${s.peerNodeId}${getAlexaPeerLogSuffix(s.peerNodeId)}, subscriptions=${subscriptions}) before shutdown`,
         );
         try {
           await s.initiateClose(async () => {
@@ -554,18 +549,12 @@ export class ServerModeBridge {
           `Timed out after ${SHUTDOWN_SESSION_CLOSE_TIMEOUT_MS}ms while closing Matter CASE sessions before shutdown`,
         );
       } else {
-        const failed = result.filter(
-          (entry) => entry.status === "rejected",
-        ).length;
         this.log.info(
-          `Graceful shutdown: session close complete closed=${sessions.length - failed} failed=${failed}`,
+          `Graceful shutdown Matter session close completed (${sessions.length} session(s))`,
         );
       }
-    } catch (error) {
-      this.log.warn(
-        "Graceful shutdown: SessionManager unavailable before bridge stop",
-        error,
-      );
+    } catch {
+      // SessionManager may not be available if startup failed early.
     }
   }
 
