@@ -155,6 +155,12 @@ export class PluginManager {
           `Plugin "${manifest.name}" declares API version ${manifest.hamhPluginApiVersion}, current is ${PLUGIN_API_VERSION}. It may not work correctly.`,
         );
       }
+      if (this.instances.has(manifest.name)) {
+        logger.debug(
+          `External plugin "${manifest.name}" is already registered, skipping load from ${packagePath}`,
+        );
+        return;
+      }
 
       const module = await this.runner.run(
         manifest.name,
@@ -298,6 +304,7 @@ export class PluginManager {
   async startAll(): Promise<void> {
     for (const [name, instance] of this.instances) {
       if (!instance.metadata.enabled) continue;
+      if (instance.started) continue;
       if (this.runner.isDisabled(name)) {
         logger.warn(
           `Plugin "${name}" is disabled (circuit breaker), skipping start`,

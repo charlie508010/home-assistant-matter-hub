@@ -53,6 +53,17 @@ describe("PluginManager", () => {
       expect(onStart).toHaveBeenCalledTimes(1);
     });
 
+    it("should not start an already running plugin twice", async () => {
+      const pm = new PluginManager("bridge-1", storageDir);
+      const onStart = vi.fn(async () => {});
+      await pm.registerBuiltIn(createMockPlugin({ onStart }));
+
+      await pm.startAll();
+      await pm.startAll();
+
+      expect(onStart).toHaveBeenCalledTimes(1);
+    });
+
     it("should call onConfigure for all plugins", async () => {
       const pm = new PluginManager("bridge-1", storageDir);
       const onConfigure = vi.fn(async () => {});
@@ -369,6 +380,31 @@ export default class TestPlugin {
       expect(registered).toHaveLength(1);
       expect(registered[0].id).toBe("ext-dev-1");
       expect(pm.getMetadata()[0].source).toBe(pluginDir);
+    });
+
+    it("should skip an external plugin that is already loaded", async () => {
+      const pluginDir = createTempPlugin(`
+export default class TestPlugin {
+  name = "temp-plugin";
+  version = "0.1.0";
+  async onStart(ctx) {
+    await ctx.registerDevice({
+      id: "ext-dev-1",
+      name: "External Device",
+      deviceType: "on_off_light",
+      clusters: [{ clusterId: "onOff", attributes: { onOff: false } }],
+    });
+  }
+}
+`);
+
+      const pm = new PluginManager("bridge-1", storageDir);
+
+      await pm.loadExternal(pluginDir, {});
+      await pm.loadExternal(pluginDir, {});
+
+      expect(pm.getMetadata()).toHaveLength(1);
+      expect(pm.getMetadata()[0].name).toBe("temp-plugin");
     });
 
     it("should reject plugin without package.json", async () => {
