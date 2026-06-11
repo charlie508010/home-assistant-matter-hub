@@ -109,6 +109,33 @@ export class BridgeService extends Service {
     await bridge.start();
     return true;
   }
+
+  async factoryResetBridge(bridgeId: string): Promise<Bridge | undefined> {
+    const index = this.bridges.findIndex((bridge) => bridge.id === bridgeId);
+    const bridge = this.bridges[index];
+    if (!bridge) return undefined;
+
+    const bridgeData = this.normalizeBridgeData(bridge.data);
+    await bridge.factoryReset();
+
+    try {
+      await bridge.dispose();
+    } catch (e) {
+      this.log.debug(
+        `Ignoring dispose error after factory reset ${bridgeId}:`,
+        e,
+      );
+    }
+
+    const replacement = await this.bridgeFactory.create(bridgeData);
+    replacement.onStatusChange = () => this.onBridgeChanged?.(replacement.id);
+    this.bridges[index] = replacement;
+    await replacement.start();
+    await this.bridgeStorage.add(replacement.data);
+    this.onBridgeChanged?.(replacement.id);
+    return replacement;
+  }
+
   override async dispose(): Promise<void> {
     if (this.recoveryInterval) {
       clearInterval(this.recoveryInterval);

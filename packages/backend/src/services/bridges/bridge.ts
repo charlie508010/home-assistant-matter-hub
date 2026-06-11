@@ -690,11 +690,14 @@ export class Bridge {
       return;
     }
     this.log.info("Factory reset requested");
+    this.unwireSessionDiagnostics();
+    this.stopAutoForceSync();
+    await this.gracefullyCloseActiveSessionsForShutdown();
+    await this.endpointManager.stopPlugins();
+    this.endpointManager.stopObserving();
     await this.server.factoryReset();
-    this.log.info("Factory reset completed; restarting bridge");
+    this.log.info("Factory reset completed");
     this.setStatus({ code: BridgeStatus.Stopped });
-    await this.start();
-    this.log.info("commissioning window opened after reset/remove");
   }
 
   /**

@@ -292,9 +292,14 @@ export class ServerModeBridge {
     if (this.status.code !== BridgeStatus.Running) {
       return;
     }
+    this.stopSessionRotation();
+    this.unwireSessionDiagnostics();
+    this.cancelWarmStart();
+    this.stopAutoForceSync();
+    await this.gracefullyCloseActiveSessionsForShutdown();
+    this.endpointManager.stopObserving();
     await this.server.factoryReset();
     this.setStatus({ code: BridgeStatus.Stopped });
-    await this.start();
   }
 
   async openCommissioningWindow(): Promise<void> {

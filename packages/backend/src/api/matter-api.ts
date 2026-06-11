@@ -121,14 +121,12 @@ export function matterApi(
 
   router.post("/bridges/:bridgeId/actions/factory-reset", async (req, res) => {
     const bridgeId = req.params.bridgeId;
-    const bridge = bridgeService.bridges.find((b) => b.id === bridgeId);
-    if (!bridge) {
-      res.status(404).send("Not Found");
-      return;
-    }
     try {
-      await bridge.factoryReset();
-      await bridge.start();
+      const bridge = await bridgeService.factoryResetBridge(bridgeId);
+      if (!bridge) {
+        res.status(404).send("Not Found");
+        return;
+      }
       res.status(200).json(bridge.data);
     } catch (e) {
       res.status(500).json({
