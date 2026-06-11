@@ -47,6 +47,90 @@ index d471d7487c0dc7cafed1b8d23a62661ccb99afcd..77e6be8b24c82c13ecc6aa7066a9e8cc
      }).finally(() => {
        if (peer.activeDiscovery?.type === 1 /* RetransmissionDiscovery */) {
          peer.activeDiscovery = void 0;
+diff --git a/dist/cjs/protocol/DeviceAdvertiser.d.ts b/dist/cjs/protocol/DeviceAdvertiser.d.ts
+index 08c8481dc463321f6e39a013050dcdb9685befb5..760dae71d461058efbd20f8e32c433c3a3636e8c 100644
+--- a/dist/cjs/protocol/DeviceAdvertiser.d.ts
++++ b/dist/cjs/protocol/DeviceAdvertiser.d.ts
+@@ -45,6 +45,7 @@ export declare class DeviceAdvertiser {
+      * This is useful when there is a network change.
+      */
+     restartAdvertisement(): void;
++    suppressOperationalAdvertisementDuringFabricCleanup<T>(fabricIndex: number, callback: () => Promise<T>): Promise<T>;
+     close(): Promise<void>;
+     hasAdvertiser(advertiser: Advertiser): boolean;
+     addAdvertiser(advertiser: Advertiser): void;
+diff --git a/dist/cjs/protocol/DeviceAdvertiser.js b/dist/cjs/protocol/DeviceAdvertiser.js
+index eba2665e872fe89e13ef175fd30d1732c530ecc5..1ed1d92520c425fb2d824547546d19122da4aef8 100644
+--- a/dist/cjs/protocol/DeviceAdvertiser.js
++++ b/dist/cjs/protocol/DeviceAdvertiser.js
+@@ -38,6 +38,7 @@ class DeviceAdvertiser {
+   #observers = new import_general.ObserverGroup();
+   #isOperational = false;
+   #isClosing = false;
++  #operationalAdvertisementSuppression = 0;
+   #commissioningService;
+   constructor(context) {
+     this.#context = context;
+@@ -85,6 +86,10 @@ class DeviceAdvertiser {
+       const fabricIndex = session.fabric?.fabricIndex;
+       const fabric = fabricIndex ? fabrics.maybeFor(fabricIndex) : void 0;
+       if (fabric) {
++        if (this.#operationalAdvertisementSuppression > 0) {
++          logger.debug("Suppressing operational advertisement after session close during fabric cleanup");
++          return;
++        }
+         if (fabric.hasSessionForPeer(session.peerNodeId)) {
+           return;
+         }
+@@ -99,12 +104,18 @@ class DeviceAdvertiser {
+       this.#startCommissioningAdvertisement();
+     });
+     this.#observers.on(sessions.retry, (session) => {
++      if (this.#operationalAdvertisementSuppression > 0) {
++        return;
++      }
+       if (!session.isSecure || !session.fabric) {
+         return;
+       }
+       this.#advertiseFabric(session.associatedFabric, "retransmit");
+     });
+     this.#observers.on(this.#context.sessions.subscriptionsChanged, (session, subscription) => {
++      if (this.#operationalAdvertisementSuppression > 0) {
++        return;
++      }
+       if (this.#isOperational && subscription.isCanceledByPeer && session.fabric !== void 0) {
+         logger.debug(`Subscription canceled by peer, re-announce`);
+         this.#advertiseFabric(session.fabric, "reconnect");
+@@ -200,6 +211,16 @@ class DeviceAdvertiser {
+     this.#startCommissioningAdvertisement();
+     this.#startOperationalAdvertisement();
+   }
++  async suppressOperationalAdvertisementDuringFabricCleanup(fabricIndex, callback) {
++    this.#operationalAdvertisementSuppression++;
++    logger.info(`Suppressing operational advertisement during fabric cleanup fabricIndex=${fabricIndex}`);
++    try {
++      return await callback();
++    } finally {
++      this.#operationalAdvertisementSuppression--;
++      logger.info(`Operational advertisement suppression ended fabricIndex=${fabricIndex}`);
++    }
++  }
+   async close() {
+     this.#isClosing = true;
+     this.#observers.close();
+@@ -224,6 +245,12 @@ class DeviceAdvertiser {
+     if (this.#isClosing) {
+       return;
+     }
++    if (this.#operationalAdvertisementSuppression > 0) {
++      logger.debug(
++        `Suppressing operational advertisement during fabric cleanup fabricIndex=${fabric.fabricIndex} event=${event}`
++      );
++      return;
++    }
+     for (const advertiser of this.#advertisers) {
+       if (event === "startup") {
+         if (this.#context.sessions.forFabric(fabric).some((session) => session.subscriptions.size > 0)) {
 diff --git a/dist/cjs/session/case/CaseServer.js b/dist/cjs/session/case/CaseServer.js
 index 6f7ab08b67e7d23fea33b337a413672ec83a1465..0f26d3e57ae9fee1bac28a037f2a34c722ebfae4 100644
 --- a/dist/cjs/session/case/CaseServer.js
@@ -112,6 +196,90 @@ index 3094eb5f1d6ebb637d3fef232507dec7a60b43a4..9c1900c62cf03c9704606eda9626aabd
      }).finally(() => {
        if (peer.activeDiscovery?.type === 1 /* RetransmissionDiscovery */) {
          peer.activeDiscovery = void 0;
+diff --git a/dist/esm/protocol/DeviceAdvertiser.d.ts b/dist/esm/protocol/DeviceAdvertiser.d.ts
+index 08c8481dc463321f6e39a013050dcdb9685befb5..760dae71d461058efbd20f8e32c433c3a3636e8c 100644
+--- a/dist/esm/protocol/DeviceAdvertiser.d.ts
++++ b/dist/esm/protocol/DeviceAdvertiser.d.ts
+@@ -45,6 +45,7 @@ export declare class DeviceAdvertiser {
+      * This is useful when there is a network change.
+      */
+     restartAdvertisement(): void;
++    suppressOperationalAdvertisementDuringFabricCleanup<T>(fabricIndex: number, callback: () => Promise<T>): Promise<T>;
+     close(): Promise<void>;
+     hasAdvertiser(advertiser: Advertiser): boolean;
+     addAdvertiser(advertiser: Advertiser): void;
+diff --git a/dist/esm/protocol/DeviceAdvertiser.js b/dist/esm/protocol/DeviceAdvertiser.js
+index 5e8d250dbfcf96bd70027e97c9fb4a74ec43cb4d..362ecf17f7a477ddacc13d47341b34dbe3f98df9 100644
+--- a/dist/esm/protocol/DeviceAdvertiser.js
++++ b/dist/esm/protocol/DeviceAdvertiser.js
+@@ -15,6 +15,7 @@ class DeviceAdvertiser {
+   #observers = new ObserverGroup();
+   #isOperational = false;
+   #isClosing = false;
++  #operationalAdvertisementSuppression = 0;
+   #commissioningService;
+   constructor(context) {
+     this.#context = context;
+@@ -62,6 +63,10 @@ class DeviceAdvertiser {
+       const fabricIndex = session.fabric?.fabricIndex;
+       const fabric = fabricIndex ? fabrics.maybeFor(fabricIndex) : void 0;
+       if (fabric) {
++        if (this.#operationalAdvertisementSuppression > 0) {
++          logger.debug("Suppressing operational advertisement after session close during fabric cleanup");
++          return;
++        }
+         if (fabric.hasSessionForPeer(session.peerNodeId)) {
+           return;
+         }
+@@ -76,12 +81,18 @@ class DeviceAdvertiser {
+       this.#startCommissioningAdvertisement();
+     });
+     this.#observers.on(sessions.retry, (session) => {
++      if (this.#operationalAdvertisementSuppression > 0) {
++        return;
++      }
+       if (!session.isSecure || !session.fabric) {
+         return;
+       }
+       this.#advertiseFabric(session.associatedFabric, "retransmit");
+     });
+     this.#observers.on(this.#context.sessions.subscriptionsChanged, (session, subscription) => {
++      if (this.#operationalAdvertisementSuppression > 0) {
++        return;
++      }
+       if (this.#isOperational && subscription.isCanceledByPeer && session.fabric !== void 0) {
+         logger.debug(`Subscription canceled by peer, re-announce`);
+         this.#advertiseFabric(session.fabric, "reconnect");
+@@ -177,6 +188,16 @@ class DeviceAdvertiser {
+     this.#startCommissioningAdvertisement();
+     this.#startOperationalAdvertisement();
+   }
++  async suppressOperationalAdvertisementDuringFabricCleanup(fabricIndex, callback) {
++    this.#operationalAdvertisementSuppression++;
++    logger.info(`Suppressing operational advertisement during fabric cleanup fabricIndex=${fabricIndex}`);
++    try {
++      return await callback();
++    } finally {
++      this.#operationalAdvertisementSuppression--;
++      logger.info(`Operational advertisement suppression ended fabricIndex=${fabricIndex}`);
++    }
++  }
+   async close() {
+     this.#isClosing = true;
+     this.#observers.close();
+@@ -201,6 +222,12 @@ class DeviceAdvertiser {
+     if (this.#isClosing) {
+       return;
+     }
++    if (this.#operationalAdvertisementSuppression > 0) {
++      logger.debug(
++        `Suppressing operational advertisement during fabric cleanup fabricIndex=${fabric.fabricIndex} event=${event}`
++      );
++      return;
++    }
+     for (const advertiser of this.#advertisers) {
+       if (event === "startup") {
+         if (this.#context.sessions.forFabric(fabric).some((session) => session.subscriptions.size > 0)) {
 diff --git a/dist/esm/session/case/CaseServer.js b/dist/esm/session/case/CaseServer.js
 index 3d840b6a8bdda7164f4b9ae0d7123d3c5faae4eb..a33cc1986b4d3435f7e8802f894a2e497d2c80dd 100644
 --- a/dist/esm/session/case/CaseServer.js
@@ -145,6 +313,84 @@ index daefb362bf99cb7acf0a9cffdc79592b65c9cbee..68f381736988dbc4fe99bcdb26c600f5
              })
              .finally(() => {
                  if (peer.activeDiscovery?.type === NodeDiscoveryType.RetransmissionDiscovery) {
+diff --git a/src/protocol/DeviceAdvertiser.ts b/src/protocol/DeviceAdvertiser.ts
+index 41963d741672344dd7314fb212c9264e1c06d23d..1f6094f801502be276ec55bae4d9c05e0e7971e7 100644
+--- a/src/protocol/DeviceAdvertiser.ts
++++ b/src/protocol/DeviceAdvertiser.ts
+@@ -32,6 +32,7 @@ export class DeviceAdvertiser {
+     #observers = new ObserverGroup();
+     #isOperational = false;
+     #isClosing = false;
++    #operationalAdvertisementSuppression = 0;
+     #commissioningService?: ServiceDescription;
+ 
+     constructor(context: DeviceAdvertiserContext) {
+@@ -106,6 +107,11 @@ export class DeviceAdvertiser {
+ 
+             // If this was an operational connection, readvertise if we're no longer connected to the peer
+             if (fabric) {
++                if (this.#operationalAdvertisementSuppression > 0) {
++                    logger.debug("Suppressing operational advertisement after session close during fabric cleanup");
++                    return;
++                }
++
+                 if (fabric.hasSessionForPeer(session.peerNodeId)) {
+                     return;
+                 }
+@@ -126,6 +132,10 @@ export class DeviceAdvertiser {
+ 
+         // Trigger retransmission broadcast on retry
+         this.#observers.on(sessions.retry, session => {
++            if (this.#operationalAdvertisementSuppression > 0) {
++                return;
++            }
++
+             if (!session.isSecure || !(session as SecureSession).fabric) {
+                 return;
+             }
+@@ -135,6 +145,10 @@ export class DeviceAdvertiser {
+         });
+ 
+         this.#observers.on(this.#context.sessions.subscriptionsChanged, (session, subscription) => {
++            if (this.#operationalAdvertisementSuppression > 0) {
++                return;
++            }
++
+             if (this.#isOperational && subscription.isCanceledByPeer && session.fabric !== undefined) {
+                 logger.debug(`Subscription canceled by peer, re-announce`);
+                 this.#advertiseFabric(session.fabric, "reconnect");
+@@ -249,6 +263,17 @@ export class DeviceAdvertiser {
+         this.#startOperationalAdvertisement();
+     }
+ 
++    async suppressOperationalAdvertisementDuringFabricCleanup<T>(fabricIndex: number, callback: () => Promise<T>) {
++        this.#operationalAdvertisementSuppression++;
++        logger.info(`Suppressing operational advertisement during fabric cleanup fabricIndex=${fabricIndex}`);
++        try {
++            return await callback();
++        } finally {
++            this.#operationalAdvertisementSuppression--;
++            logger.info(`Operational advertisement suppression ended fabricIndex=${fabricIndex}`);
++        }
++    }
++
+     async close() {
+         this.#isClosing = true;
+         this.#observers.close();
+@@ -279,6 +304,13 @@ export class DeviceAdvertiser {
+             return;
+         }
+ 
++        if (this.#operationalAdvertisementSuppression > 0) {
++            logger.debug(
++                `Suppressing operational advertisement during fabric cleanup fabricIndex=${fabric.fabricIndex} event=${event}`,
++            );
++            return;
++        }
++
+         for (const advertiser of this.#advertisers) {
+             if (event === "startup") {
+                 // For startup events where we have active subscriptions somewhere on the fabric, we just convert
 diff --git a/src/session/case/CaseServer.ts b/src/session/case/CaseServer.ts
 index ce1177a4bac2ecdaaf9e618d72cb047af4ff8719..bb3cd61c95d8fc17767166eac8c39034f1847b9b 100644
 --- a/src/session/case/CaseServer.ts

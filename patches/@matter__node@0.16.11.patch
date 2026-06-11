@@ -51,7 +51,7 @@ index a6786485017dd7789ee6a8fc4f0d9033dcdb2ae2..7cabdcf15325b8e045d97080ad1e672d
        }
      }
 diff --git a/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js b/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
-index e1655864865d84eae9f50c0c0eb79662ae3f189d..855b7103b083e535c22dcf6ca7e7e853c76183e5 100644
+index e1655864865d84eae9f50c0c0eb79662ae3f189d..ce666ccdb3709fbfcee065c3d3ef61999ff2e11e 100644
 --- a/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
 +++ b/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
 @@ -37,6 +37,77 @@ var import_VendorIdVerification = require("./VendorIdVerification.js");
@@ -140,7 +140,7 @@ index e1655864865d84eae9f50c0c0eb79662ae3f189d..855b7103b083e535c22dcf6ca7e7e853
      const fabric = this.env.get(import_protocol.FabricManager).maybeFor(fabricIndex);
      if (fabric === void 0) {
        return {
-@@ -305,7 +377,29 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
+@@ -305,7 +377,34 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
        };
      }
      await this.context.transaction.rollback();
@@ -156,7 +156,12 @@ index e1655864865d84eae9f50c0c0eb79662ae3f189d..855b7103b083e535c22dcf6ca7e7e853
 +        };
 +      }
 +      const sessionManager = this.env.get(import_protocol.SessionManager);
-+      const cleanup = hamhCloseActiveSessionsForLastFabricRemoval(sessionManager, fabricIndex).then(() => hamhWaitForLastFabricSessionsToDrain(sessionManager, fabricIndex)).then(() => fabric.leave()).catch((error) => {
++      const advertiser = this.env.get(import_protocol.DeviceAdvertiser);
++      const cleanup = advertiser.suppressOperationalAdvertisementDuringFabricCleanup(fabricIndex, async () => {
++        await hamhCloseActiveSessionsForLastFabricRemoval(sessionManager, fabricIndex);
++        await hamhWaitForLastFabricSessionsToDrain(sessionManager, fabricIndex);
++        await fabric.leave();
++      }).catch((error) => {
 +        logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
 +      }).finally(() => hamhLastFabricRemovalCleanup.delete(fabricManager));
 +      hamhLastFabricRemovalCleanup.set(fabricManager, cleanup);
@@ -726,10 +731,18 @@ index 9c40593ff872cce8d40edcd4f01d0399a9461721..ee99c02915f9d648b1d75e45eead1c1a
        }
      }
 diff --git a/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js b/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
-index 18752f0ca2c856445add4ecabea28fdb0818e825..639087b2580352d2a6f4e0fba8e6aeb9e0c1fef0 100644
+index 18752f0ca2c856445add4ecabea28fdb0818e825..293776406082b9294d8bcece4c136b1478f550a2 100644
 --- a/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
 +++ b/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
-@@ -26,6 +26,7 @@ import {
+@@ -18,6 +18,7 @@ import {
+ import { AccessLevel } from "#model";
+ import {
+   assertRemoteActor,
++  DeviceAdvertiser,
+   DeviceCertification,
+   DeviceCommissioner,
+   FabricManager,
+@@ -26,6 +27,7 @@ import {
    MatterFabricInvalidAdminSubjectError,
    NodeSession,
    PublicKeyError,
@@ -737,7 +750,7 @@ index 18752f0ca2c856445add4ecabea28fdb0818e825..639087b2580352d2a6f4e0fba8e6aeb9
    TlvAttestation,
    TlvCertSigningRequest,
    Val
-@@ -48,6 +49,77 @@ import {
+@@ -48,6 +50,77 @@ import {
  import { OperationalCredentialsBehavior } from "./OperationalCredentialsBehavior.js";
  import { VendorIdVerification } from "./VendorIdVerification.js";
  const logger = Logger.get("OperationalCredentials");
@@ -815,7 +828,7 @@ index 18752f0ca2c856445add4ecabea28fdb0818e825..639087b2580352d2a6f4e0fba8e6aeb9
  OperationalCredentials.Cluster.commands = {
    ...OperationalCredentials.Cluster.commands,
    attestationRequest: Command(
-@@ -308,6 +380,7 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
+@@ -308,6 +381,7 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
    }
    async removeFabric({ fabricIndex }) {
      assertRemoteActor(this.context);
@@ -823,7 +836,7 @@ index 18752f0ca2c856445add4ecabea28fdb0818e825..639087b2580352d2a6f4e0fba8e6aeb9
      const fabric = this.env.get(FabricManager).maybeFor(fabricIndex);
      if (fabric === void 0) {
        return {
-@@ -316,7 +389,29 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
+@@ -316,7 +390,34 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
        };
      }
      await this.context.transaction.rollback();
@@ -839,7 +852,12 @@ index 18752f0ca2c856445add4ecabea28fdb0818e825..639087b2580352d2a6f4e0fba8e6aeb9
 +        };
 +      }
 +      const sessionManager = this.env.get(SessionManager);
-+      const cleanup = hamhCloseActiveSessionsForLastFabricRemoval(sessionManager, fabricIndex).then(() => hamhWaitForLastFabricSessionsToDrain(sessionManager, fabricIndex)).then(() => fabric.leave()).catch((error) => {
++      const advertiser = this.env.get(DeviceAdvertiser);
++      const cleanup = advertiser.suppressOperationalAdvertisementDuringFabricCleanup(fabricIndex, async () => {
++        await hamhCloseActiveSessionsForLastFabricRemoval(sessionManager, fabricIndex);
++        await hamhWaitForLastFabricSessionsToDrain(sessionManager, fabricIndex);
++        await fabric.leave();
++      }).catch((error) => {
 +        logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
 +      }).finally(() => hamhLastFabricRemovalCleanup.delete(fabricManager));
 +      hamhLastFabricRemovalCleanup.set(fabricManager, cleanup);
@@ -1411,10 +1429,18 @@ index 33cf1714755fc69b0a14cff468bc65a90f9aa9af..71c95dc567520a1db72769125f5e6704
              }
          }
 diff --git a/src/behaviors/operational-credentials/OperationalCredentialsServer.ts b/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
-index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..0de7c559b3732d2d97e21e81f4bfe73af2925ca3 100644
+index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..0c070a22b429c86e0bde30f2bafb4c0758bb3906 100644
 --- a/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
 +++ b/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
-@@ -32,6 +32,7 @@ import {
+@@ -23,6 +23,7 @@ import { AccessLevel } from "#model";
+ import type { Node } from "#node/Node.js";
+ import {
+     assertRemoteActor,
++    DeviceAdvertiser,
+     DeviceCertification,
+     DeviceCommissioner,
+     Fabric,
+@@ -32,6 +33,7 @@ import {
      MatterFabricInvalidAdminSubjectError,
      NodeSession,
      PublicKeyError,
@@ -1422,7 +1448,7 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..0de7c559b3732d2d97e21e81f4bfe73a
      TlvAttestation,
      TlvCertSigningRequest,
      Val,
-@@ -55,6 +56,86 @@ import { OperationalCredentialsBehavior } from "./OperationalCredentialsBehavior
+@@ -55,6 +57,86 @@ import { OperationalCredentialsBehavior } from "./OperationalCredentialsBehavior
  import { VendorIdVerification } from "./VendorIdVerification.js";
  
  const logger = Logger.get("OperationalCredentials");
@@ -1509,7 +1535,7 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..0de7c559b3732d2d97e21e81f4bfe73a
  
  /**
   * Monkey patching Tlv Structure of attestationRequest and csrRequest commands to prevent data validation of the nonce
-@@ -406,6 +487,7 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
+@@ -406,6 +488,7 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
  
      override async removeFabric({ fabricIndex }: OperationalCredentials.RemoveFabricRequest) {
          assertRemoteActor(this.context);
@@ -1517,7 +1543,7 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..0de7c559b3732d2d97e21e81f4bfe73a
  
          const fabric = this.env.get(FabricManager).maybeFor(fabricIndex);
  
-@@ -420,9 +502,37 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
+@@ -420,9 +503,41 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
          // we leave the transaction open it will cause deadlock
          await this.context.transaction.rollback();
  
@@ -1534,9 +1560,13 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..0de7c559b3732d2d97e21e81f4bfe73a
 +            }
 +
 +            const sessionManager = this.env.get(SessionManager);
-+            const cleanup = hamhCloseActiveSessionsForLastFabricRemoval(sessionManager, fabricIndex)
-+                .then(() => hamhWaitForLastFabricSessionsToDrain(sessionManager, fabricIndex))
-+                .then(() => fabric.leave())
++            const advertiser = this.env.get(DeviceAdvertiser);
++            const cleanup = advertiser
++                .suppressOperationalAdvertisementDuringFabricCleanup(fabricIndex, async () => {
++                    await hamhCloseActiveSessionsForLastFabricRemoval(sessionManager, fabricIndex);
++                    await hamhWaitForLastFabricSessionsToDrain(sessionManager, fabricIndex);
++                    await fabric.leave();
++                })
 +                .catch(error => {
 +                    logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
 +                })
