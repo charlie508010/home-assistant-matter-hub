@@ -157,6 +157,16 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
       });
     }
 
+    if (
+      cfg?.filter?.includeMode === "all" &&
+      (cfg.filter.include?.length ?? 0) > 1
+    ) {
+      result.push({
+        severity: "warning",
+        message: t("bridgeConfig.warnings.includeModeAllMultipleIncludes"),
+      });
+    }
+
     return result;
   }, [config, t]);
 

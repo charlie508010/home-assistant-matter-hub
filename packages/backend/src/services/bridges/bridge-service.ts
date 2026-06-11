@@ -3,6 +3,7 @@ import type {
   BridgeBasicInformation,
   BridgeData,
   CreateBridgeRequest,
+  HomeAssistantFilter,
   UpdateBridgeRequest,
 } from "@home-assistant-matter-hub/common";
 import { Logger } from "@matter/general";
@@ -54,6 +55,7 @@ export class BridgeService extends Service {
     const { basicInformation } = bridgeData;
     return {
       ...bridgeData,
+      filter: this.normalizeFilter(bridgeData.filter),
       basicInformation: {
         ...basicInformation,
         softwareVersion: this.props.basicInformation.softwareVersion,
@@ -65,6 +67,14 @@ export class BridgeService extends Service {
           this.props.basicInformation.softwareVersionString ??
           String(this.props.basicInformation.softwareVersion),
       },
+    };
+  }
+
+  private normalizeFilter(filter: HomeAssistantFilter): HomeAssistantFilter {
+    return {
+      include: Array.isArray(filter.include) ? filter.include : [],
+      exclude: Array.isArray(filter.exclude) ? filter.exclude : [],
+      includeMode: filter.includeMode === "all" ? "all" : "any",
     };
   }
 
@@ -232,11 +242,13 @@ export class BridgeService extends Service {
     if (this.portUsed(request.port)) {
       throw new Error(`Port already in use: ${request.port}`);
     }
-    const bridge = await this.addBridge({
-      ...request,
-      id: crypto.randomUUID().replace(/-/g, ""),
-      basicInformation: this.props.basicInformation,
-    });
+    const bridge = await this.addBridge(
+      this.normalizeBridgeData({
+        ...request,
+        id: crypto.randomUUID().replace(/-/g, ""),
+        basicInformation: this.props.basicInformation,
+      }),
+    );
     await this.bridgeStorage.add(bridge.data);
     await bridge.start();
     this.onBridgeChanged?.(bridge.id);
@@ -251,7 +263,13 @@ export class BridgeService extends Service {
     if (!bridge) {
       return;
     }
-    await bridge.update(request);
+    await bridge.update(
+      this.normalizeBridgeData({
+        ...bridge.data,
+        ...request,
+        basicInformation: bridge.data.basicInformation,
+      }),
+    );
     await this.bridgeStorage.add(bridge.data);
     this.onBridgeChanged?.(bridge.id);
     return bridge;

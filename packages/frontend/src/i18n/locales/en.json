@@ -753,7 +753,8 @@
       "serverModeSingleDevice": "Server Mode is enabled. Only ONE device should be in this bridge. Multiple devices will cause errors.",
       "serverModeVacuumOnOffDisabled": "Server Mode with Vacuum OnOff disabled: Alexa REQUIRES the OnOff cluster (PowerController) for robotic vacuums. Without it, the vacuum commissions but never appears in Alexa. Only disable this for Apple Home.",
       "vacuumOnOffBridgeMode": "Vacuum OnOff is enabled in bridge mode. This adds a non-standard cluster to the RVC device type which may cause issues with Apple Home and Google Home.",
-      "autoForceSyncComposedDevices": "Auto Force Sync with Auto Composed Devices increases network traffic. Composed devices have more clusters, so each sync cycle sends more data."
+      "autoForceSyncComposedDevices": "Auto Force Sync with Auto Composed Devices increases network traffic. Composed devices have more clusters, so each sync cycle sends more data.",
+      "includeModeAllMultipleIncludes": "Include mode is set to AND. With multiple include rules, an entity must match every rule at the same time. For multiple labels such as switch OR TV, set Include Mode to OR."
     },
     "fields": {
       "name": {

@@ -4,7 +4,7 @@ import {
   HomeAssistantMatcherType,
 } from "@home-assistant-matter-hub/common";
 import { describe, expect, it } from "vitest";
-import { testMatcher } from "./matches-entity-filter.js";
+import { testMatcher, testMatchers } from "./matches-entity-filter.js";
 
 const registry: HomeAssistantEntityRegistry = {
   id: "id",
@@ -805,6 +805,35 @@ describe("matchEntityFilter.testMatcher", () => {
         },
         undefined,
         registry,
+      ),
+    ).toBeFalsy();
+  });
+});
+
+describe("matchEntityFilter.testMatchers", () => {
+  it("matches any of multiple entity labels by default", () => {
+    expect(
+      testMatchers(
+        [
+          { type: HomeAssistantMatcherType.EntityLabel, value: "switches" },
+          { type: HomeAssistantMatcherType.EntityLabel, value: "tv" },
+        ],
+        undefined,
+        { ...registry, labels: ["switches"] },
+      ),
+    ).toBeTruthy();
+  });
+
+  it("requires all entity labels when include mode is all", () => {
+    expect(
+      testMatchers(
+        [
+          { type: HomeAssistantMatcherType.EntityLabel, value: "switches" },
+          { type: HomeAssistantMatcherType.EntityLabel, value: "tv" },
+        ],
+        undefined,
+        { ...registry, labels: ["switches"] },
+        "all",
       ),
     ).toBeFalsy();
   });

@@ -753,7 +753,8 @@
       "serverModeSingleDevice": "Servermodus ist aktiviert. In dieser Bridge darf nur EIN Gerät sein. Mehrere Geräte verursachen Fehler.",
       "serverModeVacuumOnOffDisabled": "Servermodus mit deaktiviertem Saugroboter-OnOff: Alexa benötigt den OnOff-Cluster (PowerController) für Saugroboter. Ohne ihn wird der Saugroboter gekoppelt, erscheint aber nicht in Alexa. Nur für Apple Home deaktivieren.",
       "vacuumOnOffBridgeMode": "Saugroboter-OnOff ist im Bridge-Modus aktiviert. Das fügt dem RVC-Gerätetyp einen nicht standardkonformen Cluster hinzu und kann Probleme mit Apple Home und Google Home verursachen.",
-      "autoForceSyncComposedDevices": "Automatische Synchronisation zusammen mit automatisch zusammengesetzten Geräten erhöht den Netzwerkverkehr. Zusammengesetzte Geräte haben mehr Cluster, daher sendet jeder Synchronisationslauf mehr Daten."
+      "autoForceSyncComposedDevices": "Automatische Synchronisation zusammen mit automatisch zusammengesetzten Geräten erhöht den Netzwerkverkehr. Zusammengesetzte Geräte haben mehr Cluster, daher sendet jeder Synchronisationslauf mehr Daten.",
+      "includeModeAllMultipleIncludes": "Der Einbeziehungsmodus steht auf UND. Bei mehreren Include-Regeln muss eine Entity alle Regeln gleichzeitig erfüllen. Für mehrere Labels wie Schalter ODER Fernseher stelle den Einbeziehungsmodus auf ODER."
     },
     "fields": {
       "name": {
