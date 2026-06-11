@@ -499,6 +499,11 @@ export class Bridge {
   }
 
   private wireSessionDiagnostics() {
+    // Reset existing diagnostic listeners first. Factory reset paths can start
+    // the bridge again without going through stop(), and duplicate listeners
+    // make every session close appear multiple times in the logs.
+    this.unwireSessionDiagnostics();
+
     try {
       const sessionManager = this.server.env.get(SessionManager);
       this.sessionDiagHandler = (session: {
