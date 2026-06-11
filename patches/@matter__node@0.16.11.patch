@@ -85,8 +85,8 @@ index e1655864865d84eae9f50c0c0eb79662ae3f189d..37b56caf757941e164a5be427ed1e603
 +          fabricIndex
 +        };
 +      }
-+      logger.info(`delaying last fabric removal cleanup by 5s fabricIndex=${fabricIndex}`);
-+      const cleanup = new Promise((resolve) => setTimeout(resolve, 5e3)).then(() => fabric.leave()).catch((error) => {
++      logger.info(`delaying last fabric removal cleanup by 20s fabricIndex=${fabricIndex}`);
++      const cleanup = new Promise((resolve) => setTimeout(resolve, 20e3)).then(() => fabric.leave()).catch((error) => {
 +        logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
 +      }).finally(() => hamhLastFabricRemovalCleanup.delete(fabricManager));
 +      hamhLastFabricRemovalCleanup.set(fabricManager, cleanup);
@@ -690,8 +690,8 @@ index 18752f0ca2c856445add4ecabea28fdb0818e825..e88d5220d72a3c0a138fe66ea5e61d00
 +          fabricIndex
 +        };
 +      }
-+      logger.info(`delaying last fabric removal cleanup by 5s fabricIndex=${fabricIndex}`);
-+      const cleanup = new Promise((resolve) => setTimeout(resolve, 5e3)).then(() => fabric.leave()).catch((error) => {
++      logger.info(`delaying last fabric removal cleanup by 20s fabricIndex=${fabricIndex}`);
++      const cleanup = new Promise((resolve) => setTimeout(resolve, 20e3)).then(() => fabric.leave()).catch((error) => {
 +        logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
 +      }).finally(() => hamhLastFabricRemovalCleanup.delete(fabricManager));
 +      hamhLastFabricRemovalCleanup.set(fabricManager, cleanup);
@@ -1298,8 +1298,8 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..371839fb74ab5803f2c390e1714a128d
 +                };
 +            }
 +
-+            logger.info(`delaying last fabric removal cleanup by 5s fabricIndex=${fabricIndex}`);
-+            const cleanup = new Promise(resolve => setTimeout(resolve, 5_000))
++            logger.info(`delaying last fabric removal cleanup by 20s fabricIndex=${fabricIndex}`);
++            const cleanup = new Promise(resolve => setTimeout(resolve, 20_000))
 +                .then(() => fabric.leave())
 +                .catch(error => {
 +                    logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
