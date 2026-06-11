@@ -447,7 +447,7 @@ export class BridgeEndpointManager extends Service {
     this._failedEntities = [];
 
     const endpoints = this.root.parts.map((p) => p as EntityEndpoint);
-    this.entityIds = this.registry.entityIds;
+    this.entityIds = [...new Set(this.registry.entityIds)];
 
     // Pre-calculate composed sub-entities so they get skipped
     // during individual endpoint creation (requires mapping access).
@@ -486,7 +486,24 @@ export class BridgeEndpointManager extends Service {
     }
 
     const existingEndpoints: EntityEndpoint[] = [];
+    const seenEndpointEntityIds = new Set<string>();
     for (const endpoint of endpoints) {
+      if (seenEndpointEntityIds.has(endpoint.entityId)) {
+        this.log.warn(
+          `Deleting duplicate endpoint for ${endpoint.entityId}; keeping the first instance`,
+        );
+        try {
+          await endpoint.delete();
+        } catch (e) {
+          this.log.warn(
+            `Failed to delete duplicate endpoint ${endpoint.entityId}:`,
+            e,
+          );
+        }
+        continue;
+      }
+      seenEndpointEntityIds.add(endpoint.entityId);
+
       if (!this.entityIds.includes(endpoint.entityId)) {
         try {
           await endpoint.delete();
@@ -738,7 +755,17 @@ export class BridgeEndpointManager extends Service {
     // reads fresh values for mapped entities (battery, humidity, etc.)
     this.registry.mergeExternalStates(states);
 
-    const allEndpoints = this.root.parts.map((p) => p as EntityEndpoint);
+    const allEndpointsByEntityId = new Map<string, EntityEndpoint>();
+    for (const endpoint of this.root.parts.map((p) => p as EntityEndpoint)) {
+      if (allEndpointsByEntityId.has(endpoint.entityId)) {
+        this.log.debug(
+          `Skipping duplicate endpoint state update for ${endpoint.entityId}`,
+        );
+        continue;
+      }
+      allEndpointsByEntityId.set(endpoint.entityId, endpoint);
+    }
+    const allEndpoints = [...allEndpointsByEntityId.values()];
     // One HA event arrives as the full state map. Hand it only to endpoints
     // whose own entity or a mapped sub-entity actually changed, so a single
     // entity update no longer fans out to every endpoint.
