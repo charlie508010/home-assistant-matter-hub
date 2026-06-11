@@ -51,7 +51,7 @@ index a6786485017dd7789ee6a8fc4f0d9033dcdb2ae2..7cabdcf15325b8e045d97080ad1e672d
        }
      }
 diff --git a/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js b/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
-index e1655864865d84eae9f50c0c0eb79662ae3f189d..ce7e70de7c86592b6821d7dc73e4b625797a5fa7 100644
+index e1655864865d84eae9f50c0c0eb79662ae3f189d..4aa433892912da03e9531df63dccb106a2b09769 100644
 --- a/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
 +++ b/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
 @@ -37,6 +37,7 @@ var import_VendorIdVerification = require("./VendorIdVerification.js");
@@ -70,7 +70,7 @@ index e1655864865d84eae9f50c0c0eb79662ae3f189d..ce7e70de7c86592b6821d7dc73e4b625
      const fabric = this.env.get(import_protocol.FabricManager).maybeFor(fabricIndex);
      if (fabric === void 0) {
        return {
-@@ -305,7 +307,30 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
+@@ -305,7 +307,29 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
        };
      }
      await this.context.transaction.rollback();
@@ -86,11 +86,10 @@ index e1655864865d84eae9f50c0c0eb79662ae3f189d..ce7e70de7c86592b6821d7dc73e4b625
 +        };
 +      }
 +      logger.info(`delaying last fabric removal cleanup by 15s fabricIndex=${fabricIndex}`);
-+      const cleanup = new Promise((resolve) => setTimeout(resolve, 15e3)).then(() => fabric.leave(this.context.exchange)).catch((error) => {
++      const cleanup = new Promise((resolve) => setTimeout(resolve, 15e3)).then(() => fabric.leave()).catch((error) => {
 +        logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
 +      }).finally(() => hamhLastFabricRemovalCleanup.delete(fabricManager));
 +      hamhLastFabricRemovalCleanup.set(fabricManager, cleanup);
-+      await cleanup;
 +    } else {
 +      try {
 +        await fabric.leave(this.context.exchange);
@@ -657,7 +656,7 @@ index 9c40593ff872cce8d40edcd4f01d0399a9461721..ee99c02915f9d648b1d75e45eead1c1a
        }
      }
 diff --git a/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js b/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
-index 18752f0ca2c856445add4ecabea28fdb0818e825..9621799fe4dace2f9f3fbd03e3d8935a5a1e241d 100644
+index 18752f0ca2c856445add4ecabea28fdb0818e825..fbebef22e62b316415c54293bfecbbdd35c9b551 100644
 --- a/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
 +++ b/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
 @@ -48,6 +48,7 @@ import {
@@ -676,7 +675,7 @@ index 18752f0ca2c856445add4ecabea28fdb0818e825..9621799fe4dace2f9f3fbd03e3d8935a
      const fabric = this.env.get(FabricManager).maybeFor(fabricIndex);
      if (fabric === void 0) {
        return {
-@@ -316,7 +318,30 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
+@@ -316,7 +318,29 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
        };
      }
      await this.context.transaction.rollback();
@@ -692,11 +691,10 @@ index 18752f0ca2c856445add4ecabea28fdb0818e825..9621799fe4dace2f9f3fbd03e3d8935a
 +        };
 +      }
 +      logger.info(`delaying last fabric removal cleanup by 15s fabricIndex=${fabricIndex}`);
-+      const cleanup = new Promise((resolve) => setTimeout(resolve, 15e3)).then(() => fabric.leave(this.context.exchange)).catch((error) => {
++      const cleanup = new Promise((resolve) => setTimeout(resolve, 15e3)).then(() => fabric.leave()).catch((error) => {
 +        logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
 +      }).finally(() => hamhLastFabricRemovalCleanup.delete(fabricManager));
 +      hamhLastFabricRemovalCleanup.set(fabricManager, cleanup);
-+      await cleanup;
 +    } else {
 +      try {
 +        await fabric.leave(this.context.exchange);
@@ -1265,7 +1263,7 @@ index 33cf1714755fc69b0a14cff468bc65a90f9aa9af..71c95dc567520a1db72769125f5e6704
              }
          }
 diff --git a/src/behaviors/operational-credentials/OperationalCredentialsServer.ts b/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
-index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..bc7867a6aba53173cc45aa7b61eb54b9ca305639 100644
+index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..c535a40aae4485bd0166f9fa7047bae97ab37adb 100644
 --- a/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
 +++ b/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
 @@ -55,6 +55,7 @@ import { OperationalCredentialsBehavior } from "./OperationalCredentialsBehavior
@@ -1284,7 +1282,7 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..bc7867a6aba53173cc45aa7b61eb54b9
  
          const fabric = this.env.get(FabricManager).maybeFor(fabricIndex);
  
-@@ -420,9 +422,37 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
+@@ -420,9 +422,36 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
          // we leave the transaction open it will cause deadlock
          await this.context.transaction.rollback();
  
@@ -1302,13 +1300,12 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..bc7867a6aba53173cc45aa7b61eb54b9
 +
 +            logger.info(`delaying last fabric removal cleanup by 15s fabricIndex=${fabricIndex}`);
 +            const cleanup = new Promise(resolve => setTimeout(resolve, 15_000))
-+                .then(() => fabric.leave(this.context.exchange))
++                .then(() => fabric.leave())
 +                .catch(error => {
 +                    logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
 +                })
 +                .finally(() => hamhLastFabricRemovalCleanup.delete(fabricManager));
 +            hamhLastFabricRemovalCleanup.set(fabricManager, cleanup);
-+            await cleanup;
 +        } else {
 +            try {
 +                await fabric.leave(this.context.exchange);
