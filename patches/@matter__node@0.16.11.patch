@@ -51,18 +51,52 @@ index a6786485017dd7789ee6a8fc4f0d9033dcdb2ae2..7cabdcf15325b8e045d97080ad1e672d
        }
      }
 diff --git a/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js b/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
-index e1655864865d84eae9f50c0c0eb79662ae3f189d..37b56caf757941e164a5be427ed1e603796954d3 100644
+index e1655864865d84eae9f50c0c0eb79662ae3f189d..a0e8f20f023729bd4ad2f7470f066da0ab685b02 100644
 --- a/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
 +++ b/dist/cjs/behaviors/operational-credentials/OperationalCredentialsServer.js
-@@ -37,6 +37,7 @@ var import_VendorIdVerification = require("./VendorIdVerification.js");
+@@ -37,6 +37,41 @@ var import_VendorIdVerification = require("./VendorIdVerification.js");
   * SPDX-License-Identifier: Apache-2.0
   */
  const logger = import_general.Logger.get("OperationalCredentials");
 +const hamhLastFabricRemovalCleanup = /* @__PURE__ */ new WeakMap();
++const hamhLastFabricRemovalMaxWaitMs = 60_000;
++const hamhLastFabricRemovalPollMs = 250;
++function hamhReadSessionStats(sessionManager) {
++  const sessions = [...sessionManager.sessions];
++  let subscriptions = 0;
++  for (const session of sessions) {
++    subscriptions += session.subscriptions?.size ?? 0;
++  }
++  return { sessions: sessions.length, subscriptions };
++}
++async function hamhWaitForLastFabricSessionsToDrain(sessionManager, fabricIndex) {
++  const startedAt = Date.now();
++  let stats = hamhReadSessionStats(sessionManager);
++  if (stats.sessions === 0) {
++    logger.info(`last fabric removal cleanup sessions already drained fabricIndex=${fabricIndex}`);
++    return;
++  }
++  logger.info(
++    `waiting for active sessions before last fabric removal cleanup fabricIndex=${fabricIndex} sessions=${stats.sessions} subscriptions=${stats.subscriptions} maxWait=60s`
++  );
++  while (Date.now() - startedAt < hamhLastFabricRemovalMaxWaitMs) {
++    await new Promise((resolve) => setTimeout(resolve, hamhLastFabricRemovalPollMs));
++    stats = hamhReadSessionStats(sessionManager);
++    if (stats.sessions === 0) {
++      logger.info(
++        `last fabric removal cleanup sessions drained fabricIndex=${fabricIndex} waitedMs=${Date.now() - startedAt}`
++      );
++      return;
++    }
++  }
++  logger.warn(
++    `last fabric removal cleanup continuing after timeout fabricIndex=${fabricIndex} sessions=${stats.sessions} subscriptions=${stats.subscriptions} waitedMs=${Date.now() - startedAt}`
++  );
++}
  import_operational_credentials.OperationalCredentials.Cluster.commands = {
    ...import_operational_credentials.OperationalCredentials.Cluster.commands,
    attestationRequest: (0, import_types.Command)(
-@@ -297,6 +298,7 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
+@@ -297,6 +332,7 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
    }
    async removeFabric({ fabricIndex }) {
      (0, import_protocol.assertRemoteActor)(this.context);
@@ -70,7 +104,7 @@ index e1655864865d84eae9f50c0c0eb79662ae3f189d..37b56caf757941e164a5be427ed1e603
      const fabric = this.env.get(import_protocol.FabricManager).maybeFor(fabricIndex);
      if (fabric === void 0) {
        return {
-@@ -305,7 +307,29 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
+@@ -305,7 +341,29 @@ class OperationalCredentialsServer extends import_OperationalCredentialsBehavior
        };
      }
      await this.context.transaction.rollback();
@@ -85,8 +119,8 @@ index e1655864865d84eae9f50c0c0eb79662ae3f189d..37b56caf757941e164a5be427ed1e603
 +          fabricIndex
 +        };
 +      }
-+      logger.info(`delaying last fabric removal cleanup by 20s fabricIndex=${fabricIndex}`);
-+      const cleanup = new Promise((resolve) => setTimeout(resolve, 20e3)).then(() => fabric.leave()).catch((error) => {
++      const sessionManager = this.env.get(import_protocol.SessionManager);
++      const cleanup = hamhWaitForLastFabricSessionsToDrain(sessionManager, fabricIndex).then(() => fabric.leave()).catch((error) => {
 +        logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
 +      }).finally(() => hamhLastFabricRemovalCleanup.delete(fabricManager));
 +      hamhLastFabricRemovalCleanup.set(fabricManager, cleanup);
@@ -656,18 +690,60 @@ index 9c40593ff872cce8d40edcd4f01d0399a9461721..ee99c02915f9d648b1d75e45eead1c1a
        }
      }
 diff --git a/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js b/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
-index 18752f0ca2c856445add4ecabea28fdb0818e825..e88d5220d72a3c0a138fe66ea5e61d008a4456f5 100644
+index 18752f0ca2c856445add4ecabea28fdb0818e825..38dff17a7658beab87caa0c53b2b484a2c50577c 100644
 --- a/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
 +++ b/dist/esm/behaviors/operational-credentials/OperationalCredentialsServer.js
-@@ -48,6 +48,7 @@ import {
+@@ -26,6 +26,7 @@ import {
+   MatterFabricInvalidAdminSubjectError,
+   NodeSession,
+   PublicKeyError,
++  SessionManager,
+   TlvAttestation,
+   TlvCertSigningRequest,
+   Val
+@@ -48,6 +49,41 @@ import {
  import { OperationalCredentialsBehavior } from "./OperationalCredentialsBehavior.js";
  import { VendorIdVerification } from "./VendorIdVerification.js";
  const logger = Logger.get("OperationalCredentials");
 +const hamhLastFabricRemovalCleanup = /* @__PURE__ */ new WeakMap();
++const hamhLastFabricRemovalMaxWaitMs = 60_000;
++const hamhLastFabricRemovalPollMs = 250;
++function hamhReadSessionStats(sessionManager) {
++  const sessions = [...sessionManager.sessions];
++  let subscriptions = 0;
++  for (const session of sessions) {
++    subscriptions += session.subscriptions?.size ?? 0;
++  }
++  return { sessions: sessions.length, subscriptions };
++}
++async function hamhWaitForLastFabricSessionsToDrain(sessionManager, fabricIndex) {
++  const startedAt = Date.now();
++  let stats = hamhReadSessionStats(sessionManager);
++  if (stats.sessions === 0) {
++    logger.info(`last fabric removal cleanup sessions already drained fabricIndex=${fabricIndex}`);
++    return;
++  }
++  logger.info(
++    `waiting for active sessions before last fabric removal cleanup fabricIndex=${fabricIndex} sessions=${stats.sessions} subscriptions=${stats.subscriptions} maxWait=60s`
++  );
++  while (Date.now() - startedAt < hamhLastFabricRemovalMaxWaitMs) {
++    await new Promise((resolve) => setTimeout(resolve, hamhLastFabricRemovalPollMs));
++    stats = hamhReadSessionStats(sessionManager);
++    if (stats.sessions === 0) {
++      logger.info(
++        `last fabric removal cleanup sessions drained fabricIndex=${fabricIndex} waitedMs=${Date.now() - startedAt}`
++      );
++      return;
++    }
++  }
++  logger.warn(
++    `last fabric removal cleanup continuing after timeout fabricIndex=${fabricIndex} sessions=${stats.sessions} subscriptions=${stats.subscriptions} waitedMs=${Date.now() - startedAt}`
++  );
++}
  OperationalCredentials.Cluster.commands = {
    ...OperationalCredentials.Cluster.commands,
    attestationRequest: Command(
-@@ -308,6 +309,7 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
+@@ -308,6 +344,7 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
    }
    async removeFabric({ fabricIndex }) {
      assertRemoteActor(this.context);
@@ -675,7 +751,7 @@ index 18752f0ca2c856445add4ecabea28fdb0818e825..e88d5220d72a3c0a138fe66ea5e61d00
      const fabric = this.env.get(FabricManager).maybeFor(fabricIndex);
      if (fabric === void 0) {
        return {
-@@ -316,7 +318,29 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
+@@ -316,7 +353,29 @@ class OperationalCredentialsServer extends OperationalCredentialsBehavior {
        };
      }
      await this.context.transaction.rollback();
@@ -690,8 +766,8 @@ index 18752f0ca2c856445add4ecabea28fdb0818e825..e88d5220d72a3c0a138fe66ea5e61d00
 +          fabricIndex
 +        };
 +      }
-+      logger.info(`delaying last fabric removal cleanup by 20s fabricIndex=${fabricIndex}`);
-+      const cleanup = new Promise((resolve) => setTimeout(resolve, 20e3)).then(() => fabric.leave()).catch((error) => {
++      const sessionManager = this.env.get(SessionManager);
++      const cleanup = hamhWaitForLastFabricSessionsToDrain(sessionManager, fabricIndex).then(() => fabric.leave()).catch((error) => {
 +        logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
 +      }).finally(() => hamhLastFabricRemovalCleanup.delete(fabricManager));
 +      hamhLastFabricRemovalCleanup.set(fabricManager, cleanup);
@@ -1263,18 +1339,65 @@ index 33cf1714755fc69b0a14cff468bc65a90f9aa9af..71c95dc567520a1db72769125f5e6704
              }
          }
 diff --git a/src/behaviors/operational-credentials/OperationalCredentialsServer.ts b/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
-index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..371839fb74ab5803f2c390e1714a128d8bfdcab3 100644
+index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..e2a3a70b8887c61632b8bb50c2a0e338c8fbf270 100644
 --- a/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
 +++ b/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
-@@ -55,6 +55,7 @@ import { OperationalCredentialsBehavior } from "./OperationalCredentialsBehavior
+@@ -32,6 +32,7 @@ import {
+     MatterFabricInvalidAdminSubjectError,
+     NodeSession,
+     PublicKeyError,
++    SessionManager,
+     TlvAttestation,
+     TlvCertSigningRequest,
+     Val,
+@@ -55,6 +56,46 @@ import { OperationalCredentialsBehavior } from "./OperationalCredentialsBehavior
  import { VendorIdVerification } from "./VendorIdVerification.js";
  
  const logger = Logger.get("OperationalCredentials");
 +const hamhLastFabricRemovalCleanup = new WeakMap<FabricManager, Promise<void>>();
++const hamhLastFabricRemovalMaxWaitMs = 60_000;
++const hamhLastFabricRemovalPollMs = 250;
++
++function hamhReadSessionStats(sessionManager: SessionManager) {
++    const sessions = [...sessionManager.sessions];
++    let subscriptions = 0;
++    for (const session of sessions) {
++        subscriptions += session.subscriptions?.size ?? 0;
++    }
++    return { sessions: sessions.length, subscriptions };
++}
++
++async function hamhWaitForLastFabricSessionsToDrain(sessionManager: SessionManager, fabricIndex: FabricIndex) {
++    const startedAt = Date.now();
++    let stats = hamhReadSessionStats(sessionManager);
++    if (stats.sessions === 0) {
++        logger.info(`last fabric removal cleanup sessions already drained fabricIndex=${fabricIndex}`);
++        return;
++    }
++
++    logger.info(
++        `waiting for active sessions before last fabric removal cleanup fabricIndex=${fabricIndex} sessions=${stats.sessions} subscriptions=${stats.subscriptions} maxWait=60s`,
++    );
++
++    while (Date.now() - startedAt < hamhLastFabricRemovalMaxWaitMs) {
++        await new Promise(resolve => setTimeout(resolve, hamhLastFabricRemovalPollMs));
++        stats = hamhReadSessionStats(sessionManager);
++        if (stats.sessions === 0) {
++            logger.info(
++                `last fabric removal cleanup sessions drained fabricIndex=${fabricIndex} waitedMs=${Date.now() - startedAt}`,
++            );
++            return;
++        }
++    }
++
++    logger.warn(
++        `last fabric removal cleanup continuing after timeout fabricIndex=${fabricIndex} sessions=${stats.sessions} subscriptions=${stats.subscriptions} waitedMs=${Date.now() - startedAt}`,
++    );
++}
  
  /**
   * Monkey patching Tlv Structure of attestationRequest and csrRequest commands to prevent data validation of the nonce
-@@ -406,6 +407,7 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
+@@ -406,6 +447,7 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
  
      override async removeFabric({ fabricIndex }: OperationalCredentials.RemoveFabricRequest) {
          assertRemoteActor(this.context);
@@ -1282,7 +1405,7 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..371839fb74ab5803f2c390e1714a128d
  
          const fabric = this.env.get(FabricManager).maybeFor(fabricIndex);
  
-@@ -420,9 +422,36 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
+@@ -420,9 +462,36 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
          // we leave the transaction open it will cause deadlock
          await this.context.transaction.rollback();
  
@@ -1298,8 +1421,8 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..371839fb74ab5803f2c390e1714a128d
 +                };
 +            }
 +
-+            logger.info(`delaying last fabric removal cleanup by 20s fabricIndex=${fabricIndex}`);
-+            const cleanup = new Promise(resolve => setTimeout(resolve, 20_000))
++            const sessionManager = this.env.get(SessionManager);
++            const cleanup = hamhWaitForLastFabricSessionsToDrain(sessionManager, fabricIndex)
 +                .then(() => fabric.leave())
 +                .catch(error => {
 +                    logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
