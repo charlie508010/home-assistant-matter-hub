@@ -1429,7 +1429,7 @@ index 33cf1714755fc69b0a14cff468bc65a90f9aa9af..71c95dc567520a1db72769125f5e6704
              }
          }
 diff --git a/src/behaviors/operational-credentials/OperationalCredentialsServer.ts b/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
-index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..0c070a22b429c86e0bde30f2bafb4c0758bb3906 100644
+index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..b16920f496c9338ed3c43893435c4fd8ad295db2 100644
 --- a/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
 +++ b/src/behaviors/operational-credentials/OperationalCredentialsServer.ts
 @@ -23,6 +23,7 @@ import { AccessLevel } from "#model";
@@ -1448,14 +1448,51 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..0c070a22b429c86e0bde30f2bafb4c07
      TlvAttestation,
      TlvCertSigningRequest,
      Val,
-@@ -55,6 +57,86 @@ import { OperationalCredentialsBehavior } from "./OperationalCredentialsBehavior
+@@ -55,6 +57,162 @@ import { OperationalCredentialsBehavior } from "./OperationalCredentialsBehavior
  import { VendorIdVerification } from "./VendorIdVerification.js";
  
  const logger = Logger.get("OperationalCredentials");
-+const hamhLastFabricRemovalCleanup = new WeakMap<FabricManager, Promise<void>>();
++interface HamhLastFabricRemovalCleanup {
++    promise?: Promise<void>;
++    expectedPeers: Set<string>;
++    confirmedPeers: Set<string>;
++}
++
++const hamhLastFabricRemovalCleanup = new WeakMap<FabricManager, HamhLastFabricRemovalCleanup>();
 +const hamhLastFabricRemovalMaxWaitMs = 60_000;
++const hamhLastFabricRemovalPeerWaitMs = 12_000;
 +const hamhLastFabricRemovalPollMs = 250;
 +const hamhLastFabricRemovalCloseDelayMs = 500;
++
++function hamhPeerKey(peerNodeId: unknown) {
++    return peerNodeId?.toString();
++}
++
++function hamhReadActivePeerKeys(sessionManager: SessionManager) {
++    const peers = new Set<string>();
++    for (const session of sessionManager.sessions) {
++        if (session.isClosing) {
++            continue;
++        }
++        const peer = hamhPeerKey(session.peerNodeId);
++        if (peer !== undefined) {
++            peers.add(peer);
++        }
++    }
++    return peers;
++}
++
++function hamhMarkRemoveFabricPeer(cleanup: HamhLastFabricRemovalCleanup, peerNodeId: unknown, fabricIndex: FabricIndex) {
++    const peer = hamhPeerKey(peerNodeId);
++    if (peer === undefined) {
++        return;
++    }
++
++    cleanup.confirmedPeers.add(peer);
++    logger.info(
++        `removeFabric peer acknowledged fabricIndex=${fabricIndex} peer=${peer} confirmed=${cleanup.confirmedPeers.size}/${cleanup.expectedPeers.size}`,
++    );
++}
 +
 +function hamhReadSessionStats(sessionManager: SessionManager) {
 +    const sessions = [...sessionManager.sessions];
@@ -1464,6 +1501,45 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..0c070a22b429c86e0bde30f2bafb4c07
 +        subscriptions += session.subscriptions?.size ?? 0;
 +    }
 +    return { sessions: sessions.length, subscriptions };
++}
++
++async function hamhWaitForLastFabricPeerRemoveFabricRequests(
++    sessionManager: SessionManager,
++    fabricIndex: FabricIndex,
++    cleanup: HamhLastFabricRemovalCleanup,
++) {
++    const startedAt = Date.now();
++    if (cleanup.expectedPeers.size === 0) {
++        logger.info(`no active peers to wait for before last fabric removal cleanup fabricIndex=${fabricIndex}`);
++        return;
++    }
++
++    logger.info(
++        `waiting for removeFabric from active peers before last fabric removal cleanup fabricIndex=${fabricIndex} confirmed=${cleanup.confirmedPeers.size}/${cleanup.expectedPeers.size} maxWait=12s`,
++    );
++
++    while (Date.now() - startedAt < hamhLastFabricRemovalPeerWaitMs) {
++        const activePeers = hamhReadActivePeerKeys(sessionManager);
++        const missingActivePeers = [...cleanup.expectedPeers].filter(
++            peer => activePeers.has(peer) && !cleanup.confirmedPeers.has(peer),
++        );
++        if (missingActivePeers.length === 0) {
++            logger.info(
++                `all active peers acknowledged removeFabric before last fabric removal cleanup fabricIndex=${fabricIndex} waitedMs=${Date.now() - startedAt}`,
++            );
++            return;
++        }
++
++        await new Promise(resolve => setTimeout(resolve, hamhLastFabricRemovalPollMs));
++    }
++
++    const activePeers = hamhReadActivePeerKeys(sessionManager);
++    const missingActivePeers = [...cleanup.expectedPeers].filter(
++        peer => activePeers.has(peer) && !cleanup.confirmedPeers.has(peer),
++    );
++    logger.warn(
++        `continuing last fabric removal cleanup before all peers acknowledged removeFabric fabricIndex=${fabricIndex} confirmed=${cleanup.confirmedPeers.size}/${cleanup.expectedPeers.size} missingActivePeers=${missingActivePeers.join(",") || "-"} waitedMs=${Date.now() - startedAt}`,
++    );
 +}
 +
 +async function hamhWaitForLastFabricSessionsToDrain(sessionManager: SessionManager, fabricIndex: FabricIndex) {
@@ -1535,7 +1611,7 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..0c070a22b429c86e0bde30f2bafb4c07
  
  /**
   * Monkey patching Tlv Structure of attestationRequest and csrRequest commands to prevent data validation of the nonce
-@@ -406,6 +488,7 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
+@@ -406,6 +564,7 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
  
      override async removeFabric({ fabricIndex }: OperationalCredentials.RemoveFabricRequest) {
          assertRemoteActor(this.context);
@@ -1543,7 +1619,7 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..0c070a22b429c86e0bde30f2bafb4c07
  
          const fabric = this.env.get(FabricManager).maybeFor(fabricIndex);
  
-@@ -420,9 +503,41 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
+@@ -420,9 +579,49 @@ export class OperationalCredentialsServer extends OperationalCredentialsBehavior
          // we leave the transaction open it will cause deadlock
          await this.context.transaction.rollback();
  
@@ -1552,6 +1628,7 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..0c070a22b429c86e0bde30f2bafb4c07
 +        if (fabricManager.fabrics.length === 1) {
 +            const activeCleanup = hamhLastFabricRemovalCleanup.get(fabricManager);
 +            if (activeCleanup !== undefined) {
++                hamhMarkRemoveFabricPeer(activeCleanup, this.context.session.peerNodeId, fabricIndex);
 +                logger.info(`last fabric removal already in progress fabricIndex=${fabricIndex}`);
 +                return {
 +                    statusCode: OperationalCredentials.NodeOperationalCertStatus.Ok,
@@ -1561,8 +1638,15 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..0c070a22b429c86e0bde30f2bafb4c07
 +
 +            const sessionManager = this.env.get(SessionManager);
 +            const advertiser = this.env.get(DeviceAdvertiser);
++            const cleanupState: HamhLastFabricRemovalCleanup = {
++                expectedPeers: hamhReadActivePeerKeys(sessionManager),
++                confirmedPeers: new Set(),
++            };
++            hamhMarkRemoveFabricPeer(cleanupState, this.context.session.peerNodeId, fabricIndex);
++            hamhLastFabricRemovalCleanup.set(fabricManager, cleanupState);
 +            const cleanup = advertiser
 +                .suppressOperationalAdvertisementDuringFabricCleanup(fabricIndex, async () => {
++                    await hamhWaitForLastFabricPeerRemoveFabricRequests(sessionManager, fabricIndex, cleanupState);
 +                    await hamhCloseActiveSessionsForLastFabricRemoval(sessionManager, fabricIndex);
 +                    await hamhWaitForLastFabricSessionsToDrain(sessionManager, fabricIndex);
 +                    await fabric.leave();
@@ -1571,7 +1655,7 @@ index dc1d41eac47ca6ba11c01ab6a181fec9e6219e08..0c070a22b429c86e0bde30f2bafb4c07
 +                    logger.warn(`removeFabric cleanup for fabricIndex=${fabricIndex} completed with stale session errors`, error);
 +                })
 +                .finally(() => hamhLastFabricRemovalCleanup.delete(fabricManager));
-+            hamhLastFabricRemovalCleanup.set(fabricManager, cleanup);
++            cleanupState.promise = cleanup;
 +        } else {
 +            try {
 +                await fabric.leave(this.context.exchange);
