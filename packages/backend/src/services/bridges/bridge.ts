@@ -33,6 +33,7 @@ import type { BridgeEndpointManager } from "./bridge-endpoint-manager.js";
 // Matter controllers. matter.js handles subscription keepalive internally
 // via empty DataReports every ~sendInterval.
 const AUTO_FORCE_SYNC_INTERVAL_MS = 90_000;
+const ALEXA_DISCOVERY_WARNING_ENDPOINTS = 35;
 
 function getAlexaPeerLogSuffix(peerNodeId: unknown): string {
   try {
@@ -407,6 +408,7 @@ export class Bridge {
         reason: "The bridge is starting... Please wait.",
       });
       await this.refreshDevices();
+      this.warnIfAlexaDiscoveryMayTimeout();
       logMemoryUsage(
         this.log,
         `after refreshDevices (${this.aggregator.parts.size} endpoints)`,
@@ -438,6 +440,17 @@ export class Bridge {
       this.log.error(reason, e);
       await this.stop(BridgeStatus.Failed, `${reason}\n${e?.toString()}`);
     }
+  }
+
+  private warnIfAlexaDiscoveryMayTimeout(): void {
+    const endpointCount = this.aggregator.parts.size;
+    if (endpointCount <= ALEXA_DISCOVERY_WARNING_ENDPOINTS) return;
+
+    this.log.warn(
+      `Alexa discovery may fail or time out with ${endpointCount} bridged endpoints. ` +
+        `Observed Alexa pairing is reliable at ${ALEXA_DISCOVERY_WARNING_ENDPOINTS} endpoints or fewer; ` +
+        "use entity filters or split devices across multiple bridges.",
+    );
   }
 
   async stop(

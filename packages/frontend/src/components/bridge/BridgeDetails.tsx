@@ -40,6 +40,8 @@ import { navigation } from "../../routes.tsx";
 import { FabricList } from "../fabric/FabricList.tsx";
 import { useNotifications } from "../notifications/use-notifications.ts";
 
+const ALEXA_DISCOVERY_WARNING_DEVICES = 35;
+
 export interface BridgeDetailsProps {
   readonly bridge: BridgeDataWithMetadata;
 }
@@ -140,6 +142,8 @@ const PairingCard = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
   };
   const fabrics = bridge.commissioning.fabrics ?? [];
   const hasConnectedFabrics = fabrics.length > 0;
+  const showAlexaDeviceWarning =
+    !hasConnectedFabrics && bridge.deviceCount > ALEXA_DISCOVERY_WARNING_DEVICES;
 
   return (
     <>
@@ -220,6 +224,16 @@ const PairingCard = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
               <Typography variant="body2" color="text.secondary">
                 {t("bridge.noControllersConnected")}
               </Typography>
+            )}
+
+            {showAlexaDeviceWarning && (
+              <Alert severity="warning" icon={<WarningAmberIcon />}>
+                <AlertTitle>{t("bridge.alexaDeviceLimitTitle")}</AlertTitle>
+                {t("bridge.alexaDeviceLimitWarning", {
+                  count: bridge.deviceCount,
+                  limit: ALEXA_DISCOVERY_WARNING_DEVICES,
+                })}
+              </Alert>
             )}
 
             <Button

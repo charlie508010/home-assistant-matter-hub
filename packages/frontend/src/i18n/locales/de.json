@@ -186,6 +186,8 @@
     "addController": "Weiteren Controller hinzufügen",
     "pairController": "Controller koppeln",
     "noControllersConnected": "Noch kein Controller verbunden",
+    "alexaDeviceLimitTitle": "Alexa kann beim Koppeln abbrechen",
+    "alexaDeviceLimitWarning": "Diese Bridge enthält {{count}} Geräte. Alexa koppelt in Tests zuverlässig bis etwa {{limit}} Geräte; darüber kann das Einlesen mit roter Meldung abbrechen. Nutze Entity-Filter oder teile die Geräte auf mehrere Bridges auf.",
     "openingCommissioning": "Kopplungsfenster wird geöffnet...",
     "fabricTooltip": "Ein Fabric stellt eine Verbindung zu einem Matter-Controller dar (z.B. Apple Home, Google Home, Alexa). Jeder Controller erstellt beim Koppeln ein Fabric.",
     "forceSync": "Synchronisation erzwingen",

@@ -186,6 +186,8 @@
     "addController": "Add Another Controller",
     "pairController": "Pair Controller",
     "noControllersConnected": "No controller connected yet",
+    "alexaDeviceLimitTitle": "Alexa may fail during pairing",
+    "alexaDeviceLimitWarning": "This bridge exposes {{count}} devices. In testing, Alexa pairs reliably up to about {{limit}} devices; above that, discovery can fail with a red error. Use entity filters or split devices across multiple bridges.",
     "openingCommissioning": "Opening Commissioning Window...",
     "fabricTooltip": "A fabric represents a connection to a Matter controller (e.g., Apple Home, Google Home, Alexa). Each controller creates one fabric when paired.",
     "forceSync": "Force Sync",
