@@ -97,6 +97,12 @@ const PairingCard = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
   const notification = useNotifications();
 
   const handleOpenCommissioningWindow = async () => {
+    const hasConnectedFabrics = (bridge.commissioning?.fabrics.length ?? 0) > 0;
+    if (!hasConnectedFabrics) {
+      setDialogOpen(true);
+      return;
+    }
+
     setOpening(true);
     try {
       await openCommissioningWindow(bridge.id);

@@ -712,7 +712,10 @@ export class Bridge {
     }
     const commissioning = this.server.state.commissioning;
     if (!commissioning.commissioned) {
-      throw new Error("Bridge is not yet commissioned");
+      this.log.info(
+        "Bridge is uncommissioned; using existing pairing window",
+      );
+      return;
     }
     await this.server.act((agent) =>
       agent.get(CommissioningServer).enterCommissionableMode(),
