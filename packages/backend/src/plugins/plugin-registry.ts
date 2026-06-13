@@ -70,7 +70,9 @@ export class PluginRegistry {
   ): InstalledPlugin {
     const existing = this.get(packageName);
     if (existing) {
-      existing.config = config;
+      if (Object.keys(config).length > 0) {
+        existing.config = config;
+      }
       this.save();
       return existing;
     }

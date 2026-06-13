@@ -149,6 +149,48 @@ describe("migratePluginStorageToActiveRootIfNeeded", () => {
     );
   });
 
+  it("does not downgrade target plugin packages when the source backend has an older dependency version", () => {
+    const root = createTempRoot();
+    roots.push(root);
+    fs.mkdirSync(path.join(root, "sqlite", "plugin-packages"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(root, "sqlite", "plugin-packages", "package.json"),
+      JSON.stringify({
+        dependencies: {
+          "hamh-plugin-native-alexa-peer-resolver":
+            "file:hamh-plugin-native-alexa-peer-resolver-0.1.32.tgz",
+        },
+      }),
+    );
+    fs.mkdirSync(path.join(root, "file", "plugin-packages"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(root, "file", "plugin-packages", "package.json"),
+      JSON.stringify({
+        dependencies: {
+          "hamh-plugin-native-alexa-peer-resolver":
+            "file:hamh-plugin-native-alexa-peer-resolver-0.1.38.tgz",
+        },
+      }),
+    );
+
+    const logger = createLogger();
+    migratePluginStorageToActiveRootIfNeeded(logger, path.join(root, "file"));
+
+    expect(
+      fs.readFileSync(
+        path.join(root, "file", "plugin-packages", "package.json"),
+        "utf-8",
+      ),
+    ).toContain("0.1.38");
+    expect(logger.info).not.toHaveBeenCalledWith(
+      "Synchronized plugin packages from sqlite to file",
+    );
+  });
+
   it("fills empty file backend plugin data from sqlite", () => {
     const root = createTempRoot();
     roots.push(root);

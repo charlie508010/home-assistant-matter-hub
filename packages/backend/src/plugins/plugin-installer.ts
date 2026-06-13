@@ -174,13 +174,22 @@ export class PluginInstaller {
   }
 
   async installFromTgz(tgzBuffer: Buffer): Promise<InstallResult> {
-    const tgzPath = path.join(this.pluginDir, `.upload-${Date.now()}.tgz`);
+    const uploadedPackage = readPackageManifestFromTgz(tgzBuffer);
+    const tgzPath = uploadedPackage?.name
+      ? path.join(
+          this.pluginDir,
+          `${safePackageFileName(uploadedPackage.name)}-${uploadedPackage.version ?? "unknown"}.tgz`,
+        )
+      : path.join(this.pluginDir, `.upload-${Date.now()}.tgz`);
     try {
-      const uploadedPackage = readPackageManifestFromTgz(tgzBuffer);
       fs.writeFileSync(tgzPath, tgzBuffer);
 
       // Snapshot deps before install to detect what was added
       const depsBefore = new Set(Object.keys(this.readDeps()));
+
+      if (uploadedPackage?.name) {
+        this.removeInstalledPackageFiles(uploadedPackage.name);
+      }
 
       const result = await this.installFromNpm(tgzPath);
       if (!result.success) return result;
@@ -213,10 +222,12 @@ export class PluginInstaller {
       logger.error("Failed to install from tgz:", msg);
       return { success: false, packageName: "unknown", error: msg };
     } finally {
-      try {
-        if (fs.existsSync(tgzPath)) fs.unlinkSync(tgzPath);
-      } catch {
-        // cleanup best-effort
+      if (!uploadedPackage?.name) {
+        try {
+          if (fs.existsSync(tgzPath)) fs.unlinkSync(tgzPath);
+        } catch {
+          // cleanup best-effort
+        }
       }
     }
   }
@@ -225,7 +236,7 @@ export class PluginInstaller {
     return new Promise((resolve) => {
       execFile(
         "npm",
-        ["install", target, "--save"],
+        ["install", target, "--save", "--force"],
         {
           cwd: this.pluginDir,
           timeout: 120_000,
@@ -333,6 +344,17 @@ export class PluginInstaller {
     }
     return null;
   }
+
+  private removeInstalledPackageFiles(packageName: string): void {
+    const target = path.join(this.pluginDir, "node_modules", packageName);
+    if (fs.existsSync(target)) {
+      fs.rmSync(target, { recursive: true, force: true });
+    }
+  }
+}
+
+function safePackageFileName(packageName: string): string {
+  return packageName.replace(/^@/, "").replace(/[\\/]/g, "__");
 }
 
 function readPackageManifestFromTgz(buffer: Buffer): PackageManifest | null {

@@ -151,7 +151,7 @@ function syncPluginPackagesIfNeeded(
   if (!fs.existsSync(source) || !hasPluginPackageData(source)) {
     return;
   }
-  if (hasPluginPackageData(target) && pluginPackagesMatch(source, target)) {
+  if (!shouldSyncPluginPackages(source, target)) {
     return;
   }
   try {
@@ -258,6 +258,38 @@ function pluginPackagesMatch(source: string, target: string): boolean {
   );
 }
 
+function shouldSyncPluginPackages(source: string, target: string): boolean {
+  if (!hasPluginPackageData(target)) {
+    return true;
+  }
+  if (pluginPackagesMatch(source, target)) {
+    return false;
+  }
+
+  const sourceDeps = readPluginPackageDependencies(source);
+  const targetDeps = readPluginPackageDependencies(target);
+  let sourceHasNewerDependency = false;
+
+  for (const [name, sourceSpec] of Object.entries(sourceDeps)) {
+    const targetSpec = targetDeps[name];
+    if (targetSpec === undefined) {
+      sourceHasNewerDependency = true;
+      continue;
+    }
+
+    const order = compareDependencyVersion(sourceSpec, targetSpec);
+    if (order > 0) {
+      sourceHasNewerDependency = true;
+      continue;
+    }
+    if (order < 0) {
+      return false;
+    }
+  }
+
+  return sourceHasNewerDependency;
+}
+
 function readPluginPackageDependencies(location: string): Record<string, string> {
   const packageJson = path.join(location, "package.json");
   if (!fs.existsSync(packageJson)) {
@@ -275,6 +307,37 @@ function readPluginPackageDependencies(location: string): Record<string, string>
   } catch {
     return {};
   }
+}
+
+function compareDependencyVersion(left: string, right: string): number {
+  const leftVersion = extractDependencyVersion(left);
+  const rightVersion = extractDependencyVersion(right);
+  if (!leftVersion || !rightVersion) {
+    return left === right ? 0 : Number.NaN;
+  }
+
+  return compareVersionParts(leftVersion, rightVersion);
+}
+
+function extractDependencyVersion(value: string): string | undefined {
+  return /(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/.exec(value)?.[1];
+}
+
+function compareVersionParts(left: string, right: string): number {
+  const [leftCore, leftPre = ""] = left.split("-", 2);
+  const [rightCore, rightPre = ""] = right.split("-", 2);
+  const leftParts = leftCore.split(".").map((part) => Number(part));
+  const rightParts = rightCore.split(".").map((part) => Number(part));
+
+  for (let i = 0; i < Math.max(leftParts.length, rightParts.length); i += 1) {
+    const diff = (leftParts[i] ?? 0) - (rightParts[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+
+  if (leftPre === rightPre) return 0;
+  if (!leftPre) return 1;
+  if (!rightPre) return -1;
+  return leftPre.localeCompare(rightPre, undefined, { numeric: true });
 }
 
 function hasInstalledPluginEntries(filePath: string): boolean {
