@@ -2,13 +2,11 @@ diff --git a/dist/cjs/behavior/system/commissioning/CommissioningServer.js b/dis
 index 7223fcaa25378958a20893bd1af9ecd9bd13d184..6d695ddd0e882cb6250b0707c0d64033a13c6291 100644
 --- a/dist/cjs/behavior/system/commissioning/CommissioningServer.js
 +++ b/dist/cjs/behavior/system/commissioning/CommissioningServer.js
-@@ -118,7 +118,12 @@ class CommissioningServer extends import_Behavior.Behavior {
+@@ -118,7 +118,10 @@ class CommissioningServer extends import_Behavior.Behavior {
      }
    }
    #triggerFactoryReset() {
 -    this.env.runtime.add(this.endpoint.erase().catch((e) => import_general.MutexClosedError.accept(e)));
-+    logger.info("closing commissioning advertisement before delayed factory reset");
-+    this.env.runtime.add(this.env.get(import_protocol.DeviceAdvertiser).exitCommissioningMode()?.catch((e) => import_general.MutexClosedError.accept(e)));
 +    logger.info("delaying factory reset after last fabric removal by 2s");
 +    this.env.runtime.add(
 +      new Promise((resolve) => setTimeout(resolve, 2e3)).then(() => this.endpoint.erase()).catch((e) => import_general.MutexClosedError.accept(e))
@@ -684,13 +682,11 @@ diff --git a/dist/esm/behavior/system/commissioning/CommissioningServer.js b/dis
 index 8c49c246e1c8225d1668f1540724554f0c6134cf..10afd1698462021a42f27ff01f7924b844d7a2a6 100644
 --- a/dist/esm/behavior/system/commissioning/CommissioningServer.js
 +++ b/dist/esm/behavior/system/commissioning/CommissioningServer.js
-@@ -122,7 +122,12 @@ class CommissioningServer extends Behavior {
+@@ -122,7 +122,10 @@ class CommissioningServer extends Behavior {
      }
    }
    #triggerFactoryReset() {
 -    this.env.runtime.add(this.endpoint.erase().catch((e) => MutexClosedError.accept(e)));
-+    logger.info("closing commissioning advertisement before delayed factory reset");
-+    this.env.runtime.add(this.env.get(DeviceAdvertiser).exitCommissioningMode()?.catch((e) => MutexClosedError.accept(e)));
 +    logger.info("delaying factory reset after last fabric removal by 2s");
 +    this.env.runtime.add(
 +      new Promise((resolve) => setTimeout(resolve, 2e3)).then(() => this.endpoint.erase()).catch((e) => MutexClosedError.accept(e))
@@ -1382,13 +1378,11 @@ diff --git a/src/behavior/system/commissioning/CommissioningServer.ts b/src/beha
 index afd68c38e8109e00aacc90156957cd90dd3a17ee..bdc59166447eb5e93985263b0ead62fbaea1a539 100644
 --- a/src/behavior/system/commissioning/CommissioningServer.ts
 +++ b/src/behavior/system/commissioning/CommissioningServer.ts
-@@ -172,7 +172,14 @@ export class CommissioningServer extends Behavior {
+@@ -172,7 +172,12 @@ export class CommissioningServer extends Behavior {
      }
  
      #triggerFactoryReset() {
 -        this.env.runtime.add((this.endpoint as ServerNode).erase().catch(e => MutexClosedError.accept(e)));
-+        logger.info("closing commissioning advertisement before delayed factory reset");
-+        this.env.runtime.add(this.env.get(DeviceAdvertiser).exitCommissioningMode()?.catch(e => MutexClosedError.accept(e)));
 +        logger.info("delaying factory reset after last fabric removal by 2s");
 +        this.env.runtime.add(
 +            new Promise(resolve => setTimeout(resolve, 2_000))
